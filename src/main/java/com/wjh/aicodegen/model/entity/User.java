@@ -1,4 +1,4 @@
-package com.wjh.aicodegen.mdoel.entity;
+package com.wjh.aicodegen.model.entity;
 
 import com.mybatisflex.annotation.Column;
 import com.mybatisflex.annotation.Id;
@@ -14,7 +14,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.ibatis.executor.keygen.KeyGenerator;
 
 /**
  * 用户 实体类。
@@ -98,4 +97,33 @@ public class User implements Serializable {
     @Column(value = "isDelete", isLogicDelete = true)
     private Integer isDelete;
 
+    /**
+     * 会员过期时间
+     */
+    @Column("vipExpireTime")
+    private LocalDateTime vipExpireTime;
+
+    /**
+     * 会员兑换码
+     */
+    @Column("vipCode")
+    private String vipCode;
+
+    /**
+     * 会员编号
+     */
+    @Column("vipNumber")
+    private Long vipNumber;
+
+    /**
+     * 分享码
+     */
+    @Column("shareCode")
+    private String shareCode;
+
+    /**
+     * 邀请用户 id
+     */
+    @Column("inviteUser")
+    private Long inviteUser;
 }

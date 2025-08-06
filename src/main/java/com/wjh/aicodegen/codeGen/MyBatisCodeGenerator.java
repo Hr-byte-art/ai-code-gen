@@ -11,7 +11,7 @@ import java.util.Map;
 public class MyBatisCodeGenerator {
 
     // 需要生成的表名
-    private static final String[] TABLE_NAMES = {"user"};
+    private static final String[] TABLE_NAMES = {"vip_code"};
 
     public static void main(String[] args) {
         // 获取数据源信息
@@ -70,7 +70,7 @@ public class MyBatisCodeGenerator {
         // 设置生成时间和字符串为空，避免多余的代码改动
         globalConfig.getJavadocConfig()
                 .setAuthor("王哈哈")
-                .setSince("2025-08-05 16:50:59");
+                .setSince("2025-08-06 10:50:59");
         return globalConfig;
     }
 }

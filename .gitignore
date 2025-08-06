@@ -6,7 +6,7 @@ target/
 
 #### Customized ignore rules for this project###
 src/main/resources/application-local.yml
-
+tmp/*
 
 ### STS ###
 .apt_generated

@@ -1,4 +1,4 @@
-package com.wjh.aicodegen.mdoel.dto.user;
+package com.wjh.aicodegen.model.dto.user;
 
 import lombok.Data;
 
@@ -28,4 +28,9 @@ public class UserRegisterRequest implements Serializable {
      * 确认密码
      */
     private String checkPassword;
+
+    /**
+     * 邀请码
+     */
+    private String shareCode;
 }

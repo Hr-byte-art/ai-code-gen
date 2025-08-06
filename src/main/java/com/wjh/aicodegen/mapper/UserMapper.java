@@ -1,7 +1,7 @@
 package com.wjh.aicodegen.mapper;
 
 import com.mybatisflex.core.BaseMapper;
-import com.wjh.aicodegen.mdoel.entity.User;
+import com.wjh.aicodegen.model.entity.User;
 
 /**
  * 用户 映射层。

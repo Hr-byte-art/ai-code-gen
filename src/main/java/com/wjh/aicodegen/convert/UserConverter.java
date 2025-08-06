@@ -1,10 +1,12 @@
 package com.wjh.aicodegen.convert;
 
-import com.wjh.aicodegen.mdoel.dto.user.UserAddRequest;
-import com.wjh.aicodegen.mdoel.dto.user.UserUpdateRequest;
-import com.wjh.aicodegen.mdoel.entity.User;
-import com.wjh.aicodegen.mdoel.vo.user.LoginUserVO;
+import com.wjh.aicodegen.model.dto.user.UserAddRequest;
+import com.wjh.aicodegen.model.dto.user.UserUpdateRequest;
+import com.wjh.aicodegen.model.entity.User;
+import com.wjh.aicodegen.model.vo.user.LoginUserVO;
+import com.wjh.aicodegen.model.vo.user.UserVO;
 import org.mapstruct.Mapper;
+import org.springframework.stereotype.Component;
 
 /**
  * @Author 王哈哈
@@ -17,4 +19,5 @@ public interface UserConverter {
     LoginUserVO toLoginUserVO(User user);
     User toUser(UserUpdateRequest userUpdateRequest);
     User toUser(UserAddRequest userAddRequest);
+    UserVO toUserVO(User user);
 }

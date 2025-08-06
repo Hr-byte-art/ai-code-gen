@@ -1,6 +1,5 @@
 package com.wjh.aicodegen.service.impl;
 
-import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -9,17 +8,21 @@ import com.wjh.aicodegen.convert.UserConverter;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.mapper.UserMapper;
-import com.wjh.aicodegen.mdoel.dto.user.UserQueryRequest;
-import com.wjh.aicodegen.mdoel.entity.User;
-import com.wjh.aicodegen.mdoel.enums.UserRoleEnum;
-import com.wjh.aicodegen.mdoel.vo.user.LoginUserVO;
-import com.wjh.aicodegen.mdoel.vo.user.UserVO;
+import com.wjh.aicodegen.model.dto.user.UserQueryRequest;
+import com.wjh.aicodegen.model.entity.User;
+import com.wjh.aicodegen.model.entity.VipCode;
+import com.wjh.aicodegen.model.enums.UserRoleEnum;
+import com.wjh.aicodegen.model.vo.user.LoginUserVO;
+import com.wjh.aicodegen.model.vo.user.UserVO;
 import com.wjh.aicodegen.service.UserService;
+import com.wjh.aicodegen.service.VipCodeService;
+import com.wjh.aicodegen.utils.ThrowUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -39,8 +42,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Resource
     private UserConverter userConverter;
 
+    @Resource
+    private VipCodeService vipCodeService;
+
     @Override
-    public long userRegister(String userAccount, String userPassword, String checkPassword) {
+    public long userRegister(String userAccount, String userPassword, String checkPassword,String shareCode) {
         // 1. 校验
         if (StrUtil.hasBlank(userAccount, userPassword, checkPassword)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
@@ -70,6 +76,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 用户名为 用户+随机6位
         user.setUserName("用户" + genRandomChars());
         user.setUserRole(UserRoleEnum.USER.getValue());
+        // 使用当前时间搓 加 随机数 作为 shareCode
+        user.setShareCode(String.valueOf(System.currentTimeMillis() + genRandomChars()));
+        // 如果邀请码不为空，则查询邀请码
+        if (StrUtil.isNotBlank(shareCode)) {
+            // 查询邀请码
+            User one = this.getOne(QueryWrapper.create().eq(User::getShareCode, shareCode));
+            if (one != null) {
+                // 添加邀请人
+                user.setInviteUser(one.getId());
+            }
+        }
+
         boolean saveResult = this.save(user);
         if (!saveResult) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "注册失败，数据库错误");
@@ -189,9 +207,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (user == null) {
             return null;
         }
-        UserVO userVO = new UserVO();
-        BeanUtil.copyProperties(user, userVO);
-        return userVO;
+        return userConverter.toUserVO(user);
     }
 
     @Override
@@ -221,6 +237,55 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .like("userName", userName)
                 .like("userProfile", userProfile)
                 .orderBy(sortField, "ascend".equals(sortOrder));
+    }
+
+    @Override
+    public UserVO vipCodeRedemption(String vipCode, HttpServletRequest request) {
+        // 获取当前用户
+        User currentUser = this.getLoginUser(request);
+        if (currentUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        QueryWrapper queryWrapper = new QueryWrapper().create()
+                .eq(VipCode::getVipCode, vipCode);
+        VipCode vipCodeInfo = vipCodeService.getOne(queryWrapper);
+        if (vipCodeInfo == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        // 校验兑换码是否过期
+        ThrowUtils.throwIf(vipCodeInfo.getExpDate().isBefore(LocalDateTime.now())  , ErrorCode.OPERATION_ERROR , "兑换码已过期");
+        //检查是否查过最大使用人数
+        ThrowUtils.throwIf(vipCodeInfo.getMaxUseNum() <= vipCodeInfo.getUseNum() , ErrorCode.OPERATION_ERROR , "兑换码已超最大使用人数");
+        // 获取当前兑换的时间
+        Integer effectiveDay = vipCodeInfo.getEffectiveDay();
+        // 校验是否使用过该验证码
+        String currentUserVipCode = currentUser.getVipCode();
+        if (currentUserVipCode !=  null){
+            ThrowUtils.throwIf(currentUserVipCode.equals(vipCodeInfo.getVipCode()) , ErrorCode.OPERATION_ERROR , "请勿重复使用");
+        }
+        currentUser.setVipCode(vipCode);
+        // 修改用户角色 -- 如果是admin 就不变
+        if (!currentUser.getUserRole().equals(UserRoleEnum.ADMIN.getValue())){
+            currentUser.setUserRole(UserRoleEnum.VIP.getValue());
+        }
+        currentUser.setVipCode(vipCodeInfo.getVipCode());
+        currentUser.setVipExpireTime(LocalDateTime.now().plusDays(effectiveDay));
+        // 时间戳
+        long currentTimeMillis = System.currentTimeMillis();
+        // 设置会员编号(时间戳+过期时间)
+        currentUser.setVipNumber(currentTimeMillis + effectiveDay);
+        // 更新用户
+        this.updateById(currentUser);
+        return this.getUserVO(currentUser);
+    }
+
+    @Override
+    public List<UserVO> myInvited(HttpServletRequest request) {
+        // 获取当前用户
+        User loginUser = getLoginUser(request);
+        QueryWrapper queryWrapper = new QueryWrapper().eq(User::getInviteUser, loginUser.getId());
+        List<User> list = this.list(queryWrapper);
+        return this.getUserVOList(list);
     }
 
 

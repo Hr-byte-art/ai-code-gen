@@ -1,6 +1,5 @@
 package com.wjh.aicodegen.controller;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.mybatisflex.core.paginate.Page;
 import com.wjh.aicodegen.annotation.AuthCheck;
 import com.wjh.aicodegen.common.BaseResponse;
@@ -9,9 +8,9 @@ import com.wjh.aicodegen.constant.UserConstant;
 import com.wjh.aicodegen.convert.UserConverter;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
-import com.wjh.aicodegen.mdoel.dto.user.*;
-import com.wjh.aicodegen.mdoel.vo.user.LoginUserVO;
-import com.wjh.aicodegen.mdoel.vo.user.UserVO;
+import com.wjh.aicodegen.model.dto.user.*;
+import com.wjh.aicodegen.model.vo.user.LoginUserVO;
+import com.wjh.aicodegen.model.vo.user.UserVO;
 import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.utils.ThrowUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -19,19 +18,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.wjh.aicodegen.mdoel.entity.User;
 import com.wjh.aicodegen.service.UserService;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
+import com.wjh.aicodegen.model.entity.User;
 /**
  * 用户 控制层。
  *
@@ -62,7 +57,8 @@ public class UserController {
         long userRegister = userService.userRegister(
                 userRegisterRequest.getUserAccount(),
                 userRegisterRequest.getUserPassword(),
-                userRegisterRequest.getCheckPassword());
+                userRegisterRequest.getCheckPassword(),
+                userRegisterRequest.getShareCode());
         return ResultUtils.success(userRegister);
     }
 
@@ -185,4 +181,9 @@ public class UserController {
     }
 
 
+    @PostMapping("/myInvited")
+    @Operation(summary =  "获取我邀请的" , responses = {@ApiResponse(description = "用户列表")})
+    public BaseResponse<List<UserVO>> myInvited(HttpServletRequest  request){
+        return ResultUtils.success(userService.myInvited(request));
+    }
 }

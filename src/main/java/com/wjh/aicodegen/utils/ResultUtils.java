@@ -13,7 +13,7 @@ public class ResultUtils {
      * @return 响应
      */
     public static <T> BaseResponse<T> success(T data) {
-        return new BaseResponse<>(0, data, "SUCCESSFULLY EXECUTED");
+        return new BaseResponse<>(0, data, "执行成功");
     }
 
     /**

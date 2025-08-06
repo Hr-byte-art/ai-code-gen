@@ -2,10 +2,10 @@ package com.wjh.aicodegen.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
-import com.wjh.aicodegen.mdoel.dto.user.UserQueryRequest;
-import com.wjh.aicodegen.mdoel.entity.User;
-import com.wjh.aicodegen.mdoel.vo.user.LoginUserVO;
-import com.wjh.aicodegen.mdoel.vo.user.UserVO;
+import com.wjh.aicodegen.model.dto.user.UserQueryRequest;
+import com.wjh.aicodegen.model.entity.User;
+import com.wjh.aicodegen.model.vo.user.LoginUserVO;
+import com.wjh.aicodegen.model.vo.user.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
@@ -25,7 +25,7 @@ public interface UserService extends IService<User> {
      * @param checkPassword 校验密码
      * @return 新用户 id
      */
-    long userRegister(String userAccount, String userPassword, String checkPassword);
+    long userRegister(String userAccount, String userPassword, String checkPassword , String shareCode);
 
     /**
      * 获取加密密码
@@ -90,4 +90,19 @@ public interface UserService extends IService<User> {
      * @return
      */
     QueryWrapper getUserPage(UserQueryRequest userQueryRequest);
+
+    /**
+     * 会员码兑换会员
+     *
+     * @param request
+     * @return
+     */
+    UserVO vipCodeRedemption(String vipCode, HttpServletRequest request);
+
+    /**
+     * 获取当前用户邀请的会员
+     *
+     * @return
+     */
+    List<UserVO> myInvited(HttpServletRequest request);
 }

@@ -1,4 +1,4 @@
-package com.wjh.aicodegen.mdoel.vo.user;
+package com.wjh.aicodegen.model.vo.user;
 
 import lombok.Data;
 
