@@ -5,7 +5,6 @@ import com.wjh.aicodegen.ai.model.MultiFileCodeResult;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -28,4 +27,3 @@ class AiCodeGeneratorServiceTest {
         log.info( "result:{}",multiFileCode );
     }
 }
-
