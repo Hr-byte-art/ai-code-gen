@@ -1,0 +1,36 @@
+package com.wjh.aicodegen.core.deploy;
+
+import jakarta.annotation.PreDestroy;
+import jakarta.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+/**
+ * @author 木子宸
+ */
+@Component
+public class ServeLifecycleManager {
+    
+    @Resource
+    private ServeDeployService serveDeployService;
+
+    /**
+     * Spring Boot 启动完成后启动 Serve 服务
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        System.out.println("Application started, starting Serve service...");
+        serveDeployService.startServeService();
+    }
+    
+    /**
+     * Spring Boot 关闭时停止 Serve 服务
+     */
+    @PreDestroy
+    public void onApplicationShutdown() {
+        System.out.println("Application ended, Shutting down Serve service...");
+        serveDeployService.stopServeService();
+    }
+}
