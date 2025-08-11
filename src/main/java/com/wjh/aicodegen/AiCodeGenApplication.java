@@ -1,5 +1,6 @@
 package com.wjh.aicodegen;
 
+import dev.langchain4j.community.store.embedding.redis.spring.RedisEmbeddingStoreAutoConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -12,7 +13,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 // 启动时开启aop
 @EnableAspectJAutoProxy(exposeProxy = true)
 @MapperScan("com.wjh.aicodegen.mapper")
-@SpringBootApplication
+@SpringBootApplication(exclude = {RedisEmbeddingStoreAutoConfiguration.class})
 @Slf4j
 public class AiCodeGenApplication {
 

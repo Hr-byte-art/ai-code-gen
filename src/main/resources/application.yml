@@ -3,10 +3,16 @@ spring:
     name: ai-code-gen-backend
   profiles:
     active: local
+  session:
+    store-type: redis
+    timeout: 2592000
 server:
   port: 8123
   servlet:
     context-path: /api
+    session:
+      cookie:
+        max-age: 2592000
 # springdoc-openapi
 springdoc:
   group-configs:
