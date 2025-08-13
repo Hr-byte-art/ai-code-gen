@@ -98,7 +98,7 @@ public class AiCodeGeneratorServiceFactory {
         return switch (codeGenType) {
             // Vue 项目生成使用推理模型
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
-                    .streamingChatModel((dev.langchain4j.model.chat.StreamingChatModel) reasoningStreamingChatModel)
+                    .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
                     .tools(new FileWriteTool())
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
@@ -108,7 +108,7 @@ public class AiCodeGeneratorServiceFactory {
             // HTML 和多文件生成使用默认模型
             case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
                     .chatModel(chatModel)
-                    .streamingChatModel((dev.langchain4j.model.chat.StreamingChatModel) openAiStreamingChatModel)
+                    .streamingChatModel( openAiStreamingChatModel)
                     .chatMemory(chatMemory)
                     .build();
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
