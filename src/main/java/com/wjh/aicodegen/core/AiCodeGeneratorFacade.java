@@ -142,6 +142,11 @@ public class AiCodeGeneratorFacade {
                         ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
                         sink.next(JSONUtil.toJsonStr(toolRequestMessage));
                     })
+                    /**
+                     * 作用：处理 AI 模型返回的工具执行结果
+                     * 触发时机：当 AI 模型调用工具时，会返回工具执行结果
+                     * 用途：用于实现工具执行的实时反馈，让用户能够看到工具执行的进度和结果
+                     */
                     .onToolExecuted((ToolExecution toolExecution) -> {
                         ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
                         sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
