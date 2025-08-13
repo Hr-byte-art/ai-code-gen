@@ -138,6 +138,11 @@ public class AiCodeGeneratorFacade {
                         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
                         sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                     })
+                    /**
+                     * 作用：处理 AI 模型返回的工具调用信息
+                     * 触发时机：当 AI 模型需要调用工具时，会返回工具调用信息
+                     * 用途：用于实现工具调用的实时反馈，让用户能够看到工具调用的进度和结果
+                     */
                     .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
                         ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
                         sink.next(JSONUtil.toJsonStr(toolRequestMessage));
