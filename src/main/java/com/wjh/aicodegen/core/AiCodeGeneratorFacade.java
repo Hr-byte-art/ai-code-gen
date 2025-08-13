@@ -129,6 +129,11 @@ public class AiCodeGeneratorFacade {
      */
     private Flux<String> processTokenStream(TokenStream tokenStream) {
         return Flux.create(sink -> {
+            /**
+             * 作用：处理 AI 模型返回的部分响应内容
+             * 触发时机：当 AI 模型逐步生成响应文本时，会分批返回文本片段
+             * 用途：用于实现实时流式输出，让用户能够逐步看到 AI 生成的内容，而不需要等待完整响应
+             */
             tokenStream.onPartialResponse((String partialResponse) -> {
                         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
                         sink.next(JSONUtil.toJsonStr(aiResponseMessage));
