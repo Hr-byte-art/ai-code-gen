@@ -26,4 +26,6 @@ class AiCodeGeneratorServiceTest {
         MultiFileCodeResult multiFileCode = aiCodeGeneratorService.generateMultiFileCode("做个“爱小朱的王哈哈”的留言板");
         log.info( "result:{}",multiFileCode );
     }
+
+
 }
