@@ -102,6 +102,7 @@ public class AiCodeGeneratorFacade {
      */
     private Flux<String> processTokenStream(TokenStream tokenStream) {
         return Flux.create(sink -> {
+
             tokenStream
                     /*
                      * 作用：处理 AI 模型返回的部分响应内容
@@ -153,7 +154,6 @@ public class AiCodeGeneratorFacade {
 
 //    /**
 //     * 统一入口：根据类型生成并保存代码（使用 appId）
-//     *
 //     * @param userMessage     用户提示词
 //     * @param codeGenTypeEnum 生成类型
 //     * @return 保存的目录

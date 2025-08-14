@@ -6,6 +6,8 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
+import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
+import com.wjh.aicodegen.common.BaseResponse;
 import com.wjh.aicodegen.constant.AppConstant;
 import com.wjh.aicodegen.convert.AppConverter;
 import com.wjh.aicodegen.core.AiCodeGeneratorFacade;
@@ -13,20 +15,23 @@ import com.wjh.aicodegen.core.builder.VueProjectBuilder;
 import com.wjh.aicodegen.core.handler.StreamHandlerExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
+import com.wjh.aicodegen.mapper.AppMapper;
+import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
 import com.wjh.aicodegen.model.entity.App;
-import com.wjh.aicodegen.mapper.AppMapper;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
-import com.wjh.aicodegen.service.AppService;
-import com.wjh.aicodegen.service.ChatHistoryService;
-import com.wjh.aicodegen.service.UserService;
+import com.wjh.aicodegen.service.*;
+import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.utils.ThrowUtils;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -47,7 +52,10 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
-public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService{
+public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
+
+    @Value("${cos.client.host}")
+    private String cosClientHost;
 
     @Resource
     private UserService userService;
@@ -66,6 +74,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ScreenshotService screenshotService;
+
+    @Resource
+    protected ProjectDownloadService projectDownloadService;
+
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+    /**
+     * 默认应用图标
+     */
+    String DEFAULT_PROJECT_COVER= cosClientHost+"/screenshots/default/default_project_cover.jpg";
 
     @Override
     public AppVO getAppVO(App app) {
@@ -148,7 +169,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
-
         // 5. 添加用户信息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         // 6. 调用 AI 代码生成器
@@ -196,22 +216,25 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             // 构建完成后，将构建项目的 dist 目录复制到部署目录
             sourceDir = distDir;
         }
-        // 7. 复制文件到部署目录
+        // 8. 复制文件到部署目录
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
         try {
             FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败：" + e.getMessage());
         }
-        // 8. 更新应用的 deployKey 和部署时间
+        // 9. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
         updateApp.setId(appId);
         updateApp.setDeployKey(deployKey);
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
-        // 9. 返回可访问的 URL
-        return String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        // 10. 构建应用访问 URL
+        String appDeployUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        // 11. 异步生成截图并更新应用封面
+        generateAppScreenshotAsync(appId, appDeployUrl);
+        return appDeployUrl;
     }
 
     /**
@@ -239,6 +262,64 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         }
         // 删除应用
         return super.removeById(id);
+    }
+
+
+    @Override
+    public void generateAppScreenshotAsync(Long appId, String appUrl) {
+        // 使用虚拟线程异步执行
+        Thread.startVirtualThread(() -> {
+            // 调用截图服务生成截图并上传
+            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+            // 更新应用封面字段
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setCover(screenshotUrl);
+            boolean updated = this.updateById(updateApp);
+            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+        });
+    }
+
+    @Override
+    public void downloadAppCode(Long appId, HttpServletRequest request, HttpServletResponse response) {
+        // 1. 查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        // 2. 权限校验：只有应用创建者可以下载代码
+        User loginUser = userService.getLoginUser(request);
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限下载该应用代码");
+        }
+        // 3. 构建应用代码目录路径（生成目录，非部署目录）
+        String codeGenType = app.getCodeGenType();
+        String sourceDirName = codeGenType + "_" + appId;
+        String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
+        // 4. 检查代码目录是否存在
+        File sourceDir = new File(sourceDirPath);
+        ThrowUtils.throwIf(!sourceDir.exists() || !sourceDir.isDirectory(),
+                ErrorCode.NOT_FOUND_ERROR, "应用代码不存在，请先生成代码");
+        // 5. 生成下载文件名（不建议添加中文内容）
+        String downloadFileName = String.valueOf(appId);
+        // 6. 调用通用下载服务
+        projectDownloadService.downloadProjectAsZip(sourceDirPath, downloadFileName, response);
+    }
+
+    @Override
+    public Long createApp(AppAddRequest appAddRequest, User loginUser, String initPrompt) {
+        // 构造入库对象
+        App app = appConverter.toApp(appAddRequest);
+        app.setUserId(loginUser.getId());
+        //TODO 应用名称暂时为 initPrompt 前 12 位
+        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+        // 调用 Ai 决策使用类型
+        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        app.setCodeGenType(codeGenTypeEnum.getValue());
+        // 默认项目封面
+        app.setCover(DEFAULT_PROJECT_COVER);
+        // 插入数据库
+        boolean result = this.save(app);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return app.getId();
     }
 
 }

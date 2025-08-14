@@ -2,10 +2,14 @@ package com.wjh.aicodegen.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.wjh.aicodegen.common.BaseResponse;
+import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
 import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.vo.app.AppVO;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -61,4 +65,31 @@ public interface AppService extends IService<App> {
      * @return string
      */
     String deployApp(Long appId, User loginUser);
+
+    /**
+     * 异步生成应用截图并更新封面
+     *
+     * @param appId  应用ID
+     * @param appUrl 应用访问URL
+     */
+    void generateAppScreenshotAsync(Long appId, String appUrl);
+
+    /**
+     * 应用下载
+     *
+     * @param appId appId
+     * @param request request
+     * @param response response
+     */
+    void downloadAppCode(Long appId, HttpServletRequest request, HttpServletResponse response);
+
+    /**
+     * 创建应用
+     *
+     * @param appAddRequest appAddRequest
+     * @param loginUser loginUser
+     * @param initPrompt initPrompt
+     * @return appId
+     */
+    Long createApp(AppAddRequest appAddRequest, User loginUser, String initPrompt);
 }

@@ -16,6 +16,7 @@ import com.wjh.aicodegen.model.dto.app.*;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
+import com.wjh.aicodegen.service.ProjectDownloadService;
 import com.wjh.aicodegen.service.UserService;
 import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.utils.ThrowUtils;
@@ -23,6 +24,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +34,7 @@ import com.wjh.aicodegen.service.AppService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -52,8 +56,15 @@ public class AppController {
     @Resource
     private AppService appService;
 
+
+    @Resource
+    private ProjectDownloadService projectDownloadService;
+
     @Resource
     private AppConverter appConverter;
+
+
+
 
     /**
      * 创建应用
@@ -65,24 +76,16 @@ public class AppController {
     @PostMapping("/create")
     @Operation(summary = "创建应用")
     public BaseResponse<Long> createApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser ==  null, ErrorCode.NOT_LOGIN_ERROR);
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
         // 参数校验
         String initPrompt = appAddRequest.getInitPrompt();
         ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
-        // 获取当前登录用户
-        User loginUser = userService.getLoginUser(request);
-        // 构造入库对象
-        App app = appConverter.toApp(appAddRequest);
-        app.setUserId(loginUser.getId());
-        //TODO 应用名称暂时为 initPrompt 前 12 位
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
-        //TODO 暂时设置为html文件生成
-        app.setCodeGenType(CodeGenTypeEnum.HTML.getValue());
-        // 插入数据库
-        boolean result = appService.save(app);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return ResultUtils.success(app.getId());
+        Long appId = appService.createApp(appAddRequest, loginUser, initPrompt);
+        return ResultUtils.success(appId);
     }
+
 
     /**
      * 更新应用（用户只能更新自己的应用名称）
@@ -357,6 +360,22 @@ public class AppController {
         // 调用服务部署应用
         String deployUrl = appService.deployApp(appId, loginUser);
         return ResultUtils.success(deployUrl);
+    }
+
+
+
+    /**
+     * 下载应用代码
+     *
+     * @param appId    应用ID
+     * @param request  请求
+     * @param response 响应
+     */
+    @GetMapping("/download/{appId}")
+    @Operation(summary = "应用下载")
+    public void downloadAppCode(@PathVariable Long appId, HttpServletRequest request, HttpServletResponse response) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        appService.downloadAppCode(appId, request, response);
     }
 
 
