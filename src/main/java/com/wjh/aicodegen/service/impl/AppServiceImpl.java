@@ -2,12 +2,12 @@ package com.wjh.aicodegen.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
-import com.wjh.aicodegen.common.BaseResponse;
 import com.wjh.aicodegen.constant.AppConstant;
 import com.wjh.aicodegen.convert.AppConverter;
 import com.wjh.aicodegen.core.AiCodeGeneratorFacade;
@@ -15,6 +15,7 @@ import com.wjh.aicodegen.core.builder.VueProjectBuilder;
 import com.wjh.aicodegen.core.handler.StreamHandlerExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
+import com.wjh.aicodegen.manager.CosManager;
 import com.wjh.aicodegen.mapper.AppMapper;
 import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
@@ -25,19 +26,25 @@ import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
 import com.wjh.aicodegen.service.*;
-import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.utils.ThrowUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -56,6 +63,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Value("${cos.client.host}")
     private String cosClientHost;
+
+    /**
+     * 默认应用图标
+     */
+    String DEFAULT_PROJECT_COVER = cosClientHost + "/screenshots/default/default_project_cover.jpg";
 
     @Resource
     private UserService userService;
@@ -83,10 +95,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
-    /**
-     * 默认应用图标
-     */
-    String DEFAULT_PROJECT_COVER= cosClientHost+"/screenshots/default/default_project_cover.jpg";
+
+    @Resource
+    private CosManager cosManager;
 
     @Override
     public AppVO getAppVO(App app) {
@@ -322,4 +333,47 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return app.getId();
     }
 
+    @Override
+    public String uploadPictures(MultipartFile file) {
+        // 1. 获取文件名
+        String fileName = file.getOriginalFilename();
+
+        // 2. 验证文件名安全性，防止目录遍历攻击
+        if (fileName == null || fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "文件名不合法");
+        }
+
+        // 3. 获取文件后缀
+        String suffix = FileUtil.getSuffix(fileName);
+
+        // 4. 生成唯一文件名避免覆盖
+        String uniqueFileName = UUID.randomUUID().toString().replace("-", "") + "." + suffix;
+
+        // 5. 文件路径
+        String filePath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "ChatPictures" + File.separator + uniqueFileName;
+        Path path = Paths.get(filePath);
+        // 6. 确保目录存在
+        try {
+            Files.createDirectories(path.getParent());
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "创建目录失败：" + e.getMessage());
+        }
+        // 7. 写入文件
+        try {
+            FileUtil.writeBytes(file.getBytes(), filePath);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "文件写入失败：" + e.getMessage());
+        }
+        // 8. 文件上传
+        File uploadFile = new File(filePath);
+        String result;
+        try {
+            String uploadFilePath = StrUtil.format("{}/{}", "ChatPicture", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")));
+            result = cosManager.uploadFile(uploadFilePath, uploadFile);
+        } finally {
+            // 9. 清理临时文件，确保即使上传失败也能删除
+            FileUtil.del(uploadFile);
+        }
+        return result;
+    }
 }

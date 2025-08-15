@@ -9,6 +9,8 @@ import com.wjh.aicodegen.ai.model.message.AiResponseMessage;
 import com.wjh.aicodegen.ai.model.message.StreamMessage;
 import com.wjh.aicodegen.ai.model.message.ToolExecutedMessage;
 import com.wjh.aicodegen.ai.model.message.ToolRequestMessage;
+import com.wjh.aicodegen.ai.tools.BaseTool;
+import com.wjh.aicodegen.ai.tools.ToolManager;
 import com.wjh.aicodegen.constant.AppConstant;
 import com.wjh.aicodegen.core.builder.VueProjectBuilder;
 import com.wjh.aicodegen.model.entity.User;
@@ -36,6 +38,10 @@ public class JsonMessageStreamHandler {
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ToolManager toolManager;
+
     /**
      * 处理 TokenStream（VUE_PROJECT）
      * 解析 JSON 消息并重组为完整的响应格式
@@ -96,7 +102,8 @@ public class JsonMessageStreamHandler {
                     if (toolId != null && !seenToolIds.contains(toolId)) {
                         // 第一次调用这个工具，记录 ID 并完整返回工具信息
                         seenToolIds.add(toolId);
-                        return "\n\n[选择工具] 写入文件\n\n";
+                        BaseTool tool = toolManager.getTool(toolRequestMessage.getName());
+                        return tool.generateToolRequestResponse();
                     } else {
                         // 不是第一次调用这个工具，直接返回空
                         return "";
@@ -104,20 +111,16 @@ public class JsonMessageStreamHandler {
                 }
                 case TOOL_EXECUTED -> {
                     ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(chunk, ToolExecutedMessage.class);
-                    JSONObject jsonObject = JSONUtil.parseObj(toolExecutedMessage.getArguments());
-                    String relativeFilePath = jsonObject.getStr("relativeFilePath");
-                    String suffix = FileUtil.getSuffix(relativeFilePath);
-                    String content = jsonObject.getStr("content");
-                    String result = String.format("""
-                            [工具调用] 写入文件 %s
-                            ```%s
-                            %s
-                            ```
-                            """, relativeFilePath, suffix, content);
-                    // 输出前端和要持久化的内容
-                    String output = String.format("\n\n%s\n\n", result);
-                    chatHistoryStringBuilder.append(output);
-                    return output;
+                    String name = toolExecutedMessage.getName();
+                    String arguments = toolExecutedMessage.getArguments();
+                    JSONObject argumentJSON = JSONUtil.parseObj(arguments);
+                    // 根据工具的名称获取工具 并生成工具执行结果
+                    BaseTool tool = toolManager.getTool(name);
+                    String result = tool.generateToolExecutedResult(argumentJSON);
+                    // 拼接工具执行结果
+                    String outPut = String.format("\n\n%s\n\n", result);
+                    chatHistoryStringBuilder.append(outPut);
+                    return outPut;
                 }
                 default -> {
                     log.error("不支持的消息类型: {}", typeEnum);

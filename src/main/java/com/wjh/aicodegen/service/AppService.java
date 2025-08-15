@@ -10,6 +10,7 @@ import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -92,4 +93,12 @@ public interface AppService extends IService<App> {
      * @return appId
      */
     Long createApp(AppAddRequest appAddRequest, User loginUser, String initPrompt);
+
+    /**
+     * 上传图片 （返回可访问的url）
+     *
+     * @param file file
+     * @return string
+     */
+    String uploadPictures(MultipartFile file);
 }

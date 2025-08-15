@@ -3,7 +3,7 @@ package com.wjh.aicodegen.ai.factory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
-import com.wjh.aicodegen.ai.tools.FileWriteTool;
+import com.wjh.aicodegen.ai.tools.*;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
@@ -42,6 +42,8 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private StreamingChatModel reasoningStreamingChatModel;
 
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * AI 服务实例缓存
@@ -93,14 +95,19 @@ public class AiCodeGeneratorServiceFactory {
                 .maxMessages(20)
                 .build();
         // 从数据库加载历史对话到记忆中
-            chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 4);
+        chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 4);
         // 根据代码生成类型选择不同的模型配置
         return switch (codeGenType) {
             // Vue 项目生成使用推理模型
             case VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+//                    .tools(new FileDeleteTool(),
+//                            new FileDirReadTool(),
+//                            new FileModifyTool(),
+//                            new FileReadTool(),
+//                            new FileWriteTool())
+                    .tools(toolManager.getAllTools())
                     .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                             toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                     ))
@@ -108,7 +115,7 @@ public class AiCodeGeneratorServiceFactory {
             // HTML 和多文件生成使用默认模型
             case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
                     .chatModel(chatModel)
-                    .streamingChatModel( openAiStreamingChatModel)
+                    .streamingChatModel(openAiStreamingChatModel)
                     .chatMemory(chatMemory)
                     .build();
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
@@ -172,7 +179,6 @@ public class AiCodeGeneratorServiceFactory {
 //    public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
 //        return serviceCache.get(appId, this::createAiCodeGeneratorService);
 //    }
-
 
 
 }

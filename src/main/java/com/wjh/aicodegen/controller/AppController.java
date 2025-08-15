@@ -31,6 +31,7 @@ import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
 import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.service.AppService;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -378,5 +379,12 @@ public class AppController {
         appService.downloadAppCode(appId, request, response);
     }
 
+
+    @PostMapping("/upload/Pictures")
+    @Operation(summary = "上传图片")
+    public BaseResponse<String> uploadPictures(@RequestParam("file") MultipartFile file) {
+        String upload = appService.uploadPictures(file);
+        return ResultUtils.success(upload);
+    }
 
 }
