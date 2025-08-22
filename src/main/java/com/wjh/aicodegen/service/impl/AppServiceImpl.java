@@ -326,6 +326,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
         app.setCodeGenType(codeGenTypeEnum.getValue());
         // 默认项目封面
+        if (cosClientHost == null){
+            cosClientHost = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com";
+        }
         app.setCover(DEFAULT_PROJECT_COVER);
         // 插入数据库
         boolean result = this.save(app);
