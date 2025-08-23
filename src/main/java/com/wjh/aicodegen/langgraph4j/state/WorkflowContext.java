@@ -1,6 +1,7 @@
 package com.wjh.aicodegen.langgraph4j.state;
 
 import com.wjh.aicodegen.langgraph4j.model.ImageResource;
+import com.wjh.aicodegen.langgraph4j.model.QualityResult;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -72,6 +73,16 @@ public class WorkflowContext implements Serializable {
      */
     private String errorMessage;
 
+    /**
+     * 质量检查结果
+     */
+    private QualityResult qualityResult;
+
+
+    /**
+     * 质量检查次数
+     */
+    private int qualityCheckCount;
     @Serial
     private static final long serialVersionUID = 1L;
 

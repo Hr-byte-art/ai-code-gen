@@ -1,5 +1,6 @@
 package com.wjh.aicodegen.langgraph4j;
 
+import com.wjh.aicodegen.langgraph4j.state.WorkflowContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

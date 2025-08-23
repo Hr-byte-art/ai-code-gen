@@ -1,6 +1,7 @@
 package com.wjh.aicodegen.langgraph4j;
 
 import com.wjh.aicodegen.langgraph4j.node.*;
+import com.wjh.aicodegen.langgraph4j.state.WorkflowContext;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphRepresentation;

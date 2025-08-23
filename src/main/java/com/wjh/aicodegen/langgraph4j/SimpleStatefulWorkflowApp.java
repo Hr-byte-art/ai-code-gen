@@ -1,5 +1,6 @@
 package com.wjh.aicodegen.langgraph4j;
 
+import com.wjh.aicodegen.langgraph4j.state.WorkflowContext;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.CompiledGraph;
 import org.bsc.langgraph4j.GraphRepresentation;
@@ -17,6 +18,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 /**
  * 简化版带状态定义的工作流 - 只定义状态结构，不实现具体流转
+ * @author 木子宸
  */
 @Slf4j
 public class SimpleStatefulWorkflowApp {
