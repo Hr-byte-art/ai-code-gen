@@ -165,6 +165,13 @@
             <version>6.1.0</version>
         </dependency>
 
+        <!-- LangGraph4j 工作流-->
+        <dependency>
+            <groupId>org.bsc.langgraph4j</groupId>
+            <artifactId>langgraph4j-core</artifactId>
+            <version>1.6.0-rc2</version>
+        </dependency>
+
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
@@ -176,6 +183,14 @@
             <artifactId>cos_api</artifactId>
             <version>5.6.227</version>
         </dependency>
+
+        <!-- 阿里云 DashScope SDK -->
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>dashscope-sdk-java</artifactId>
+            <version>2.21.1</version>
+        </dependency>
+
     </dependencies>
 
     <build>
