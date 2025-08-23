@@ -1,5 +1,6 @@
 package com.wjh.aicodegen.langgraph4j.state;
 
+import com.wjh.aicodegen.langgraph4j.model.ImageCollectionPlan;
 import com.wjh.aicodegen.langgraph4j.model.ImageResource;
 import com.wjh.aicodegen.langgraph4j.model.QualityResult;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 /**
  * 工作流上下文 - 存储所有状态信息
+ * @author 木子宸
  */
 @Data
 @Builder
@@ -85,6 +87,24 @@ public class WorkflowContext implements Serializable {
     private int qualityCheckCount;
     @Serial
     private static final long serialVersionUID = 1L;
+
+
+    /**
+     * 图片收集计划
+     */
+    private ImageCollectionPlan imageCollectionPlan;
+
+
+    /**
+     * 并发图片收集的中间结果字段
+     */
+    private List<ImageResource> contentImages;
+    private List<ImageResource> illustrations;
+    private List<ImageResource> diagrams;
+    private List<ImageResource> logos;
+
+
+
 
     // ========== 上下文操作方法 ==========
 

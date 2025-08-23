@@ -28,7 +28,7 @@ public class IgoutuIllustrationTool {
     @Tool("搜索插画图片，用于网站美化和装饰")
     public List<ImageResource> searchIllustrations(@P("搜索关键词") String query) {
         List<ImageResource> imageList = new ArrayList<>();
-        int searchCount = 12;
+        int searchCount = 4;
         String apiUrl = String.format(UNDRAW_API_URL, searchCount, query);
 
         try (HttpResponse response = HttpRequest.get(apiUrl).timeout(10000).execute()) {

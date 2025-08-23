@@ -21,6 +21,10 @@ import static org.bsc.langgraph4j.StateGraph.START;
 import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
 
 /**
+ * 代码生成工作流
+ * <p>
+ * PS: 是完整的工作流,只不过当前的图片收集的 并发 是使用的 CompletableFuture 实现的。相对于 另外一个使用 Langgraph4j 的 并发实现，我觉得使用 CompletableFuture 速度更快，而且代码更简单，对原有的代码的改动也比较小。
+ * </p>
  * @author 木子宸
  */
 @Slf4j
