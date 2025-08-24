@@ -27,7 +27,7 @@ class ImageCollectionServiceTest {
 
     @Test
     void testEcommerceWebsiteImageCollection() {
-        String result = imageCollectionService.collectImages("创建一个电商购物网站，需要展示商品和品牌形象");
+        String result = imageCollectionService.collectImages("传回构建一个");
         Assertions.assertNotNull(result);
         System.out.println("电商网站收集到的图片: " + result);
     }

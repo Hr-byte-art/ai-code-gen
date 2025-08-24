@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 应用 服务层
@@ -101,4 +102,12 @@ public interface AppService extends IService<App> {
      * @return string
      */
     String uploadPictures(MultipartFile file);
+
+    /**
+     * 获取应用构建状态
+     *
+     * @param appId appId
+     * @return map
+     */
+    Map<String, Object> getBuildStatus(Long appId , HttpServletRequest request);
 }

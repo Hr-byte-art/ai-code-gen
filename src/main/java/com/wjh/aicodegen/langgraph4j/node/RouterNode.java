@@ -1,5 +1,6 @@
 package com.wjh.aicodegen.langgraph4j.node;
 
+import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
 import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
 import com.wjh.aicodegen.langgraph4j.state.WorkflowContext;
 import com.wjh.aicodegen.manager.SpringContextUtil;
@@ -24,9 +25,10 @@ public class RouterNode {
             CodeGenTypeEnum generationType;
             try {
                 // 获取AI路由服务
-                AiCodeGenTypeRoutingService routingService = SpringContextUtil.getBean(AiCodeGenTypeRoutingService.class);
+                AiCodeGenTypeRoutingServiceFactory routingServiceFactory =  SpringContextUtil.getBean(AiCodeGenTypeRoutingServiceFactory.class);
+                AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = routingServiceFactory.createAiCodeGenTypeRoutingService();
                 // 根据原始提示词进行智能路由
-                generationType = routingService.routeCodeGenType(context.getOriginalPrompt());
+                generationType = aiCodeGenTypeRoutingService.routeCodeGenType(context.getOriginalPrompt());
                 log.info("AI智能路由完成，选择类型: {} ({})", generationType.getValue(), generationType.getText());
             } catch (Exception e) {
                 log.error("AI智能路由失败，使用默认HTML类型: {}", e.getMessage());

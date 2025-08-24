@@ -26,6 +26,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +38,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -198,6 +200,11 @@ public class AppController {
      */
     @PostMapping("/good/list/page/vo")
     @Operation(summary = "分页获取精选应用列表")
+    @Cacheable(
+            value = "good_App_List_Cache",
+            key = "T(com.wjh.aicodegen.utils.CacheKeyUtils).generateKey(#appQueryRequest)",
+            condition = "#appQueryRequest.pageNum <= 10"
+    )
     public BaseResponse<Page<AppVO>> listGoodAppVOByPage(@RequestBody AppQueryRequest appQueryRequest) {
         ThrowUtils.throwIf(appQueryRequest == null, ErrorCode.PARAMS_ERROR);
         // 限制每页最多 20 个
@@ -385,6 +392,40 @@ public class AppController {
     public BaseResponse<String> uploadPictures(@RequestParam("file") MultipartFile file) {
         String upload = appService.uploadPictures(file);
         return ResultUtils.success(upload);
+    }
+
+
+    /**
+     * 获取应用构建状态(轮询查询)
+     *
+     * <p>
+     *     轮询查询应用构建状态，直到构建完成或者失败, 返回构建结果
+     *     <span style="color:red;"><br>注意：该接口仅供前端轮询调用，请勿直接访问<br></span>
+     *     <span style="color:red;">
+     *         当前使用的逻辑实际是没有使用轮询的方法，是在后端直接使用的同步构建 VUE 项目，
+     *         这个方法在用户的访问量大的时候不适用，但是当前还可以接受。
+     *         如果想换成轮询实现的话，需要将 JsonMessageStreamHandler 类的<br>
+     *         // 异步构建 Vue 项目<br>
+     *         // String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project" + appId;<br>
+     *         // vueProjectBuilder.buildProjectAsync(projectPath);<br>
+     *         内容放开，然后将 AiCodeGeneratorFacade 类中的 <br>
+     *         // 异步构建 Vue 项目<br>
+     *         String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project" + appId;<br>
+     *         vueProjectBuilder.buildProjectAsync(projectPath);<br>
+     *         注释<br>
+     *     </span>
+     * </p>
+     *
+     * @param appId 应用ID
+     * @return 构建状态
+     */
+
+
+    @Operation(summary = "获取应用构建状态(轮询查询)")
+    @GetMapping("/build/status/{appId}")
+    public BaseResponse<Map<String, Object>> getBuildStatus(@PathVariable Long appId, HttpServletRequest request) {
+        Map<String, Object> buildStatus = appService.getBuildStatus(appId , request);
+        return ResultUtils.success(buildStatus);
     }
 
 }
