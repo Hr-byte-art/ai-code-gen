@@ -8,6 +8,8 @@ import com.wjh.aicodegen.ai.model.message.AiResponseMessage;
 import com.wjh.aicodegen.ai.model.message.ToolExecutedMessage;
 import com.wjh.aicodegen.ai.model.message.ToolRequestMessage;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
+import com.wjh.aicodegen.constant.AppConstant;
+import com.wjh.aicodegen.core.builder.VueProjectBuilder;
 import com.wjh.aicodegen.core.parser.CodeParserExecutor;
 import com.wjh.aicodegen.core.saver.CodeFileSaverExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
@@ -34,9 +36,8 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
-
-
-
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
     /**
      * 统一入口：根据类型生成并保存代码（流式，使用 appId）
@@ -59,7 +60,7 @@ public class AiCodeGeneratorFacade {
             }
             case VUE_PROJECT -> {
                 TokenStream codeStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                yield processTokenStream(codeStream);
+                yield processTokenStream(codeStream , appId);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -100,7 +101,7 @@ public class AiCodeGeneratorFacade {
      * @param tokenStream TokenStream 对象
      * @return Flux<String> 流式响应
      */
-    private Flux<String> processTokenStream(TokenStream tokenStream) {
+    private Flux<String> processTokenStream(TokenStream tokenStream , Long appId) {
         return Flux.create(sink -> {
 
             tokenStream
@@ -138,6 +139,9 @@ public class AiCodeGeneratorFacade {
                      */
                     .onCompleteResponse((ChatResponse response) -> {
                         sink.complete();
+                        // 异步构建 Vue 项目
+                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project" + appId;
+                        vueProjectBuilder.buildProjectAsync(projectPath);
                     })
                     /*
                      * 作用：处理 AI 模型返回的错误信息

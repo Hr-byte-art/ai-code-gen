@@ -16,6 +16,8 @@ import com.wjh.aicodegen.model.dto.app.*;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
+import com.wjh.aicodegen.reteLimit.annotation.RateLimit;
+import com.wjh.aicodegen.reteLimit.enums.RateLimitType;
 import com.wjh.aicodegen.service.ProjectDownloadService;
 import com.wjh.aicodegen.service.UserService;
 import com.wjh.aicodegen.utils.ResultUtils;
@@ -321,6 +323,7 @@ public class AppController {
      */
     @Operation(summary = "应用聊天生成代码（流式 SSE）")
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit(limitType = RateLimitType.USER , rate = 5 , rateInterval = 60 , message = "AI 对话请求过于频繁，请稍后再试")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
