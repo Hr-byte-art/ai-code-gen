@@ -2,6 +2,8 @@ package com.wjh.aicodegen.ai.factory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.wjh.aicodegen.ai.guardrail.PromptSafetyInputGuardrail;
+import com.wjh.aicodegen.ai.guardrail.PromptSafetyInputGuardrailSpecifyContentAiDetection;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import com.wjh.aicodegen.ai.tools.*;
 import com.wjh.aicodegen.exception.BusinessException;
@@ -102,6 +104,9 @@ public class AiCodeGeneratorServiceFactory {
                         .streamingChatModel(reasoningStreamingChatModel)
                         .chatMemoryProvider(memoryId -> chatMemory)
                         .tools(toolManager.getAllTools())
+                        // 添加输入护轨
+                        .inputGuardrails(new PromptSafetyInputGuardrailSpecifyContentAiDetection())
+//                        .inputGuardrails(new PromptSafetyInputGuardrail())
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
                         ))
