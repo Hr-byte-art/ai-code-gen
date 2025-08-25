@@ -23,3 +23,13 @@ knife4j:
   enable: true
   setting:
     language: zh_cn
+# 监控
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,sessions
+# https://docs.spring.io/spring-boot/reference/actuator/endpoints.html 访问可以看看 spring 支持开放的 endpoint
+  endpoint:
+    health:
+      show-details: always

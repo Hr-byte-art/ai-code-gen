@@ -26,7 +26,7 @@ public class ToolManager {
     /**
      * 自动注入所有工具
      */
-    @Autowired
+    @Resource
     private BaseTool[] tools;
 
     /**

@@ -27,13 +27,14 @@ import com.wjh.aicodegen.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
+import com.wjh.aicodegen.monitor.MonitorContext;
+import com.wjh.aicodegen.monitor.MonitorContextHolder;
 import com.wjh.aicodegen.service.*;
 import com.wjh.aicodegen.utils.ThrowUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -181,12 +182,23 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
-        // 5. 添加用户信息到对话历史
+        // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 6. 调用 AI 代码生成器
+        // 6. 设置监控上下文
+        MonitorContext monitorContext = MonitorContext.builder()
+                .userId(loginUser.getId().toString())
+                .appId(appId.toString())
+                .build();
+        MonitorContextHolder.setContext(monitorContext);
+        // 7. 调用 AI 生成代码（流式）
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
-        // 7. 收集AI 响应的内容，并且在完成后，添加AI消息到对话历史
-        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum);
+        // 8. 收集 AI 响应内容并在完成后记录到对话历史
+        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+                .doFinally(signalType -> {
+                    // 流结束时清理（无论成功/失败/取消）
+                    MonitorContextHolder.clearContext();
+                });
+
     }
 
     @Override
@@ -328,7 +340,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
         app.setCodeGenType(codeGenTypeEnum.getValue());
         // 默认项目封面
-        if (cosClientHost == null){
+        if (cosClientHost == null) {
             cosClientHost = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com";
         }
         app.setCover(DEFAULT_PROJECT_COVER);
@@ -383,7 +395,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
-    public Map<String, Object> getBuildStatus(Long appId , HttpServletRequest request) {
+    public Map<String, Object> getBuildStatus(Long appId, HttpServletRequest request) {
         // 参数校验和权限检查
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
         User loginUser = userService.getLoginUser(request);
