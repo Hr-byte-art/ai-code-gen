@@ -3,6 +3,7 @@ package com.wjh.aicodegen.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.UUID;
+import cn.hutool.core.math.MathUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
@@ -435,8 +436,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         App app = appConverter.toApp(appAddRequest);
         app.setUserId(loginUser.getId());
 
-        AiGenerateAppNameService aiGenerateAppNameService = AiGenerateAppNameServiceFactory.createAiGenerateAppNameService();
-        app.setAppName(aiGenerateAppNameService.generateAppName(initPrompt));
+//        AiGenerateAppNameService aiGenerateAppNameService = AiGenerateAppNameServiceFactory.createAiGenerateAppNameService();
+//        app.setAppName(aiGenerateAppNameService.generateAppName(initPrompt));
+
+        String appName = StrUtil.sub(initPrompt, 0, Math.min(initPrompt.length(), 12));
+        app.setAppName(appName);
+
 
         // 调用 Ai 决策使用类型 （多例模式）
         AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
