@@ -43,7 +43,13 @@ public class FileWriteTool extends BaseTool {
             Files.write(path, content.getBytes(),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
-            log.info("成功写入文件: {}", path.toAbsolutePath());
+            log.info("成功写入文件: {} (大小: {} 字节)", path.toAbsolutePath(), content.getBytes().length);
+            
+            // 如果是package.json文件，额外记录日志
+            if (relativeFilePath.equals("package.json")) {
+                log.info("Vue项目核心文件package.json已写入，项目目录: {}", path.getParent());
+            }
+            
             // 注意要返回相对路径，不能让 AI 把文件绝对路径返回给用户
             return "文件写入成功: " + relativeFilePath;
         } catch (IOException e) {

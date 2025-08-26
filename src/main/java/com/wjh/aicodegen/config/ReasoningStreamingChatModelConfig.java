@@ -1,6 +1,6 @@
 package com.wjh.aicodegen.config;
 
-import com.wjh.aicodegen.monitor.AiModelMonitorListener;
+import com.wjh.aicodegen.monitor.EnhancedAiModelMonitorListener;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import jakarta.annotation.Resource;
@@ -31,8 +31,8 @@ public class ReasoningStreamingChatModelConfig {
 
     private Boolean logResponses = false;
 
-    @Resource
-    private AiModelMonitorListener aiModelMonitorListener;
+    @Resource(name = "enhancedAiModelMonitorListener")
+    private EnhancedAiModelMonitorListener aiModelMonitorListener;
 
     @Bean
     @Scope("prototype")

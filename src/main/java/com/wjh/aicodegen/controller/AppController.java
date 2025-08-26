@@ -13,13 +13,15 @@ import com.wjh.aicodegen.convert.AppConverter;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.model.dto.app.*;
+import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.entity.User;
-import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.reteLimit.annotation.RateLimit;
 import com.wjh.aicodegen.reteLimit.enums.RateLimitType;
+import com.wjh.aicodegen.service.AppService;
 import com.wjh.aicodegen.service.ProjectDownloadService;
 import com.wjh.aicodegen.service.UserService;
+import com.wjh.aicodegen.utils.CacheUtils;
 import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.utils.ThrowUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,20 +29,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.*;
-import com.wjh.aicodegen.model.entity.App;
-import com.wjh.aicodegen.service.AppService;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.File;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -52,7 +51,8 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/app")
-@Tag(name = "应用接口" , description = "应用的相关接口")
+@Slf4j
+@Tag(name = "应用接口", description = "应用的相关接口")
 public class AppController {
 
     @Resource
@@ -66,9 +66,10 @@ public class AppController {
     private ProjectDownloadService projectDownloadService;
 
     @Resource
+    private CacheUtils cacheUtils;
+
+    @Resource
     private AppConverter appConverter;
-
-
 
 
     /**
@@ -82,7 +83,7 @@ public class AppController {
     @Operation(summary = "创建应用")
     public BaseResponse<Long> createApp(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
-        ThrowUtils.throwIf(loginUser ==  null, ErrorCode.NOT_LOGIN_ERROR);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
         ThrowUtils.throwIf(appAddRequest == null, ErrorCode.PARAMS_ERROR);
         // 参数校验
         String initPrompt = appAddRequest.getInitPrompt();
@@ -133,6 +134,7 @@ public class AppController {
      */
     @PostMapping("/delete")
     @Operation(summary = "删除应用（用户只能删除自己的应用）")
+    @CacheEvict(value = "good_App_List_Cache", allEntries = true)
     public BaseResponse<Boolean> deleteApp(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -234,6 +236,7 @@ public class AppController {
     @PostMapping("/admin/delete")
     @Operation(summary = "删除应用（管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @CacheEvict(value = "good_App_List_Cache", allEntries = true)
     public BaseResponse<Boolean> deleteAppByAdmin(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -255,6 +258,7 @@ public class AppController {
     @PostMapping("/admin/update")
     @Operation(summary = "更新应用（管理员）")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    @CacheEvict(value = "good_App_List_Cache", allEntries = true)
     public BaseResponse<Boolean> updateAppByAdmin(@RequestBody AppAdminUpdateRequest appAdminUpdateRequest) {
         if (appAdminUpdateRequest == null || appAdminUpdateRequest.getId() == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -312,6 +316,40 @@ public class AppController {
         return ResultUtils.success(appService.getAppVO(app));
     }
 
+    /**
+     * 管理员清除应用相关缓存
+     *
+     * @return 清除结果
+     */
+    @PostMapping("/admin/cache/clear")
+    @Operation(summary = "清除应用相关缓存（管理员）")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> clearAppCache() {
+        try {
+            cacheUtils.clearGoodAppListCache();
+            return ResultUtils.success(true);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "应用缓存清除失败：" + e.getMessage());
+        }
+    }
+
+    /**
+     * 测试时间序列化格式（仅用于调试）
+     *
+     * @return 测试应用数据
+     */
+    @GetMapping("/test/time")
+    @Operation(summary = "测试时间序列化格式")
+    public BaseResponse<AppVO> testTimeFormat() {
+        App app = new App();
+        app.setId(1L);
+        app.setAppName("测试应用");
+        app.setCreateTime(LocalDateTime.now());
+        app.setDeployedTime(LocalDateTime.now().minusDays(1));
+        
+        AppVO appVO = appConverter.toAppVO(app);
+        return ResultUtils.success(appVO);
+    }
 
     /**
      * 应用聊天生成代码（流式 SSE）
@@ -323,7 +361,7 @@ public class AppController {
      */
     @Operation(summary = "应用聊天生成代码（流式 SSE）")
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    @RateLimit(limitType = RateLimitType.USER , rate = 5 , rateInterval = 60 , message = "AI 对话请求过于频繁，请稍后再试")
+    @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI 对话请求过于频繁，请稍后再试")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
@@ -344,6 +382,25 @@ public class AppController {
                             .data(jsonData)
                             .build();
                 })
+                .doOnError(error -> {
+                    // SSE流错误处理
+                    log.warn("SSE流发生错误，应用ID: {}, 错误: {}", appId, error.getMessage());
+                })
+                .onErrorResume(error -> {
+                    // 如果是连接断开错误，优雅结束流
+                    if (error instanceof java.io.IOException && 
+                        error.getMessage() != null && 
+                        error.getMessage().contains("已建立的连接")) {
+                        log.info("✅ SSE连接已断开，应用ID: {}, 优雅结束流", appId);
+                        return Flux.empty(); // 优雅结束，不发送错误事件
+                    } else {
+                        // 其他错误，发送错误事件
+                        return Flux.just(ServerSentEvent.<String>builder()
+                                .event("error")
+                                .data("{\"error\":true,\"message\":\"" + error.getMessage() + "\"}")
+                                .build());
+                    }
+                })
                 .concatWith(Mono.just(
                         // 发送结束事件
                         ServerSentEvent.<String>builder()
@@ -351,6 +408,25 @@ public class AppController {
                                 .data("")
                                 .build()
                 ));
+    }
+
+    /**
+     * 取消应用代码生成任务
+     *
+     * @param appId   应用 ID
+     * @param request 请求对象
+     * @return 取消结果
+     */
+    @Operation(summary = "取消应用代码生成任务")
+    @PostMapping("/cancel/{appId}")
+    public BaseResponse<Boolean> cancelGenerationTask(@PathVariable Long appId, HttpServletRequest request) {
+        // 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        // 获取当前登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 调用服务取消任务
+        boolean result = appService.cancelGenerationTask(appId, loginUser);
+        return ResultUtils.success(result);
     }
 
     /**
@@ -372,7 +448,6 @@ public class AppController {
         String deployUrl = appService.deployApp(appId, loginUser);
         return ResultUtils.success(deployUrl);
     }
-
 
 
     /**
@@ -427,7 +502,7 @@ public class AppController {
     @Operation(summary = "获取应用构建状态(轮询查询)")
     @GetMapping("/build/status/{appId}")
     public BaseResponse<Map<String, Object>> getBuildStatus(@PathVariable Long appId, HttpServletRequest request) {
-        Map<String, Object> buildStatus = appService.getBuildStatus(appId , request);
+        Map<String, Object> buildStatus = appService.getBuildStatus(appId, request);
         return ResultUtils.success(buildStatus);
     }
 

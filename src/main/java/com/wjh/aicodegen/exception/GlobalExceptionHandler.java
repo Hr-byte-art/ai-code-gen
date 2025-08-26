@@ -34,6 +34,33 @@ public class GlobalExceptionHandler {
         return ResultUtils.error(e.getCode(), e.getMessage());
     }
 
+    @ExceptionHandler(IOException.class)
+    public BaseResponse<?> ioExceptionHandler(IOException e) {
+        String message = e.getMessage();
+        
+        // 处理客户端断开连接的常见情况
+        if (message != null && (
+            message.contains("你的主机中的软件中止了一个已建立的连接") ||
+            message.contains("An established connection was aborted by the software in your host machine") ||
+            message.contains("Connection reset by peer") ||
+            message.contains("Broken pipe") ||
+            message.contains("Connection refused")
+        )) {
+            // 客户端断开连接，这是正常情况，使用INFO级别记录
+            log.info("✅ 客户端主动断开连接（用户退出页面或取消任务）: {}", message);
+            // 对于SSE连接断开，不需要返回响应
+            return null;
+        } else {
+            // 其他IO异常，正常记录错误
+            log.error("IOException", e);
+            // 尝试处理 SSE 请求
+            if (handleSseError(ErrorCode.SYSTEM_ERROR.getCode(), "网络连接异常")) {
+                return null;
+            }
+            return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "网络连接异常");
+        }
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public BaseResponse<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("RuntimeException", e);

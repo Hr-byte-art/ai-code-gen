@@ -76,6 +76,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 用户名为 用户+随机6位
         user.setUserName("用户" + genRandomChars());
         user.setUserRole(UserRoleEnum.USER.getValue());
+        user.setUserAvatar("https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/DefaultAvatar.jpg");
         // 使用当前时间搓 加 随机数 作为 shareCode
         user.setShareCode(String.valueOf(System.currentTimeMillis() + genRandomChars()));
         // 如果邀请码不为空，则查询邀请码

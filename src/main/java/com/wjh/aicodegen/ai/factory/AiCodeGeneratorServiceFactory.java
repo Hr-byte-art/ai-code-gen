@@ -105,7 +105,7 @@ public class AiCodeGeneratorServiceFactory {
                         .chatMemoryProvider(memoryId -> chatMemory)
                         .tools(toolManager.getAllTools())
                         // 添加输入护轨
-                        .inputGuardrails(new PromptSafetyInputGuardrailSpecifyContentAiDetection())
+                        .inputGuardrails(SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class))
 //                        .inputGuardrails(new PromptSafetyInputGuardrail())
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
                                 toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()

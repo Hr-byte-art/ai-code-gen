@@ -7,6 +7,9 @@ import jakarta.annotation.Resource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * @author 木子宸
+ */
 @Configuration
 public class ImageCollectionPlanServiceFactory {
 

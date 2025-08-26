@@ -14,6 +14,7 @@ import com.wjh.aicodegen.core.parser.CodeParserExecutor;
 import com.wjh.aicodegen.core.saver.CodeFileSaverExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
+import com.wjh.aicodegen.manager.TaskCancellationManager;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.utils.ResultUtils;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -38,6 +39,8 @@ public class AiCodeGeneratorFacade {
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+    @Resource
+    private TaskCancellationManager taskCancellationManager;
 
     /**
      * 统一入口：根据类型生成并保存代码（流式，使用 appId）
@@ -82,13 +85,20 @@ public class AiCodeGeneratorFacade {
         // 实时收集代码片段
         return codeStream.doOnNext(codeBuilder::append).doOnComplete(() -> {
             // 流式返回完成后保存代码
+            log.info("应用 {} 的AI代码生成流已完成，准备保存文件", appId);
             try {
-                String completeCode = codeBuilder.toString();
-                // 使用执行器解析代码
-                Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
-                // 使用执行器保存代码
-                File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
-                log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
+                // 检查任务是否被取消
+                if (!taskCancellationManager.isTaskCancelled(appId)) {
+                    log.info("应用 {} 任务未被取消，开始保存文件", appId);
+                    String completeCode = codeBuilder.toString();
+                    // 使用执行器解析代码
+                    Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
+                    // 使用执行器保存代码
+                    File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
+                    log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
+                } else {
+                    log.info("应用 {} 的任务已被取消，跳过文件保存", appId);
+                }
             } catch (Exception e) {
                 log.error("保存失败: {}", e.getMessage());
             }
@@ -139,9 +149,15 @@ public class AiCodeGeneratorFacade {
                      */
                     .onCompleteResponse((ChatResponse response) -> {
                         sink.complete();
-                        // 异步构建 Vue 项目
-                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project" + appId;
-                        vueProjectBuilder.buildProjectAsync(projectPath);
+                        // 检查任务是否被取消再构建 Vue 项目
+                        if (!taskCancellationManager.isTaskCancelled(appId)) {
+                            // 异步构建 Vue 项目
+                            String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
+                            vueProjectBuilder.buildProjectAsync(projectPath);
+                            log.info("应用 {} Vue项目构建完成", appId);
+                        } else {
+                            log.info("应用 {} 的任务已被取消，跳过Vue项目构建", appId);
+                        }
                     })
                     /*
                      * 作用：处理 AI 模型返回的错误信息

@@ -1,9 +1,7 @@
 package com.wjh.aicodegen.config;
 
 import dev.langchain4j.model.chat.ChatModel;
-import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -18,17 +16,13 @@ import org.springframework.context.annotation.Scope;
 @Configuration
 @ConfigurationProperties(prefix = "langchain4j.open-ai.detection-chat-model")
 @Data
-public class DetectionConfig {
+public class DetectionAiModelConfig {
 
     private String baseUrl;
 
     private String apiKey;
 
     private String modelName;
-
-    private Integer maxTokens;
-
-    private Double temperature;
 
     private Boolean logRequests = false;
 
@@ -45,8 +39,6 @@ public class DetectionConfig {
                 .apiKey(apiKey)
                 .modelName(modelName)
                 .baseUrl(baseUrl)
-                .maxTokens(maxTokens)
-                .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .build();

@@ -2,7 +2,7 @@ package com.wjh.aicodegen.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
-import com.wjh.aicodegen.common.BaseResponse;
+
 import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
 import com.wjh.aicodegen.model.entity.App;
@@ -57,6 +57,15 @@ public interface AppService extends IService<App> {
      * @return string
      */
     Flux<String> chatToGenCode(Long appId, String message, User loginUser);
+
+    /**
+     * 取消代码生成任务
+     *
+     * @param appId 应用ID
+     * @param loginUser 登录用户
+     * @return 是否成功
+     */
+    boolean cancelGenerationTask(Long appId, User loginUser);
 
     
     /**

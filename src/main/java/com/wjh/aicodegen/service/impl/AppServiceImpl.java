@@ -8,7 +8,9 @@ import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
+import com.wjh.aicodegen.ai.factory.AiGenerateAppNameServiceFactory;
 import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
+import com.wjh.aicodegen.ai.service.AiGenerateAppNameService;
 import com.wjh.aicodegen.constant.AppConstant;
 import com.wjh.aicodegen.constant.UserConstant;
 import com.wjh.aicodegen.convert.AppConverter;
@@ -18,6 +20,7 @@ import com.wjh.aicodegen.core.handler.StreamHandlerExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.manager.CosManager;
+import com.wjh.aicodegen.manager.TaskCancellationManager;
 import com.wjh.aicodegen.mapper.AppMapper;
 import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
@@ -35,6 +38,7 @@ import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -64,11 +68,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Value("${cos.client.host}")
     private String cosClientHost;
 
-    /**
-     * 默认应用图标
-     */
-    String DEFAULT_PROJECT_COVER = cosClientHost + "/screenshots/default/default_project_cover.jpg";
-
     @Resource
     private UserService userService;
 
@@ -83,6 +82,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+
+    @Resource
+    private TaskCancellationManager taskCancellationManager;
+
+    @Resource
+    private AiGenerateAppNameServiceFactory AiGenerateAppNameServiceFactory;
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
@@ -100,6 +105,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
     @Resource
     private CosManager cosManager;
+
 
     @Override
     public AppVO getAppVO(App app) {
@@ -190,15 +196,111 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 .appId(appId.toString())
                 .build();
         MonitorContextHolder.setContext(monitorContext);
-        // 7. 调用 AI 生成代码（流式）
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId);
-        // 8. 收集 AI 响应内容并在完成后记录到对话历史
-        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+                // 7. 取消已存在的任务（如果有）
+        boolean existingTaskCancelled = taskCancellationManager.cancelTask(appId);
+        if (existingTaskCancelled) {
+            log.info("应用 {} 存在正在运行的任务，已取消旧任务", appId);
+        }
+        
+        // 8. 设置初始封面（开始生成时设置为进行中状态的封面）
+        if (app.getCover() == null || app.getCover().isEmpty()) {
+            String defaultCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/defaultAppCover.jpg";
+            app.setCover(defaultCover);
+            updateById(app);
+            log.info("为应用 {} 设置默认封面", appId);
+        }
+        
+        // 9. 调用 AI 生成代码（流式）- 在这里就开始注册任务管理
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId)
+                // 在AI流的最开始就注册任务管理
+                .doOnSubscribe(subscription -> {
+                    // 注册任务到管理器 - 这是真正的AI生成流开始的地方
+                    taskCancellationManager.registerTask(appId, subscription);
+                    log.info("应用 {} 开始AI代码生成，任务已注册", appId);
+                })
+                .doOnCancel(() -> {
+                    // AI任务取消时的处理 - 设置取消封面
+                    String cancelCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/userCancel.png";
+                    app.setCover(cancelCover);
+                    updateById(app);
+                    log.warn("✅ REACTOR收到取消信号：应用 {} AI生成流已被中断，已更新为取消状态", appId);
+                })
+                .doOnError(error -> {
+                    // AI任务出错时的处理 - 设置失败封面
+                    String failedCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/createFailed.png";
+                    app.setCover(failedCover);
+                    updateById(app);
+                    log.error("应用 {} AI生成失败，已更新为失败状态: {}", appId, error.getMessage());
+                })
+                // 将监控上下文传递到Reactor流中
+                .contextWrite(context -> MonitorContextHolder.putContextToReactor(context, monitorContext));
+                
+        // 10. 收集 AI 响应内容并在完成后记录到对话历史
+        Flux<String> managedStream = streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+                .doOnComplete(() -> {
+                    // 任务完成时的处理 - 设置成功封面
+                    String successCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/defaultAppCover.jpg";
+                    app.setCover(successCover);
+                    updateById(app);
+                    log.info("应用 {} AI代码生成完成，已更新为成功状态", appId);
+                })
                 .doFinally(signalType -> {
                     // 流结束时清理（无论成功/失败/取消）
+                    taskCancellationManager.unregisterTask(appId);
                     MonitorContextHolder.clearContext();
+                    log.debug("应用 {} 任务资源已清理，结束信号: {}", appId, signalType);
                 });
+                
+        return managedStream;
 
+    }
+
+    @Override
+    public boolean cancelGenerationTask(Long appId, User loginUser) {
+        // 1. 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        
+        // 2. 查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        
+        // 3. 验证用户是否有权限取消该应用的任务，仅本人可以取消
+        if (!app.getUserId().equals(loginUser.getId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限取消该应用的任务");
+        }
+        
+        // 4. 调用任务管理器取消任务
+        log.warn("开始取消应用 {} 的任务，调用 taskCancellationManager.cancelTask()", appId);
+        boolean cancelled = taskCancellationManager.cancelTask(appId);
+        log.warn("取消任务结果：应用 {} cancelled={}", appId, cancelled);
+        
+        // 强制中断：如果找到活跃任务，立即中断当前线程的AI处理
+        if (cancelled) {
+            log.warn("应用 {} 任务已取消", appId);
+        }
+        
+        // 5. 设置取消封面（无论是否有正在运行的任务，用户主动取消都设置取消封面）
+        String cancelCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/userCancel.png";
+        app.setCover(cancelCover);
+        updateById(app);
+        
+        // 6. 记录取消操作
+        if (cancelled) {
+            log.info("用户主动取消：应用 {} 代码生成已停止", appId);
+            // 可以选择在对话历史中记录取消事件
+            try {
+                chatHistoryService.addChatMessage(appId, "任务已被用户取消", 
+                    ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+            } catch (Exception e) {
+                // 记录失败不影响取消操作
+                log.warn("记录任务取消到对话历史失败: {}", e.getMessage());
+            }
+        } else {
+            log.info("用户请求取消：应用 {} 无活跃任务，已设置取消状态", appId);
+        }
+        
+        return cancelled;
     }
 
     @Override
@@ -296,8 +398,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             // 调用截图服务生成截图并上传
             String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
             // 更新应用封面字段
-            App updateApp = new App();
-            updateApp.setId(appId);
+            App updateApp = this.getById(appId);
             updateApp.setCover(screenshotUrl);
             boolean updated = this.updateById(updateApp);
             ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
@@ -333,17 +434,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 构造入库对象
         App app = appConverter.toApp(appAddRequest);
         app.setUserId(loginUser.getId());
-        //TODO 应用名称暂时为 initPrompt 前 12 位
-        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+
+        AiGenerateAppNameService aiGenerateAppNameService = AiGenerateAppNameServiceFactory.createAiGenerateAppNameService();
+        app.setAppName(aiGenerateAppNameService.generateAppName(initPrompt));
+
         // 调用 Ai 决策使用类型 （多例模式）
         AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
         CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
         app.setCodeGenType(codeGenTypeEnum.getValue());
-        // 默认项目封面
-        if (cosClientHost == null) {
-            cosClientHost = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com";
-        }
-        app.setCover(DEFAULT_PROJECT_COVER);
         // 插入数据库
         boolean result = this.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
