@@ -2,6 +2,7 @@ package com.wjh.aicodegen.service;
 
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
+import com.wjh.aicodegen.model.dto.user.ChangePasswordRequest;
 import com.wjh.aicodegen.model.dto.user.UserQueryRequest;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.vo.user.LoginUserVO;
@@ -105,4 +106,13 @@ public interface UserService extends IService<User> {
      * @return
      */
     List<UserVO> myInvited(HttpServletRequest request);
+
+    /**
+     * 修改密码
+     *
+     * @param changePasswordRequest 修改密码请求
+     * @param loginUser       当前登录用户
+     * @return 修改结果
+     */
+    Boolean changePassword(ChangePasswordRequest changePasswordRequest, User loginUser);
 }

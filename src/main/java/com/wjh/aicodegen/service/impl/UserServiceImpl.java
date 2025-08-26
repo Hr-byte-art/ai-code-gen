@@ -8,6 +8,7 @@ import com.wjh.aicodegen.convert.UserConverter;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.mapper.UserMapper;
+import com.wjh.aicodegen.model.dto.user.ChangePasswordRequest;
 import com.wjh.aicodegen.model.dto.user.UserQueryRequest;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.entity.VipCode;
@@ -19,6 +20,7 @@ import com.wjh.aicodegen.service.VipCodeService;
 import com.wjh.aicodegen.utils.ThrowUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
@@ -289,5 +291,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return this.getUserVOList(list);
     }
 
+    @Override
+    public Boolean changePassword(ChangePasswordRequest changePasswordRequest, User loginUser) {
+        String oldPassword = changePasswordRequest.getOldPassword();
+        String newPassword = changePasswordRequest.getNewPassword();
+        String confirmPassword = changePasswordRequest.getConfirmPassword();
 
+        if (StringUtils.isAnyBlank(oldPassword, newPassword, confirmPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        if (!newPassword.equals(confirmPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        String encryptOldPassword = getEncryptPassword(oldPassword);
+        String encryptNewPassword = getEncryptPassword(newPassword);
+
+        String userPassword = loginUser.getUserPassword();
+        boolean equals = userPassword.equals(encryptOldPassword);
+        if (!equals) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "旧密码错误");
+        }
+        loginUser.setUserPassword(encryptNewPassword);
+        return this.updateById(loginUser);
+    }
 }

@@ -8,6 +8,7 @@ import com.wjh.aicodegen.constant.UserConstant;
 import com.wjh.aicodegen.convert.UserConverter;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
+import com.wjh.aicodegen.model.dto.user.ChangePasswordRequest;
 import com.wjh.aicodegen.model.dto.user.*;
 import com.wjh.aicodegen.model.vo.user.LoginUserVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
@@ -18,6 +19,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,6 +37,7 @@ import com.wjh.aicodegen.model.entity.User;
  * @since 2025-08-05 16:50:59
  */
 @RestController
+@Slf4j
 @RequestMapping("/user")
 @Tag(name = "用户接口")
 public class UserController {
@@ -180,6 +184,17 @@ public class UserController {
         return ResultUtils.success(userVOPage);
     }
 
+
+    @PostMapping("/changePassword")
+    @Operation(summary = "修改密码", responses = {@ApiResponse(description = "修改结果")})
+    public BaseResponse<Boolean> changePassword(@RequestBody ChangePasswordRequest changePasswordRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        // 仅本人可更新
+        Boolean result = userService.changePassword(changePasswordRequest, loginUser);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        log.info("修改密码成功: {}", loginUser.getUserName());
+        return ResultUtils.success(result);
+    }
 
     @PostMapping("/myInvited")
     @Operation(summary =  "获取我邀请的" , responses = {@ApiResponse(description = "用户列表")})
