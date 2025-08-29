@@ -1,5 +1,6 @@
 package com.wjh.aicodegen.model.vo.user;
 
+import com.mybatisflex.annotation.Column;
 import lombok.Data;
 
 import java.io.Serial;
@@ -52,6 +53,32 @@ public class LoginUserVO implements Serializable {
      */
     private LocalDateTime updateTime;
 
+    /**
+     * 会员过期时间
+     */
+    private LocalDateTime vipExpireTime;
+
+    /**
+     * 会员编号
+     */
+    private Long vipNumber;
+
+    /**
+     * 分享码
+     */
+    private String shareCode;
+
+    /**
+     * 用户积分
+     */
+    private Integer integral;
+
+    /**
+     * 最近签到时间
+     */
+    private LocalDateTime recentlySignedIn;
+
     @Serial
     private static final long serialVersionUID = 1L;
+
 }

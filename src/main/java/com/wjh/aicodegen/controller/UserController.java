@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 import com.wjh.aicodegen.model.entity.User;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.RequestParam;
 /**
  * 用户 控制层。
  *
@@ -164,6 +166,24 @@ public class UserController {
     }
 
     /**
+     * 用户更新自己的信息
+     */
+    @PostMapping("/update/my")
+    @Operation(summary = "用户更新自己的信息", responses = {@ApiResponse(description = "更新结果")})
+    public BaseResponse<Boolean> updateMyInfo(@RequestBody UserUpdateRequest userUpdateRequest, HttpServletRequest request) {
+        if (userUpdateRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        
+        // 使用UserService的部分更新方法
+        boolean result = userService.updateUserPartial(loginUser.getId(), userUpdateRequest);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return ResultUtils.success(true);
+    }
+
+    /**
      * 分页获取用户封装列表（仅管理员）
      *
      * @param userQueryRequest 查询请求参数
@@ -196,9 +216,46 @@ public class UserController {
         return ResultUtils.success(result);
     }
 
+    /**
+     * 上传用户头像
+     *
+     * @param file    头像文件
+     * @param request 请求对象
+     * @return 头像URL
+     */
+    @PostMapping("/upload/avatar")
+    @Operation(summary = "上传用户头像", responses = {@ApiResponse(description = "头像URL")})
+    public BaseResponse<String> uploadAvatar(@RequestParam("file") MultipartFile file, HttpServletRequest request) {
+        ThrowUtils.throwIf(file == null, ErrorCode.PARAMS_ERROR, "文件不能为空");
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        
+        String avatarUrl = userService.uploadAvatar(file, loginUser);
+        return ResultUtils.success(avatarUrl);
+    }
+
+    /**
+     * 获取我邀请的
+     *
+     * @param request 请求对象
+     * @return 邀请的列表
+     */
     @PostMapping("/myInvited")
     @Operation(summary =  "获取我邀请的" , responses = {@ApiResponse(description = "用户列表")})
     public BaseResponse<List<UserVO>> myInvited(HttpServletRequest  request){
         return ResultUtils.success(userService.myInvited(request));
+    }
+
+
+    /**
+     * 用户签到 （获得 20 积分）
+     *
+     * @param request 请求对象
+     * @return 用户信息
+     */
+    @PostMapping("/signIn")
+    @Operation(summary = "用户签到")
+    public BaseResponse<Integer> signIn(HttpServletRequest request) {
+        return ResultUtils.success(userService.signIn(request));
     }
 }

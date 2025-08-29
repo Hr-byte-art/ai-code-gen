@@ -1,5 +1,6 @@
 package com.wjh.aicodegen.config;
 
+import cn.hutool.core.util.StrUtil;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,12 +23,19 @@ public class RedisChatMemoryStoreConfig {
     @Value("${spring.data.redis.ttl}")
     private long ttl;
 
+    @Value("${spring.data.redis.password}")
+    private String password;
+
     @Bean
     public RedisChatMemoryStore redisChatMemoryStore() {
-        return RedisChatMemoryStore.builder()
+        RedisChatMemoryStore.Builder builder = RedisChatMemoryStore.builder()
                 .host(host)
                 .port(port)
-                .ttl(ttl)
-                .build();
+                .password(password)
+                .ttl(ttl);
+        if (StrUtil.isNotBlank(password)){
+            builder.user("default");
+        }
+        return builder.build();
     }
 }

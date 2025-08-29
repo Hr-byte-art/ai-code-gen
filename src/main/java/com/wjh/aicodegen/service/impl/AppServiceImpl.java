@@ -3,15 +3,14 @@ package com.wjh.aicodegen.service.impl;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.UUID;
-import cn.hutool.core.math.MathUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
+import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
 import com.wjh.aicodegen.ai.factory.AiGenerateAppNameServiceFactory;
 import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
-import com.wjh.aicodegen.ai.service.AiGenerateAppNameService;
 import com.wjh.aicodegen.constant.AppConstant;
 import com.wjh.aicodegen.constant.UserConstant;
 import com.wjh.aicodegen.convert.AppConverter;
@@ -21,6 +20,7 @@ import com.wjh.aicodegen.core.handler.StreamHandlerExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.manager.CosManager;
+
 import com.wjh.aicodegen.manager.TaskCancellationManager;
 import com.wjh.aicodegen.mapper.AppMapper;
 import com.wjh.aicodegen.model.dto.app.AppAddRequest;
@@ -29,19 +29,23 @@ import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
+import com.wjh.aicodegen.model.enums.UserRoleEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
 import com.wjh.aicodegen.monitor.MonitorContext;
 import com.wjh.aicodegen.monitor.MonitorContextHolder;
 import com.wjh.aicodegen.service.*;
+import com.wjh.aicodegen.utils.ModifyPointsUtils;
 import com.wjh.aicodegen.utils.ThrowUtils;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
@@ -66,8 +70,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
-    @Value("${cos.client.host}")
-    private String cosClientHost;
+
+    // 部署所需
+    @Value("${code.deploy-host:http://localhost}")
+    private String deployHost;
+
+    @Value("${code.deploy-port:88}")
+    private Integer deployPort;
+
+    @Value("${code.deploy-path:dist}")
+    private String deployPath;
 
     @Resource
     private UserService userService;
@@ -83,6 +95,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
+    
+    @Resource
+    private ApplicationContext applicationContext;
 
     @Resource
     private TaskCancellationManager taskCancellationManager;
@@ -106,6 +121,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
     @Resource
     private CosManager cosManager;
+
+    @Resource
+    private ModifyPointsUtils modifyPointsUtils;
 
 
     @Override
@@ -172,6 +190,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
@@ -183,12 +202,30 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!app.getUserId().equals(loginUser.getId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
         }
-        // 4. 获取应用的代码生成类型
+        // 4. 获取应用的代码生成类型(普通用户可创建简单应用，VUE 项目只有VIP或ADMIN才可以创建)
         String codeGenTypeStr = app.getCodeGenType();
         CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
         if (codeGenTypeEnum == null) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         }
+        Integer requiredPoints = getRequiredPointsByCodeGenType(codeGenTypeEnum);
+        // VUE 项目 需要VIP或ADMIN权限
+        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
+            if(!loginUser.getUserRole().equals(UserRoleEnum.VIP.getValue()) &&
+                    !loginUser.getUserRole().equals(UserRoleEnum.ADMIN.getValue())){
+                // 通过ApplicationContext获取代理对象，确保新事务生效
+                AppServiceImpl proxy = applicationContext.getBean(AppServiceImpl.class);
+                proxy.updateAppCoverInNewTransaction(appId, "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/noPermission.png");
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+            }
+        }
+        // 预扣减积分，避免校验与扣减之间的时间差导致的并发问题
+        boolean preDeductSuccess = modifyPointsUtils.safeDeductPoints(loginUser.getId(), requiredPoints);
+        if (!preDeductSuccess) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR,
+                    String.format("积分不足或扣减失败，需要%d积分", requiredPoints));
+        }
+
         // 5. 通过校验后，添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         // 6. 设置监控上下文
@@ -197,12 +234,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 .appId(appId.toString())
                 .build();
         MonitorContextHolder.setContext(monitorContext);
-                // 7. 取消已存在的任务（如果有）
+        // 7. 取消已存在的任务（如果有）
         boolean existingTaskCancelled = taskCancellationManager.cancelTask(appId);
         if (existingTaskCancelled) {
             log.info("应用 {} 存在正在运行的任务，已取消旧任务", appId);
         }
-        
+
         // 8. 设置初始封面（开始生成时设置为进行中状态的封面）
         if (app.getCover() == null || app.getCover().isEmpty()) {
             String defaultCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/defaultAppCover.jpg";
@@ -210,7 +247,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             updateById(app);
             log.info("为应用 {} 设置默认封面", appId);
         }
-        
+
         // 9. 调用 AI 生成代码（流式）- 在这里就开始注册任务管理
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId)
                 // 在AI流的最开始就注册任务管理
@@ -220,40 +257,93 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                     log.info("应用 {} 开始AI代码生成，任务已注册", appId);
                 })
                 .doOnCancel(() -> {
-                    // AI任务取消时的处理 - 设置取消封面
-                    String cancelCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/userCancel.png";
-                    app.setCover(cancelCover);
-                    updateById(app);
-                    log.warn("✅ REACTOR收到取消信号：应用 {} AI生成流已被中断，已更新为取消状态", appId);
+                    // 修改3：改进任务取消时的积分处理逻辑
+                    try {
+                        // AI任务取消时的处理 - 设置取消封面
+                        String cancelCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/userCancel.png";
+                        app.setCover(cancelCover);
+                        updateById(app);
+
+                        // 任务取消时扣减额外惩罚积分
+                        boolean penaltyDeductSuccess = modifyPointsUtils.safeDeductPoints(loginUser.getId(), 3);
+                        if (penaltyDeductSuccess) {
+                            log.warn("REACTOR收到取消信号：应用 {} AI生成流已被中断，已更新为取消状态，扣减用户{}惩罚积分3分", appId, loginUser.getId());
+                        } else {
+                            log.error("应用 {} 取消时扣减惩罚积分失败，用户ID: {}", appId, loginUser.getId());
+                        }
+                    } catch (Exception e) {
+                        log.error("处理任务取消时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
+                    }
                 })
                 .doOnError(error -> {
-                    // AI任务出错时的处理 - 设置失败封面
-                    String failedCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/createFailed.png";
-                    app.setCover(failedCover);
-                    updateById(app);
-                    log.error("应用 {} AI生成失败，已更新为失败状态: {}", appId, error.getMessage());
+                    try {
+                        // AI任务出错时的处理 - 设置失败封面
+                        String failedCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/createFailed.png";
+                        app.setCover(failedCover);
+                        updateById(app);
+
+                        // 任务失败时返还预扣减的积分
+                        boolean refundSuccess = modifyPointsUtils.safeAddPoints(loginUser.getId(), requiredPoints);
+                        if (refundSuccess) {
+                            log.info("应用 {} AI生成失败，已返还用户 {} 积分 {} 分", appId, loginUser.getId(), requiredPoints);
+                        } else {
+                            log.error("应用 {} AI生成失败，但返还积分失败，用户ID: {}, 应返还积分: {}", appId, loginUser.getId(), requiredPoints);
+                        }
+
+                        log.error("应用 {} AI生成失败，已更新为失败状态: {}", appId, error.getMessage());
+                    } catch (Exception e) {
+                        log.error("处理AI生成失败时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
+                    }
                 })
                 // 将监控上下文传递到Reactor流中
                 .contextWrite(context -> MonitorContextHolder.putContextToReactor(context, monitorContext));
-                
+
         // 10. 收集 AI 响应内容并在完成后记录到对话历史
         Flux<String> managedStream = streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
                 .doOnComplete(() -> {
-                    // 任务完成时的处理 - 设置成功封面
-                    String successCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/defaultAppCover.jpg";
-                    app.setCover(successCover);
-                    updateById(app);
-                    log.info("应用 {} AI代码生成完成，已更新为成功状态", appId);
-                })
-                .doFinally(signalType -> {
+                    try {
+                        // 代码生成完成，积分已在开始时预扣减，无需再次扣减
+                        log.info("用户 {} 代码生成完成，已预扣减{}个积分", loginUser.getId(), requiredPoints);
+                        // 任务完成 -设置默认封面
+                        String successCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/defaultAppCover.jpg";
+                        app.setCover(successCover);
+                        updateById(app);
+                        log.info("应用 {} AI代码生成完成，已更新为成功状态", appId);
+                    } catch (Exception e) {
+                        log.error("处理任务完成时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
+                    }
+                }).doFinally(signalType -> {
                     // 流结束时清理（无论成功/失败/取消）
                     taskCancellationManager.unregisterTask(appId);
                     MonitorContextHolder.clearContext();
                     log.debug("应用 {} 任务资源已清理，结束信号: {}", appId, signalType);
                 });
-                
+
         return managedStream;
 
+    }
+
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void updateAppCoverInNewTransaction(Long appId, String coverUrl) {
+        App app = this.getById(appId);
+        if (app != null) {
+            app.setCover(coverUrl);
+            this.updateById(app);
+        }
+    }
+
+
+
+
+
+    private Integer getRequiredPointsByCodeGenType(CodeGenTypeEnum codeGenTypeEnum) {
+        return switch (codeGenTypeEnum) {
+            case HTML -> 5;
+            case MULTI_FILE -> 8;
+            case VUE_PROJECT -> 15;
+            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenTypeEnum);
+        };
     }
 
     @Override
@@ -261,38 +351,38 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID不能为空");
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
-        
+
         // 2. 查询应用信息
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-        
+
         // 3. 验证用户是否有权限取消该应用的任务，仅本人可以取消
         if (!app.getUserId().equals(loginUser.getId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限取消该应用的任务");
         }
-        
+
         // 4. 调用任务管理器取消任务
         log.warn("开始取消应用 {} 的任务，调用 taskCancellationManager.cancelTask()", appId);
         boolean cancelled = taskCancellationManager.cancelTask(appId);
         log.warn("取消任务结果：应用 {} cancelled={}", appId, cancelled);
-        
+
         // 强制中断：如果找到活跃任务，立即中断当前线程的AI处理
         if (cancelled) {
             log.warn("应用 {} 任务已取消", appId);
         }
-        
+
         // 5. 设置取消封面（无论是否有正在运行的任务，用户主动取消都设置取消封面）
         String cancelCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/userCancel.png";
         app.setCover(cancelCover);
         updateById(app);
-        
+
         // 6. 记录取消操作
         if (cancelled) {
             log.info("用户主动取消：应用 {} 代码生成已停止", appId);
             // 可以选择在对话历史中记录取消事件
             try {
-                chatHistoryService.addChatMessage(appId, "任务已被用户取消", 
-                    ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                chatHistoryService.addChatMessage(appId, "任务已被用户取消",
+                        ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
             } catch (Exception e) {
                 // 记录失败不影响取消操作
                 log.warn("记录任务取消到对话历史失败: {}", e.getMessage());
@@ -300,7 +390,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         } else {
             log.info("用户请求取消：应用 {} 无活跃任务，已设置取消状态", appId);
         }
-        
+
         return cancelled;
     }
 
@@ -358,7 +448,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
         // 10. 构建应用访问 URL
-        String appDeployUrl = String.format("%s/%s/", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        String appDeployUrl = String.format("%s:%s/%s/%s/", deployHost , deployPort , deployPath , deployKey);
         // 11. 异步生成截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployUrl);
         return appDeployUrl;

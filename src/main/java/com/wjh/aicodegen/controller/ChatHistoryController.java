@@ -38,10 +38,6 @@ public class ChatHistoryController {
     @Resource
     private UserService userService;
 
-
-
-
-
     /**
      * 分页查询某个应用的对话历史（游标查询）
      *

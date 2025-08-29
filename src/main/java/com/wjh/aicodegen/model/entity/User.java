@@ -126,4 +126,16 @@ public class User implements Serializable {
      */
     @Column("inviteUser")
     private Long inviteUser;
+
+    /**
+     * 用户积分
+     */
+    @Column("integral")
+    private Integer integral;
+
+    /**
+     * 最近签到时间
+     */
+    @Column("recentlySignedIn")
+    private LocalDateTime recentlySignedIn;
 }

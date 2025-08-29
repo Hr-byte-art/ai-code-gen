@@ -2,7 +2,6 @@ package com.wjh.aicodegen.ai.factory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.wjh.aicodegen.ai.guardrail.PromptSafetyInputGuardrail;
 import com.wjh.aicodegen.ai.guardrail.PromptSafetyInputGuardrailSpecifyContentAiDetection;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import com.wjh.aicodegen.ai.tools.*;
@@ -43,6 +42,9 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ToolManager toolManager;
+
+    @Resource
+    private AiImageSearchTool aiImageSearchTool;
 
     /**
      * AI 服务实例缓存
@@ -103,7 +105,7 @@ public class AiCodeGeneratorServiceFactory {
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(reasoningStreamingChatModel)
                         .chatMemoryProvider(memoryId -> chatMemory)
-                        .tools(toolManager.getAllTools())
+                        .tools((Object[]) toolManager.getAllTools())
                         // 添加输入护轨
                         .inputGuardrails(SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class))
 //                        .inputGuardrails(new PromptSafetyInputGuardrail())
@@ -119,6 +121,7 @@ public class AiCodeGeneratorServiceFactory {
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
                         .chatMemory(chatMemory)
+                        .tools(aiImageSearchTool)
                         .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,

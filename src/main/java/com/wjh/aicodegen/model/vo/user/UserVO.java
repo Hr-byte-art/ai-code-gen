@@ -47,32 +47,32 @@ public class UserVO implements Serializable {
     /**
      * 会员过期时间
      */
-    @Column("vipExpireTime")
     private LocalDateTime vipExpireTime;
 
     /**
      * 会员兑换码
      */
-    @Column("vipCode")
     private String vipCode;
 
     /**
      * 会员编号
      */
-    @Column("vipNumber")
     private Long vipNumber;
 
     /**
      * 分享码
      */
-    @Column("shareCode")
     private String shareCode;
 
     /**
      * 邀请用户 id
      */
-    @Column("inviteUser")
     private Long inviteUser;
+
+    /**
+     * 用户积分
+     */
+    private Integer integral;
 
     private static final long serialVersionUID = 1L;
 }

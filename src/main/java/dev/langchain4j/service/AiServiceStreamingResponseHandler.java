@@ -14,7 +14,7 @@ import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.output.TokenUsage;
-import dev.langchain4j.service.AiServiceContext;
+
 import dev.langchain4j.service.tool.ToolExecution;
 import dev.langchain4j.service.tool.ToolExecutor;
 import org.slf4j.Logger;
@@ -109,7 +109,9 @@ class AiServiceStreamingResponseHandler implements StreamingChatResponseHandler 
     @Override
     public void onPartialToolExecutionRequest(int index, ToolExecutionRequest partialToolExecutionRequest) {
         // If we're using output guardrails, then buffer the partial response until the guardrails have completed
-        partialToolExecutionRequestHandler.accept(index, partialToolExecutionRequest);
+        if (partialToolExecutionRequestHandler != null) {
+            partialToolExecutionRequestHandler.accept(index, partialToolExecutionRequest);
+        }
     }
 
     @Override

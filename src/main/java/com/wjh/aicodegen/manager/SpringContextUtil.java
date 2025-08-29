@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * Spring上下文工具类
  * 用于在静态方法中获取Spring Bean
+ * @author 木子宸
  */
 @Component
 public class SpringContextUtil implements ApplicationContextAware {

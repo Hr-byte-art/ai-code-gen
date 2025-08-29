@@ -4,12 +4,14 @@ import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
 import com.wjh.aicodegen.model.dto.user.ChangePasswordRequest;
 import com.wjh.aicodegen.model.dto.user.UserQueryRequest;
+import com.wjh.aicodegen.model.dto.user.UserUpdateRequest;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.vo.user.LoginUserVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
 import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户 服务层。
@@ -115,4 +117,30 @@ public interface UserService extends IService<User> {
      * @return 修改结果
      */
     Boolean changePassword(ChangePasswordRequest changePasswordRequest, User loginUser);
+
+    /**
+     * 上传用户头像
+     *
+     * @param file       头像文件
+     * @param loginUser  当前登录用户
+     * @return 头像URL
+     */
+    String uploadAvatar(MultipartFile file, User loginUser);
+
+    /**
+     * 部分更新用户信息
+     *
+     * @param userId            用户ID
+     * @param userUpdateRequest 更新请求
+     * @return 更新结果
+     */
+    boolean updateUserPartial(Long userId, UserUpdateRequest userUpdateRequest);
+
+    /**
+     * 签到
+     *
+     * @param request
+     * @return
+     */
+    Integer signIn(HttpServletRequest request);
 }
