@@ -37,3 +37,8 @@ management:
   endpoint:
     health:
       show-details: always
+
+# MyBatis配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.wjh.aicodegen.observability.model

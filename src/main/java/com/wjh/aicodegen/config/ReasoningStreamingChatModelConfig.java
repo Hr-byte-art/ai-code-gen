@@ -34,6 +34,7 @@ public class ReasoningStreamingChatModelConfig {
     @Resource(name = "enhancedAiModelMonitorListener")
     private EnhancedAiModelMonitorListener aiModelMonitorListener;
 
+
     @Bean
     @Scope("prototype")
     public StreamingChatModel reasoningStreamingChatModelPrototype() {
@@ -45,7 +46,6 @@ public class ReasoningStreamingChatModelConfig {
                 .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
-                .listeners(List.of(aiModelMonitorListener))
                 .build();
     }
 }

@@ -29,8 +29,8 @@ import java.time.Duration;
 public class WebScreenshotUtils {
 
     private static final WebDriver WEB_DRIVER;
-    public static final String CHROMEDRIVER_LOCAL_PATH = "/www/wwwroot/ai-code-gen/ai-code-gen/chromedriver-linux64/chromedriver";
-//public static final String CHROMEDRIVER_LOCAL_PATH = "/www/wwwroot/ai-code-gen/ai-code-gen/chromedriver-win64/chromedriver.exe";
+    private static final String CHROMEDRIVER_LOCAL_PATH = "src/main/resources/chromedriver-win64/chromedriver.exe";
+//    public static final String CHROMEDRIVER_LOCAL_PATH = "/www/wwwroot/ai-code-gen/ai-code-gen/chromedriver-linux64/chromedriver";
 
     static {
         final int DEFAULT_WIDTH = 1600;

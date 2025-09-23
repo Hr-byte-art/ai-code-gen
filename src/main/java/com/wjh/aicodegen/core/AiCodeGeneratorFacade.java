@@ -2,8 +2,6 @@ package com.wjh.aicodegen.core;
 
 import cn.hutool.json.JSONUtil;
 import com.wjh.aicodegen.ai.factory.AiCodeGeneratorServiceFactory;
-import com.wjh.aicodegen.ai.model.HtmlCodeResult;
-import com.wjh.aicodegen.ai.model.MultiFileCodeResult;
 import com.wjh.aicodegen.ai.model.message.AiResponseMessage;
 import com.wjh.aicodegen.ai.model.message.ToolExecutedMessage;
 import com.wjh.aicodegen.ai.model.message.ToolRequestMessage;
@@ -16,7 +14,6 @@ import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.manager.TaskCancellationManager;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
-import com.wjh.aicodegen.utils.ResultUtils;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;

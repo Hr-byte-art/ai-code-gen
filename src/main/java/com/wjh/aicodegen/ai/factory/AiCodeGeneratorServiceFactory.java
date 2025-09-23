@@ -32,13 +32,11 @@ public class AiCodeGeneratorServiceFactory {
     @Resource(name = "openAiChatModel")
     private ChatModel chatModel;
 
-
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
 
     @Resource
     private ChatHistoryService chatHistoryService;
-
 
     @Resource
     private ToolManager toolManager;
@@ -74,6 +72,7 @@ public class AiCodeGeneratorServiceFactory {
      */
     public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType) {
         String cacheKey = buildCacheKey(appId, codeGenType);
+        // 返回实例，如果没有就返回createAiCodeGeneratorService方法创建的新的实例
         return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, codeGenType));
     }
 
@@ -101,22 +100,24 @@ public class AiCodeGeneratorServiceFactory {
         return switch (codeGenType) {
             case VUE_PROJECT -> {
                 // 使用多例模式的 StreamingChatModel 解决并发问题
-                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil.getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil
+                        .getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .streamingChatModel(reasoningStreamingChatModel)
                         .chatMemoryProvider(memoryId -> chatMemory)
                         .tools((Object[]) toolManager.getAllTools())
                         // 添加输入护轨
-                        .inputGuardrails(SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class))
-//                        .inputGuardrails(new PromptSafetyInputGuardrail())
+                        .inputGuardrails(
+                                SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class))
+                        // .inputGuardrails(new PromptSafetyInputGuardrail())
                         .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
-                                toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()
-                        ))
+                                toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()))
                         .build();
             }
             case HTML, MULTI_FILE -> {
                 // 使用多例模式的 StreamingChatModel 解决并发问题
-                StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
+                StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype",
+                        StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                         .chatModel(chatModel)
                         .streamingChatModel(openAiStreamingChatModel)
@@ -130,63 +131,61 @@ public class AiCodeGeneratorServiceFactory {
 
     }
 
-//    /**
-//     * 根据 appId 获取服务
-//     */
-//    public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
-//        // 根据 appId 构建独立的对话记忆
-//        MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
-//                .id(appId)
-//                .chatMemoryStore(redisChatMemoryStore)
-//                .maxMessages(20)
-//                .build();
-//        return AiServices.builder(AiCodeGeneratorService.class)
-//                .chatModel(chatModel)
-//                .streamingChatModel(streamingChatModel)
-//                .chatMemory(chatMemory)
-//                .build();
-//    }
+    // /**
+    // * 根据 appId 获取服务
+    // */
+    // public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
+    // // 根据 appId 构建独立的对话记忆
+    // MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
+    // .id(appId)
+    // .chatMemoryStore(redisChatMemoryStore)
+    // .maxMessages(20)
+    // .build();
+    // return AiServices.builder(AiCodeGeneratorService.class)
+    // .chatModel(chatModel)
+    // .streamingChatModel(streamingChatModel)
+    // .chatMemory(chatMemory)
+    // .build();
+    // }
 
-//    /**
-//     * 默认提供一个 Bean
-//     */
-//    @Bean
-//    public AiCodeGeneratorService aiCodeGeneratorService() {
-//        return getAiCodeGeneratorService(0L);
-//    }
+    // /**
+    // * 默认提供一个 Bean
+    // */
+    // @Bean
+    // public AiCodeGeneratorService aiCodeGeneratorService() {
+    // return getAiCodeGeneratorService(0L);
+    // }
 
-//    /**
-//     * 创建新的 AI 服务实例
-//     */
-//    private AiCodeGeneratorService createAiCodeGeneratorService(long appId) {
-//        log.info("为 appId: {} 创建新的 AI 服务实例", appId);
-//        // 根据 appId 构建独立的对话记忆
-//        MessageWindowChatMemory chatMemory = MessageWindowChatMemory
-//                .builder()
-//                .id(appId)
-//                .chatMemoryStore(redisChatMemoryStore)
-//                .maxMessages(20)
-//                .build();
-//        if (chatMemory.messages().isEmpty()){
-//            int loadMemoryCount = chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 20);
-//            log.info("加载历史对话，appId: {}, 加载数量: {}", appId, loadMemoryCount);
-//        }
-//
-//        return AiServices.builder(AiCodeGeneratorService.class)
-//                .chatModel(chatModel)
-//                .streamingChatModel(openAiStreamingChatModel)
-//                .chatMemory(chatMemory)
-//                .build();
-//    }
+    // /**
+    // * 创建新的 AI 服务实例
+    // */
+    // private AiCodeGeneratorService createAiCodeGeneratorService(long appId) {
+    // log.info("为 appId: {} 创建新的 AI 服务实例", appId);
+    // // 根据 appId 构建独立的对话记忆
+    // MessageWindowChatMemory chatMemory = MessageWindowChatMemory
+    // .builder()
+    // .id(appId)
+    // .chatMemoryStore(redisChatMemoryStore)
+    // .maxMessages(20)
+    // .build();
+    // if (chatMemory.messages().isEmpty()){
+    // int loadMemoryCount = chatHistoryService.loadChatHistoryToMemory(appId,
+    // chatMemory, 20);
+    // log.info("加载历史对话，appId: {}, 加载数量: {}", appId, loadMemoryCount);
+    // }
+    //
+    // return AiServices.builder(AiCodeGeneratorService.class)
+    // .chatModel(chatModel)
+    // .streamingChatModel(openAiStreamingChatModel)
+    // .chatMemory(chatMemory)
+    // .build();
+    // }
 
-
-//    /**
-//     * 根据 appId 获取服务（带缓存）
-//     */
-//    public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
-//        return serviceCache.get(appId, this::createAiCodeGeneratorService);
-//    }
-
+    // /**
+    // * 根据 appId 获取服务（带缓存）
+    // */
+    // public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
+    // return serviceCache.get(appId, this::createAiCodeGeneratorService);
+    // }
 
 }
-

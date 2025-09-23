@@ -2,7 +2,7 @@ package com.wjh.aicodegen.core.deploy;
 
 import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Resource;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;

@@ -392,7 +392,7 @@ public class AppController {
                     if (error instanceof java.io.IOException && 
                         error.getMessage() != null && 
                         error.getMessage().contains("已建立的连接")) {
-                        log.info("✅ SSE连接已断开，应用ID: {}, 优雅结束流", appId);
+                        log.info(" SSE连接已断开，应用ID: {}, 优雅结束流", appId);
                         return Flux.empty(); // 优雅结束，不发送错误事件
                     } else {
                         // 其他错误，发送错误事件

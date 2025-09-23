@@ -4,7 +4,6 @@ import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
 import com.wjh.aicodegen.manager.SpringContextUtil;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.service.AiServices;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

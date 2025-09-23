@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.util.List;
+
 @Configuration
 @ConfigurationProperties(prefix = "langchain4j.open-ai.routing-chat-model")
 @Data

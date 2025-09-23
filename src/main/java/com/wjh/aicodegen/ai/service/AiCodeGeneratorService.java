@@ -12,9 +12,6 @@ import reactor.core.publisher.Flux;
  * @author 木子宸
  */
 public interface AiCodeGeneratorService {
-
-
-
     /**
      * 生成 HTML 代码
      * @param userMessage 用户输入(流式)

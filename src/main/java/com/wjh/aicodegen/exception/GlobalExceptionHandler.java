@@ -47,7 +47,7 @@ public class GlobalExceptionHandler {
             message.contains("Connection refused")
         )) {
             // 客户端断开连接，这是正常情况，使用INFO级别记录
-            log.info("✅ 客户端主动断开连接（用户退出页面或取消任务）: {}", message);
+            log.info(" 客户端主动断开连接（用户退出页面或取消任务）: {}", message);
             // 对于SSE连接断开，不需要返回响应
             return null;
         } else {

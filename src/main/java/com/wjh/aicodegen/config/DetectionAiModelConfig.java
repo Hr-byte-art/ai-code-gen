@@ -8,6 +8,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.util.List;
+
 /**
  * @Author 王哈哈
  * @Date 2025/8/24 19:14:03

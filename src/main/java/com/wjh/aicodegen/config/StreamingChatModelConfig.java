@@ -12,6 +12,9 @@ import org.springframework.context.annotation.Scope;
 
 import java.util.List;
 
+/**
+ * @author 木子宸
+ */
 @Configuration
 @ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")
 @Data
@@ -34,6 +37,7 @@ public class StreamingChatModelConfig {
     @Resource(name = "enhancedAiModelMonitorListener")
     private EnhancedAiModelMonitorListener aiModelMonitorListener;
 
+
     @Bean
     @Scope("prototype")
     public StreamingChatModel streamingChatModelPrototype() {
@@ -45,7 +49,6 @@ public class StreamingChatModelConfig {
                 .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
-                .listeners(List.of(aiModelMonitorListener))
                 .build();
     }
 

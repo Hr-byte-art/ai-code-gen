@@ -53,7 +53,7 @@ public class MyBatisCodeGenerator {
                 // 设置逻辑删除的默认字段名称
                 .setLogicDeleteColumn("isDelete");
 
-        // 设置生成 entity 并启用 Lombok
+        // 设置生成 model 并启用 Lombok
         globalConfig.enableEntity()
                 .setWithLombok(true)
                 .setJdkVersion(21);

@@ -7,7 +7,6 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.guardrail.InputGuardrail;
 import dev.langchain4j.guardrail.InputGuardrailResult;
 import jakarta.annotation.Resource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.regex.Pattern;
@@ -20,7 +19,7 @@ import java.util.regex.Pattern;
 @Component
 public class PromptSafetyInputGuardrailSpecifyContentAiDetection implements InputGuardrail {
 
-    @Autowired
+    @Resource
     private AiInputPromptDetectionServiceFactory aiInputPromptDetectionServiceFactory;
 
     @Override

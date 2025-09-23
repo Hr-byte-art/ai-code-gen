@@ -33,12 +33,19 @@ public class RedissonConfig {
         SingleServerConfig singleServerConfig = config.useSingleServer()
                 .setAddress(address)
                 .setDatabase(redisDatabase)
+                // 最小空闲连接数
                 .setConnectionMinimumIdleSize(1)
+                // 连接池大小
                 .setConnectionPoolSize(10)
+                // 空闲连接超时时间
                 .setIdleConnectionTimeout(30000)
+                // 连接超时时间
                 .setConnectTimeout(5000)
+                // 命令执行超时时间
                 .setTimeout(3000)
+                // 重试次数
                 .setRetryAttempts(3)
+                // 重试间隔时间
                 .setRetryInterval(1500);
         // 如果有密码则设置密码
         if (redisPassword != null && !redisPassword.isEmpty()) {

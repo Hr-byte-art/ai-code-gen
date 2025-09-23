@@ -15,7 +15,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @EnableAspectJAutoProxy(exposeProxy = true)
 // 开启使用缓存，支持使用 Spring Date 缓存注解 @Cacheable
 @EnableCaching
-@MapperScan("com.wjh.aicodegen.mapper")
+@MapperScan({"com.wjh.aicodegen.mapper", "com.wjh.aicodegen.observability.mapper"})
 @SpringBootApplication(exclude = {RedisEmbeddingStoreAutoConfiguration.class})
 @Slf4j
 public class AiCodeGenApplication {

@@ -2,11 +2,14 @@ package com.wjh.aicodegen.config;
 
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import jakarta.annotation.Resource;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+
+import java.util.List;
 
 /**
  * @Author 王哈哈
@@ -42,7 +45,6 @@ public class GenAppNameAiModelConfig {
      * 日志响应
      */
     private Boolean logResponses = false;
-
 
     /**
      * 创建生成AppName模型实例

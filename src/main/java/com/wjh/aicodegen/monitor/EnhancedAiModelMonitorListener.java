@@ -20,7 +20,8 @@ import java.util.Map;
  * 
  * @author 木子宸
  */
-@Component("enhancedAiModelMonitorListener")
+//@Component("enhancedAiModelMonitorListener")
+@Component
 @Slf4j
 public class EnhancedAiModelMonitorListener implements ChatModelListener {
 

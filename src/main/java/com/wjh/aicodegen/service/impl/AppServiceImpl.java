@@ -75,10 +75,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Value("${code.deploy-host:http://localhost}")
     private String deployHost;
 
-    @Value("${code.deploy-port:88}")
+    @Value("${code.deploy-port:80}")
     private Integer deployPort;
 
-    @Value("${code.deploy-path:dist}")
+    @Value("${code.deploy-path:code_deploy}")
     private String deployPath;
 
     @Resource
@@ -247,7 +247,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             updateById(app);
             log.info("为应用 {} 设置默认封面", appId);
         }
-
         // 9. 调用 AI 生成代码（流式）- 在这里就开始注册任务管理
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId)
                 // 在AI流的最开始就注册任务管理

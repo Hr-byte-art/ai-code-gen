@@ -16,6 +16,9 @@ import java.util.List;
 import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 import com.wjh.aicodegen.langgraph4j.model.ImageResource;
 
+/**
+ * @author 木子宸
+ */
 @Slf4j
 public class ContentImageCollectorNode {
 
