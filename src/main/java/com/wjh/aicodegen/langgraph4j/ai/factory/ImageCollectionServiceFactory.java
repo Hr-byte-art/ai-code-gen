@@ -19,9 +19,8 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class ImageCollectionServiceFactory {
 
-    @Resource(name = "openAiChatModel")
+    @Resource(name = "customChatModel")
     private ChatModel chatModel;
-
 
     @Resource
     private ImageSearchTool imageSearchTool;
@@ -46,8 +45,7 @@ public class ImageCollectionServiceFactory {
                         imageSearchTool,
                         igoutuIllustrationTool,
                         mermaidDiagramTool,
-                        logoGeneratorTool
-                )
+                        logoGeneratorTool)
                 .build();
     }
 }

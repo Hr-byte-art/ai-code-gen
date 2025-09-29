@@ -6,7 +6,6 @@ import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.core.update.UpdateChain;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
 import com.wjh.aicodegen.ai.factory.AiGenerateAppNameServiceFactory;
@@ -32,6 +31,8 @@ import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.enums.UserRoleEnum;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
+import com.wjh.aicodegen.model.enums.AiCallPurposeEnum;
+import com.wjh.aicodegen.monitor.GlobalContextStorage;
 import com.wjh.aicodegen.monitor.MonitorContext;
 import com.wjh.aicodegen.monitor.MonitorContextHolder;
 import com.wjh.aicodegen.service.*;
@@ -58,6 +59,7 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -69,7 +71,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
-
 
     // 部署所需
     @Value("${code.deploy-host:http://localhost}")
@@ -95,7 +96,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
-    
+
     @Resource
     private ApplicationContext applicationContext;
 
@@ -114,8 +115,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Resource
     protected ProjectDownloadService projectDownloadService;
 
-//    @Resource
-//    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
+    // @Resource
+    // private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
     @Resource
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
@@ -124,7 +125,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private ModifyPointsUtils modifyPointsUtils;
-
 
     @Override
     public AppVO getAppVO(App app) {
@@ -141,7 +141,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         return appVO;
     }
-
 
     @Override
     public QueryWrapper getQueryWrapper(AppQueryRequest appQueryRequest) {
@@ -211,11 +210,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         Integer requiredPoints = getRequiredPointsByCodeGenType(codeGenTypeEnum);
         // VUE 项目 需要VIP或ADMIN权限
         if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
-            if(!loginUser.getUserRole().equals(UserRoleEnum.VIP.getValue()) &&
-                    !loginUser.getUserRole().equals(UserRoleEnum.ADMIN.getValue())){
+            if (!loginUser.getUserRole().equals(UserRoleEnum.VIP.getValue()) &&
+                    !loginUser.getUserRole().equals(UserRoleEnum.ADMIN.getValue())) {
                 // 通过ApplicationContext获取代理对象，确保新事务生效
                 AppServiceImpl proxy = applicationContext.getBean(AppServiceImpl.class);
-                proxy.updateAppCoverInNewTransaction(appId, "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/noPermission.png");
+                proxy.updateAppCoverInNewTransaction(appId,
+                        "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/noPermission.png");
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
             }
         }
@@ -227,13 +227,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
 
         // 5. 通过校验后，添加用户消息到对话历史
-        chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 6. 设置监控上下文
+        chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(),
+                loginUser.getId());
+        // 6. 设置监控上下文，标记为聊天交互阶段
         MonitorContext monitorContext = MonitorContext.builder()
                 .userId(loginUser.getId().toString())
                 .appId(appId.toString())
+                // 用户与AI聊天交互
+                .aiCallPurpose(AiCallPurposeEnum.CHAT_INTERACTION.getCode())
                 .build();
         MonitorContextHolder.setContext(monitorContext);
+
+        // 存储到全局上下文，供工具调用时使用
+        GlobalContextStorage.storeContext(monitorContext);
         // 7. 取消已存在的任务（如果有）
         boolean existingTaskCancelled = taskCancellationManager.cancelTask(appId);
         if (existingTaskCancelled) {
@@ -286,19 +292,22 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                         if (refundSuccess) {
                             log.info("应用 {} AI生成失败，已返还用户 {} 积分 {} 分", appId, loginUser.getId(), requiredPoints);
                         } else {
-                            log.error("应用 {} AI生成失败，但返还积分失败，用户ID: {}, 应返还积分: {}", appId, loginUser.getId(), requiredPoints);
+                            log.error("应用 {} AI生成失败，但返还积分失败，用户ID: {}, 应返还积分: {}", appId, loginUser.getId(),
+                                    requiredPoints);
                         }
 
                         log.error("应用 {} AI生成失败，已更新为失败状态: {}", appId, error.getMessage());
                     } catch (Exception e) {
-                        log.error("处理AI生成失败时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
+                        log.error("处理AI生成失败时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(),
+                                e);
                     }
                 })
                 // 将监控上下文传递到Reactor流中
                 .contextWrite(context -> MonitorContextHolder.putContextToReactor(context, monitorContext));
 
         // 10. 收集 AI 响应内容并在完成后记录到对话历史
-        Flux<String> managedStream = streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+        Flux<String> managedStream = streamHandlerExecutor
+                .doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
                 .doOnComplete(() -> {
                     try {
                         // 代码生成完成，积分已在开始时预扣减，无需再次扣减
@@ -312,16 +321,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                         log.error("处理任务完成时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
                     }
                 }).doFinally(signalType -> {
-                    // 流结束时清理（无论成功/失败/取消）
+                    // 🔥 【修复】流结束时完整清理所有上下文（无论成功/失败/取消）
                     taskCancellationManager.unregisterTask(appId);
+
+                    // 清理ThreadLocal上下文
                     MonitorContextHolder.clearContext();
-                    log.debug("应用 {} 任务资源已清理，结束信号: {}", appId, signalType);
+
+                    // 清理GlobalContextStorage中的上下文
+                    GlobalContextStorage.removeContext(appId.toString());
+
+                    log.debug("🧹 应用 {} 任务资源和上下文已完整清理，结束信号: {}", appId, signalType);
                 });
 
         return managedStream;
 
     }
-
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateAppCoverInNewTransaction(Long appId, String coverUrl) {
@@ -331,10 +345,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             this.updateById(app);
         }
     }
-
-
-
-
 
     private Integer getRequiredPointsByCodeGenType(CodeGenTypeEnum codeGenTypeEnum) {
         return switch (codeGenTypeEnum) {
@@ -447,7 +457,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
         // 10. 构建应用访问 URL
-        String appDeployUrl = String.format("%s:%s/%s/%s/", deployHost , deployPort , deployPath , deployKey);
+        String appDeployUrl = String.format("%s:%s/%s/%s/", deployHost, deployPort, deployPath, deployKey);
         // 11. 异步生成截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployUrl);
         return appDeployUrl;
@@ -479,7 +489,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 删除应用
         return super.removeById(id);
     }
-
 
     @Override
     public void generateAppScreenshotAsync(Long appId, String appUrl) {
@@ -525,20 +534,44 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         App app = appConverter.toApp(appAddRequest);
         app.setUserId(loginUser.getId());
 
-//        AiGenerateAppNameService aiGenerateAppNameService = AiGenerateAppNameServiceFactory.createAiGenerateAppNameService();
-//        app.setAppName(aiGenerateAppNameService.generateAppName(initPrompt));
+        // AiGenerateAppNameService aiGenerateAppNameService =
+        // AiGenerateAppNameServiceFactory.createAiGenerateAppNameService();
+        // app.setAppName(aiGenerateAppNameService.generateAppName(initPrompt));
 
         String appName = StrUtil.sub(initPrompt, 0, Math.min(initPrompt.length(), 12));
         app.setAppName(appName);
 
-
-        // 调用 Ai 决策使用类型 （多例模式）
-        AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
-        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
-        app.setCodeGenType(codeGenTypeEnum.getValue());
-        // 插入数据库
+        // 先插入数据库获取appId
         boolean result = this.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+
+        // 设置监控上下文，标记为路由阶段
+        MonitorContext monitorContext = MonitorContext.builder()
+                .userId(loginUser.getId().toString())
+                .appId(app.getId().toString())
+                // 使用aiCallPurpose字段存储AI调用用途
+                .aiCallPurpose(AiCallPurposeEnum.ROUTING.getCode())
+                .build();
+        MonitorContextHolder.setContext(monitorContext);
+
+        // 存储到全局上下文，供工具调用时使用
+        GlobalContextStorage.storeContext(monitorContext);
+
+        // 调用 Ai 决策使用类型 （多例模式）
+        AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory
+                .createAiCodeGenTypeRoutingService();
+        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        app.setCodeGenType(codeGenTypeEnum.getValue());
+
+        // 更新数据库中的codeGenType
+        this.updateById(app);
+
+        // 路由完成后更新上下文，标记为代码生成阶段
+        monitorContext.setAiCallPurpose(AiCallPurposeEnum.CODE_GENERATION.getCode());
+        MonitorContextHolder.setContext(monitorContext);
+
+        // 更新全局上下文
+        GlobalContextStorage.storeContext(monitorContext);
         return app.getId();
     }
 
@@ -559,7 +592,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String uniqueFileName = UUID.randomUUID().toString().replace("-", "") + "." + suffix;
 
         // 5. 文件路径
-        String filePath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "ChatPictures" + File.separator + uniqueFileName;
+        String filePath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "ChatPictures" + File.separator
+                + uniqueFileName;
         Path path = Paths.get(filePath);
         // 6. 确保目录存在
         try {
@@ -577,7 +611,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         File uploadFile = new File(filePath);
         String result;
         try {
-            String uploadFilePath = StrUtil.format("{}/{}", "ChatPicture", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")));
+            String uploadFilePath = StrUtil.format("{}/{}", "ChatPicture",
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd")));
             result = cosManager.uploadFile(uploadFilePath, uploadFile);
         } finally {
             // 9. 清理临时文件，确保即使上传失败也能删除

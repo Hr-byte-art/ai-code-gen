@@ -13,12 +13,16 @@ import com.wjh.aicodegen.core.saver.CodeFileSaverExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.manager.TaskCancellationManager;
+import com.wjh.aicodegen.model.enums.AiCallPurposeEnum;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
+import com.wjh.aicodegen.monitor.MonitorContext;
+import com.wjh.aicodegen.monitor.MonitorContextHolder;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 
@@ -26,6 +30,7 @@ import java.io.File;
 
 /**
  * AI 代码生成外观类，组合生成和保存功能
+ * 
  * @author 木子宸
  */
 @Service
@@ -33,6 +38,7 @@ import java.io.File;
 public class AiCodeGeneratorFacade {
 
     @Resource
+    @Lazy
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
     @Resource
     private VueProjectBuilder vueProjectBuilder;
@@ -47,20 +53,49 @@ public class AiCodeGeneratorFacade {
      * @param appId           应用 ID
      */
     public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId) {
-// 根据 appId 获取对应的 AI 服务实例
-        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
+        // 获取当前的MonitorContext，确保在AI调用前传递
+        MonitorContext currentContext = MonitorContextHolder.getContext();
+        if (currentContext != null) {
+            log.info("在AI代码生成前获取到MonitorContext: userId={}, appId={}, aiCallPurpose={}",
+                    currentContext.getUserId(), currentContext.getAppId(), currentContext.getAiCallPurpose());
+
+            // 确保appId和codeGenType一致
+            if (!String.valueOf(appId).equals(currentContext.getAppId())) {
+                log.warn("MonitorContext中的appId与参数不匹配: context={}, param={}", currentContext.getAppId(), appId);
+                currentContext.setAppId(String.valueOf(appId));
+            }
+            // 更新AI调用用途为代码生成
+            if (!AiCallPurposeEnum.CODE_GENERATION.getCode().equals(currentContext.getAiCallPurpose())) {
+                log.debug("更新MonitorContext的aiCallPurpose: {} -> CODE_GENERATION", currentContext.getAiCallPurpose());
+                currentContext.setAiCallPurpose(AiCallPurposeEnum.CODE_GENERATION.getCode());
+            }
+            MonitorContextHolder.setContext(currentContext);
+        } else {
+            log.warn("在AI代码生成前未获取到MonitorContext，尝试创建默认上下文: appId={}", appId);
+            // 创建一个默认的上下文
+            currentContext = MonitorContext.builder()
+                    .appId(String.valueOf(appId))
+                    .userId("system") // 使用system避免unknown
+                    .aiCallPurpose(AiCallPurposeEnum.CODE_GENERATION.getCode()) // 设置AI调用用途
+                    .build();
+            MonitorContextHolder.setContext(currentContext);
+        }
+
+        // 根据 appId 获取对应的 AI 服务实例
+        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId,
+                codeGenTypeEnum);
         return switch (codeGenTypeEnum) {
             case HTML -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML, appId, currentContext);
             }
             case MULTI_FILE -> {
                 Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId);
+                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE, appId, currentContext);
             }
             case VUE_PROJECT -> {
                 TokenStream codeStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                yield processTokenStream(codeStream , appId);
+                yield processTokenStream(codeStream, appId, currentContext);
             }
             default -> {
                 String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
@@ -75,42 +110,53 @@ public class AiCodeGeneratorFacade {
      * @param codeStream  代码流
      * @param codeGenType 代码生成类型
      * @param appId       应用 ID
+     * @param context     监控上下文
      * @return 流式响应
      */
-    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId) {
+    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType, Long appId,
+            MonitorContext context) {
         StringBuilder codeBuilder = new StringBuilder();
-        // 实时收集代码片段
-        return codeStream.doOnNext(codeBuilder::append).doOnComplete(() -> {
-            // 流式返回完成后保存代码
-            log.info("应用 {} 的AI代码生成流已完成，准备保存文件", appId);
-            try {
-                // 检查任务是否被取消
-                if (!taskCancellationManager.isTaskCancelled(appId)) {
-                    log.info("应用 {} 任务未被取消，开始保存文件", appId);
-                    String completeCode = codeBuilder.toString();
-                    // 使用执行器解析代码
-                    Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
-                    // 使用执行器保存代码
-                    File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
-                    log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
-                } else {
-                    log.info("应用 {} 的任务已被取消，跳过文件保存", appId);
-                }
-            } catch (Exception e) {
-                log.error("保存失败: {}", e.getMessage());
-            }
-        });
+        // 实时收集代码片段，并传递MonitorContext到Reactor Context
+        return codeStream
+                .contextWrite(ctx -> {
+                    if (context != null) {
+                        return MonitorContextHolder.putContextToReactor(ctx, context);
+                    }
+                    return ctx;
+                })
+                .doOnNext(codeBuilder::append)
+                .doOnComplete(() -> {
+                    // 流式返回完成后保存代码
+                    log.info("应用 {} 的AI代码生成流已完成，准备保存文件", appId);
+                    try {
+                        // 检查任务是否被取消
+                        if (!taskCancellationManager.isTaskCancelled(appId)) {
+                            log.info("应用 {} 任务未被取消，开始保存文件", appId);
+                            String completeCode = codeBuilder.toString();
+                            // 使用执行器解析代码
+                            Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
+                            // 使用执行器保存代码
+                            File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
+                            log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
+                        } else {
+                            log.info("应用 {} 的任务已被取消，跳过文件保存", appId);
+                        }
+                    } catch (Exception e) {
+                        log.error("保存失败: {}", e.getMessage());
+                    }
+                });
     }
 
     /**
      * 将 TokenStream 转换为 Flux<String>，并传递工具调用信息
      *
      * @param tokenStream TokenStream 对象
+     * @param appId       应用 ID
+     * @param context     监控上下文
      * @return Flux<String> 流式响应
      */
-    private Flux<String> processTokenStream(TokenStream tokenStream , Long appId) {
-        return Flux.create(sink -> {
-
+    private Flux<String> processTokenStream(TokenStream tokenStream, Long appId, MonitorContext context) {
+        return Flux.<String>create(sink -> {
             tokenStream
                     /*
                      * 作用：处理 AI 模型返回的部分响应内容
@@ -122,9 +168,9 @@ public class AiCodeGeneratorFacade {
                         sink.next(JSONUtil.toJsonStr(aiResponseMessage));
                     })
                     /*
-                      作用：处理 AI 模型返回的工具调用信息
-                      触发时机：当 AI 模型需要调用工具时，会返回工具调用信息添加 事件处理的作用 的注释
-                      用途：用于实现工具调用的实时反馈，让用户能够看到工具调用的进度和结果
+                     * 作用：处理 AI 模型返回的工具调用信息
+                     * 触发时机：当 AI 模型需要调用工具时，会返回工具调用信息添加 事件处理的作用 的注释
+                     * 用途：用于实现工具调用的实时反馈，让用户能够看到工具调用的进度和结果
                      */
                     .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
                         ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
@@ -149,7 +195,8 @@ public class AiCodeGeneratorFacade {
                         // 检查任务是否被取消再构建 Vue 项目
                         if (!taskCancellationManager.isTaskCancelled(appId)) {
                             // 异步构建 Vue 项目
-                            String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
+                            String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_"
+                                    + appId;
                             vueProjectBuilder.buildProjectAsync(projectPath);
                             log.info("应用 {} Vue项目构建完成", appId);
                         } else {
@@ -166,223 +213,248 @@ public class AiCodeGeneratorFacade {
                         sink.error(e);
                     })
                     .start();
-        });
+        })
+                .contextWrite(ctx -> {
+                    if (context != null) {
+                        return MonitorContextHolder.putContextToReactor(ctx, context);
+                    }
+                    return ctx;
+                });
     }
 
-//    /**
-//     * 统一入口：根据类型生成并保存代码（使用 appId）
-//     * @param userMessage     用户提示词
-//     * @param codeGenTypeEnum 生成类型
-//     * @return 保存的目录
-//     */
-//    public File generateAndSaveCode(String userMessage, CodeGenTypeEnum codeGenTypeEnum, Long appId) {
-//        // 根据 appId 获取对应的 AI 服务实例
-//        AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
-//        if (codeGenTypeEnum == null) {
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
-//        }
-//        return switch (codeGenTypeEnum) {
-//            case HTML -> {
-//                HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
-//                yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML, appId);
-//            }
-//            case MULTI_FILE -> {
-//                MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-//                yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE, appId);
-//            }
-//            default -> {
-//                String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
-//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
-//            }
-//        };
-//    }
-//
+    // /**
+    // * 统一入口：根据类型生成并保存代码（使用 appId）
+    // * @param userMessage 用户提示词
+    // * @param codeGenTypeEnum 生成类型
+    // * @return 保存的目录
+    // */
+    // public File generateAndSaveCode(String userMessage, CodeGenTypeEnum
+    // codeGenTypeEnum, Long appId) {
+    // // 根据 appId 获取对应的 AI 服务实例
+    // AiCodeGeneratorService aiCodeGeneratorService =
+    // aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId);
+    // if (codeGenTypeEnum == null) {
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
+    // }
+    // return switch (codeGenTypeEnum) {
+    // case HTML -> {
+    // HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
+    // yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML,
+    // appId);
+    // }
+    // case MULTI_FILE -> {
+    // MultiFileCodeResult result =
+    // aiCodeGeneratorService.generateMultiFileCode(userMessage);
+    // yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE,
+    // appId);
+    // }
+    // default -> {
+    // String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
+    // }
+    // };
+    // }
+    //
 
-    //    /**
-//     * 统一入口：根据类型生成并保存代码
-//     *
-//     * @param userMessage     用户提示词
-//     * @param codeGenTypeEnum 生成类型
-//     * @return 保存的目录
-//     */
-//    public File generateAndSaveCode(String userMessage, CodeGenTypeEnum codeGenTypeEnum) {
-//        if (codeGenTypeEnum == null) {
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
-//        }
-//        return switch (codeGenTypeEnum) {
-//            case HTML -> generateAndSaveHtmlCode(userMessage);
-//            case MULTI_FILE -> generateAndSaveMultiFileCode(userMessage);
-//            default -> {
-//                String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
-//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
-//            }
-//        };
-//    }
-//
-//    public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum) {
-//        if (codeGenTypeEnum == null) {
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
-//        }
-//        return switch (codeGenTypeEnum) {
-//            case HTML -> generateAndSaveHtmlCodeStream(userMessage);
-//            case MULTI_FILE -> generateMultiFileCodeStream(userMessage);
-//            default -> {
-//                String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
-//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
-//            }
-//        };
-//    }
+    // /**
+    // * 统一入口：根据类型生成并保存代码
+    // *
+    // * @param userMessage 用户提示词
+    // * @param codeGenTypeEnum 生成类型
+    // * @return 保存的目录
+    // */
+    // public File generateAndSaveCode(String userMessage, CodeGenTypeEnum
+    // codeGenTypeEnum) {
+    // if (codeGenTypeEnum == null) {
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
+    // }
+    // return switch (codeGenTypeEnum) {
+    // case HTML -> generateAndSaveHtmlCode(userMessage);
+    // case MULTI_FILE -> generateAndSaveMultiFileCode(userMessage);
+    // default -> {
+    // String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
+    // }
+    // };
+    // }
+    //
+    // public Flux<String> generateAndSaveCodeStream(String userMessage,
+    // CodeGenTypeEnum codeGenTypeEnum) {
+    // if (codeGenTypeEnum == null) {
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
+    // }
+    // return switch (codeGenTypeEnum) {
+    // case HTML -> generateAndSaveHtmlCodeStream(userMessage);
+    // case MULTI_FILE -> generateMultiFileCodeStream(userMessage);
+    // default -> {
+    // String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
+    // }
+    // };
+    // }
 
-//    /**
-//     * 生成 HTML 模式的代码并保存
-//     *
-//     * @param userMessage 用户提示词
-//     * @return 保存的目录
-//     */
-//    private File generateAndSaveHtmlCode(String userMessage) {
-//        HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
-//        return CodeFileSaver.saveHtmlCodeResult(result);
-//    }
-//
-//    /**
-//     * 生成多文件模式的代码并保存
-//     *
-//     * @param userMessage 用户提示词
-//     * @return 保存的目录
-//     */
-//    private File generateAndSaveMultiFileCode(String userMessage) {
-//        MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-//        return CodeFileSaver.saveMultiFileCodeResult(result);
-//    }
-//
-//    /**
-//     * 生成html代码并保存 (响应流式)
-//     *
-//     * @param userMessage 用户提示词
-//     * @return 保存的目录
-//     */
-//    private Flux<String> generateAndSaveHtmlCodeStream(String userMessage) {
-//        Flux<String> result = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-//        // 当流式返回结果,生成代码完成后,再保存代码
-//        StringBuilder stringBuilder = new StringBuilder();
-//        // 实时收集代码片段
-//        return result.doOnNext(stringBuilder::append)
-//                .doOnComplete(() -> {
-//                    // 流式返回完成后保存代码
-//                    try {
-//                        String code = stringBuilder.toString();
-//                        HtmlCodeResult htmlCodeResult = CodeParser.parseHtmlCode(code);
-//                        // 保存代码到文件
-//                        File savedDir = CodeFileSaver.saveHtmlCodeResult(htmlCodeResult);
-//                        log.info("保存代码到文件：{}", savedDir.getAbsolutePath());
-//                    } catch (Exception e) {
-//                        log.error("保存代码出错：{}", e.getMessage());
-//                    }
-//                });
-//    }
-//
-//    /**
-//     * 生成多文件代码(响应流式)
-//     *
-//     * @param userMessage 用户消息
-//     * @return  生成的多文件代码
-//     */
-//    public Flux<String> generateMultiFileCodeStream(String userMessage) {
-//        Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-//        // 响应流返回代码生成完成后,再保存代码
-//        StringBuilder codeBuffer = new StringBuilder();
-//        return codeStream
-//                .doOnNext(codeBuffer::append)
-//                .doOnComplete(() -> {
-//                    try {
-//                        MultiFileCodeResult multiFileCodeResult = CodeParser.parseMultiFileCode(codeBuffer.toString());
-//                        // 保存代码到文件
-//                        File codeFile = CodeFileSaver.saveMultiFileCodeResult(multiFileCodeResult);
-//                        log.info("代码保存成功: {}", codeFile.getAbsolutePath());
-//                    } catch (Exception e) {
-//                        log.error("代码保存失败: {}", e.getMessage());
-//                    }
-//                });
-//    }
-//
-//
-//
-//    /**
-//     * 统一入口：根据类型生成并保存代码
-//     *
-//     * @param userMessage     用户提示词
-//     * @param codeGenTypeEnum 生成类型
-//     * @return 保存的目录
-//     */
-//    public File generateAndSaveCode(String userMessage, CodeGenTypeEnum codeGenTypeEnum) {
-//        if (codeGenTypeEnum == null) {
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
-//        }
-//        return switch (codeGenTypeEnum) {
-//            case HTML -> {
-//                HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
-//                yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML);
-//            }
-//            case MULTI_FILE -> {
-//                MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode(userMessage);
-//                yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE);
-//            }
-//            default -> {
-//                String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
-//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
-//            }
-//        };
-//    }
-//
-//    /**
-//     * 统一入口：根据类型生成并保存代码（流式）
-//     *
-//     * @param userMessage     用户提示词
-//     * @param codeGenTypeEnum 生成类型
-//     */
-//    public Flux<String> generateAndSaveCodeStream(String userMessage, CodeGenTypeEnum codeGenTypeEnum) {
-//        if (codeGenTypeEnum == null) {
-//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
-//        }
-//        return switch (codeGenTypeEnum) {
-//            case HTML -> {
-//                Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-//                yield processCodeStream(codeStream, CodeGenTypeEnum.HTML);
-//            }
-//            case MULTI_FILE -> {
-//                Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-//                yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE);
-//            }
-//            default -> {
-//                String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
-//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
-//            }
-//        };
-//    }
-//
-//
-//    /**
-//     * 通用流式代码处理方法
-//     *
-//     * @param codeStream  代码流
-//     * @param codeGenType 代码生成类型
-//     * @return 流式响应
-//     */
-//    private Flux<String> processCodeStream(Flux<String> codeStream, CodeGenTypeEnum codeGenType) {
-//        StringBuilder codeBuilder = new StringBuilder();
-//        // 实时收集代码片段
-//        return codeStream.doOnNext(codeBuilder::append).doOnComplete(() -> {
-//            // 流式返回完成后保存代码
-//            try {
-//                String completeCode = codeBuilder.toString();
-//                // 使用执行器解析代码
-//                Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
-//                // 使用执行器保存代码
-//                File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType);
-//                log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
-//            } catch (Exception e) {
-//                log.error("保存失败: {}", e.getMessage());
-//            }
-//        });
-//    }
+    // /**
+    // * 生成 HTML 模式的代码并保存
+    // *
+    // * @param userMessage 用户提示词
+    // * @return 保存的目录
+    // */
+    // private File generateAndSaveHtmlCode(String userMessage) {
+    // HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
+    // return CodeFileSaver.saveHtmlCodeResult(result);
+    // }
+    //
+    // /**
+    // * 生成多文件模式的代码并保存
+    // *
+    // * @param userMessage 用户提示词
+    // * @return 保存的目录
+    // */
+    // private File generateAndSaveMultiFileCode(String userMessage) {
+    // MultiFileCodeResult result =
+    // aiCodeGeneratorService.generateMultiFileCode(userMessage);
+    // return CodeFileSaver.saveMultiFileCodeResult(result);
+    // }
+    //
+    // /**
+    // * 生成html代码并保存 (响应流式)
+    // *
+    // * @param userMessage 用户提示词
+    // * @return 保存的目录
+    // */
+    // private Flux<String> generateAndSaveHtmlCodeStream(String userMessage) {
+    // Flux<String> result =
+    // aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+    // // 当流式返回结果,生成代码完成后,再保存代码
+    // StringBuilder stringBuilder = new StringBuilder();
+    // // 实时收集代码片段
+    // return result.doOnNext(stringBuilder::append)
+    // .doOnComplete(() -> {
+    // // 流式返回完成后保存代码
+    // try {
+    // String code = stringBuilder.toString();
+    // HtmlCodeResult htmlCodeResult = CodeParser.parseHtmlCode(code);
+    // // 保存代码到文件
+    // File savedDir = CodeFileSaver.saveHtmlCodeResult(htmlCodeResult);
+    // log.info("保存代码到文件：{}", savedDir.getAbsolutePath());
+    // } catch (Exception e) {
+    // log.error("保存代码出错：{}", e.getMessage());
+    // }
+    // });
+    // }
+    //
+    // /**
+    // * 生成多文件代码(响应流式)
+    // *
+    // * @param userMessage 用户消息
+    // * @return 生成的多文件代码
+    // */
+    // public Flux<String> generateMultiFileCodeStream(String userMessage) {
+    // Flux<String> codeStream =
+    // aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+    // // 响应流返回代码生成完成后,再保存代码
+    // StringBuilder codeBuffer = new StringBuilder();
+    // return codeStream
+    // .doOnNext(codeBuffer::append)
+    // .doOnComplete(() -> {
+    // try {
+    // MultiFileCodeResult multiFileCodeResult =
+    // CodeParser.parseMultiFileCode(codeBuffer.toString());
+    // // 保存代码到文件
+    // File codeFile = CodeFileSaver.saveMultiFileCodeResult(multiFileCodeResult);
+    // log.info("代码保存成功: {}", codeFile.getAbsolutePath());
+    // } catch (Exception e) {
+    // log.error("代码保存失败: {}", e.getMessage());
+    // }
+    // });
+    // }
+    //
+    //
+    //
+    // /**
+    // * 统一入口：根据类型生成并保存代码
+    // *
+    // * @param userMessage 用户提示词
+    // * @param codeGenTypeEnum 生成类型
+    // * @return 保存的目录
+    // */
+    // public File generateAndSaveCode(String userMessage, CodeGenTypeEnum
+    // codeGenTypeEnum) {
+    // if (codeGenTypeEnum == null) {
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
+    // }
+    // return switch (codeGenTypeEnum) {
+    // case HTML -> {
+    // HtmlCodeResult result = aiCodeGeneratorService.generateHtmlCode(userMessage);
+    // yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.HTML);
+    // }
+    // case MULTI_FILE -> {
+    // MultiFileCodeResult result =
+    // aiCodeGeneratorService.generateMultiFileCode(userMessage);
+    // yield CodeFileSaverExecutor.executeSaver(result, CodeGenTypeEnum.MULTI_FILE);
+    // }
+    // default -> {
+    // String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
+    // }
+    // };
+    // }
+    //
+    // /**
+    // * 统一入口：根据类型生成并保存代码（流式）
+    // *
+    // * @param userMessage 用户提示词
+    // * @param codeGenTypeEnum 生成类型
+    // */
+    // public Flux<String> generateAndSaveCodeStream(String userMessage,
+    // CodeGenTypeEnum codeGenTypeEnum) {
+    // if (codeGenTypeEnum == null) {
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, "生成类型为空");
+    // }
+    // return switch (codeGenTypeEnum) {
+    // case HTML -> {
+    // Flux<String> codeStream =
+    // aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
+    // yield processCodeStream(codeStream, CodeGenTypeEnum.HTML);
+    // }
+    // case MULTI_FILE -> {
+    // Flux<String> codeStream =
+    // aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+    // yield processCodeStream(codeStream, CodeGenTypeEnum.MULTI_FILE);
+    // }
+    // default -> {
+    // String errorMessage = "不支持的生成类型：" + codeGenTypeEnum.getValue();
+    // throw new BusinessException(ErrorCode.SYSTEM_ERROR, errorMessage);
+    // }
+    // };
+    // }
+    //
+    //
+    // /**
+    // * 通用流式代码处理方法
+    // *
+    // * @param codeStream 代码流
+    // * @param codeGenType 代码生成类型
+    // * @return 流式响应
+    // */
+    // private Flux<String> processCodeStream(Flux<String> codeStream,
+    // CodeGenTypeEnum codeGenType) {
+    // StringBuilder codeBuilder = new StringBuilder();
+    // // 实时收集代码片段
+    // return codeStream.doOnNext(codeBuilder::append).doOnComplete(() -> {
+    // // 流式返回完成后保存代码
+    // try {
+    // String completeCode = codeBuilder.toString();
+    // // 使用执行器解析代码
+    // Object parsedResult = CodeParserExecutor.executeParser(completeCode,
+    // codeGenType);
+    // // 使用执行器保存代码
+    // File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult,
+    // codeGenType);
+    // log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
+    // } catch (Exception e) {
+    // log.error("保存失败: {}", e.getMessage());
+    // }
+    // });
+    // }
 }

@@ -9,6 +9,8 @@ import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.manager.SpringContextUtil;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
+import com.wjh.aicodegen.monitor.MonitorContext;
+import com.wjh.aicodegen.monitor.MonitorContextHolder;
 import com.wjh.aicodegen.service.ChatHistoryService;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
@@ -29,7 +31,7 @@ import java.time.Duration;
 @Slf4j
 public class AiCodeGeneratorServiceFactory {
 
-    @Resource(name = "openAiChatModel")
+    @Resource(name = "customChatModel")
     private ChatModel chatModel;
 
     @Resource
@@ -72,6 +74,10 @@ public class AiCodeGeneratorServiceFactory {
      */
     public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType) {
         String cacheKey = buildCacheKey(appId, codeGenType);
+
+        // 在获取AI服务前，确保当前线程有正确的MonitorContext
+        ensureMonitorContext(appId, codeGenType);
+
         // 返回实例，如果没有就返回createAiCodeGeneratorService方法创建的新的实例
         return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, codeGenType));
     }
@@ -123,6 +129,8 @@ public class AiCodeGeneratorServiceFactory {
                         .streamingChatModel(openAiStreamingChatModel)
                         .chatMemory(chatMemory)
                         .tools(aiImageSearchTool)
+                        .inputGuardrails(
+                                SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class))
                         .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
@@ -131,61 +139,41 @@ public class AiCodeGeneratorServiceFactory {
 
     }
 
-    // /**
-    // * 根据 appId 获取服务
-    // */
-    // public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
-    // // 根据 appId 构建独立的对话记忆
-    // MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
-    // .id(appId)
-    // .chatMemoryStore(redisChatMemoryStore)
-    // .maxMessages(20)
-    // .build();
-    // return AiServices.builder(AiCodeGeneratorService.class)
-    // .chatModel(chatModel)
-    // .streamingChatModel(streamingChatModel)
-    // .chatMemory(chatMemory)
-    // .build();
-    // }
+    /**
+     * 确保当前线程有正确的MonitorContext
+     * 这是为了解决线程切换导致的上下文丢失问题
+     */
+    private void ensureMonitorContext(long appId, CodeGenTypeEnum codeGenType) {
+        MonitorContext existingContext = MonitorContextHolder.getContext();
 
-    // /**
-    // * 默认提供一个 Bean
-    // */
-    // @Bean
-    // public AiCodeGeneratorService aiCodeGeneratorService() {
-    // return getAiCodeGeneratorService(0L);
-    // }
+        if (existingContext != null &&
+                !existingContext.getUserId().equals("unknown") &&
+                !existingContext.getAppId().equals("unknown")) {
+            // 已有有效的上下文，确保aiCallPurpose是最新的
+            if (!"CODE_GENERATION".equals(existingContext.getAiCallPurpose())) {
+                existingContext.setAiCallPurpose("CODE_GENERATION");
+                MonitorContextHolder.setContext(existingContext);
+                log.debug("更新MonitorContext的aiCallPurpose: appId={}, aiCallPurpose=CODE_GENERATION", appId);
+            }
+            return;
+        }
 
-    // /**
-    // * 创建新的 AI 服务实例
-    // */
-    // private AiCodeGeneratorService createAiCodeGeneratorService(long appId) {
-    // log.info("为 appId: {} 创建新的 AI 服务实例", appId);
-    // // 根据 appId 构建独立的对话记忆
-    // MessageWindowChatMemory chatMemory = MessageWindowChatMemory
-    // .builder()
-    // .id(appId)
-    // .chatMemoryStore(redisChatMemoryStore)
-    // .maxMessages(20)
-    // .build();
-    // if (chatMemory.messages().isEmpty()){
-    // int loadMemoryCount = chatHistoryService.loadChatHistoryToMemory(appId,
-    // chatMemory, 20);
-    // log.info("加载历史对话，appId: {}, 加载数量: {}", appId, loadMemoryCount);
-    // }
-    //
-    // return AiServices.builder(AiCodeGeneratorService.class)
-    // .chatModel(chatModel)
-    // .streamingChatModel(openAiStreamingChatModel)
-    // .chatMemory(chatMemory)
-    // .build();
-    // }
+        // 尝试通过appId重建上下文
+        try {
+            // 这里可以从数据库查询App信息来重建上下文
+            // 但为了避免循环依赖，我们使用一个简化的默认上下文
+            MonitorContext newContext = MonitorContext.builder()
+                    .appId(String.valueOf(appId))
+                    .userId("system") // 使用system作为兜底，避免unknown
+                    .aiCallPurpose("CODE_GENERATION") // 设置AI调用用途
+                    .build();
 
-    // /**
-    // * 根据 appId 获取服务（带缓存）
-    // */
-    // public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
-    // return serviceCache.get(appId, this::createAiCodeGeneratorService);
-    // }
+            MonitorContextHolder.setContext(newContext);
+            log.warn("AI服务工厂重建MonitorContext: appId={}, aiCallPurpose=CODE_GENERATION, 请检查上下文传递", appId);
+
+        } catch (Exception e) {
+            log.error("重建MonitorContext失败: appId={}, error={}", appId, e.getMessage());
+        }
+    }
 
 }

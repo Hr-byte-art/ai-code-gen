@@ -6,6 +6,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 @EnableCaching
 @MapperScan({"com.wjh.aicodegen.mapper", "com.wjh.aicodegen.observability.mapper"})
 @SpringBootApplication(exclude = {RedisEmbeddingStoreAutoConfiguration.class})
+@ComponentScan(basePackages = {"com.wjh.aicodegen"})
 @Slf4j
 public class AiCodeGenApplication {
 
