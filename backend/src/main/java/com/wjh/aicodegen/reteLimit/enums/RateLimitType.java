@@ -1,7 +1,7 @@
 package com.wjh.aicodegen.reteLimit.enums;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 
 public enum RateLimitType {

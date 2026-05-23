@@ -18,7 +18,7 @@ import java.nio.file.StandardOpenOption;
 /**
  * 文件写入工具
  * 支持 AI 通过工具调用的方式写入文件
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 @Component
@@ -28,11 +28,16 @@ public class FileWriteTool extends BaseTool {
     public String writeFile(@P("文件的相对路径") String relativeFilePath, @P("要写入文件的内容") String content, @ToolMemoryId Long appId  ) {
         try {
             Path path = Paths.get(relativeFilePath);
+            String projectDirName = "vue_project_" + appId;
+            Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
             if (!path.isAbsolute()) {
                 // 相对路径处理，创建基于 appId 的项目目录
-                String projectDirName = "vue_project_" + appId;
-                Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
                 path = projectRoot.resolve(relativeFilePath);
+            }
+            // 路径遍历校验：规范化后必须在项目目录内
+            path = path.normalize();
+            if (!path.startsWith(projectRoot.normalize())) {
+                return "错误：路径超出项目目录，拒绝访问 - " + relativeFilePath;
             }
             // 创建父目录（如果不存在）
             Path parentDir = path.getParent();

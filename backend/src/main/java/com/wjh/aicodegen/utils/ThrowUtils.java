@@ -4,7 +4,7 @@ import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 public class ThrowUtils {
 

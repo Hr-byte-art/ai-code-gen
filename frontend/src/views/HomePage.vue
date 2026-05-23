@@ -1,98 +1,92 @@
 <template>
-  <div class="home-page">
-    <!-- 背景装饰 -->
-    <div class="bg-decoration">
-      <div class="bg-gradient"></div>
-      <div class="bg-grid"></div>
-      <div class="bg-orb bg-orb-1"></div>
-      <div class="bg-orb bg-orb-2"></div>
-      <div class="bg-orb bg-orb-3"></div>
-    </div>
-
-    <div class="container">
-      <!-- Hero 区域 -->
-      <section class="hero-section">
-        <div class="hero-badge">
-          <span class="badge-dot"></span>
-          AI 驱动 · 一键生成
+  <div class="home">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="hero-kicker">从一句需求到可部署资产</div>
+          <h1 class="hero-title">把应用想法整理成可迭代的工程</h1>
+          <p class="hero-desc">
+            熵擎把需求、生成、预览和部署放在同一条工作流里。先描述你要解决的问题，系统会创建应用资产，后续继续对话迭代。
+          </p>
+          <div class="hero-notes">
+            <span>HTML / 多文件 / Vue 工程</span>
+            <span>生成后可继续修改</span>
+            <span>部署状态可追踪</span>
+          </div>
+          <figure class="workflow-preview">
+            <img :src="workflowPreview" alt="熵擎 AI 应用生成工作流预览" />
+          </figure>
         </div>
-        <h1 class="hero-title">熵擎 AI 应用生成平台</h1>
-        <p class="hero-slogan">用自然语言描述你的想法，AI 为你构建完整应用</p>
-        <p class="hero-description">
-          支持 HTML、多文件项目、Vue 工程等多种生成模式
-        </p>
-      </section>
 
-      <!-- 输入区域 -->
-      <section class="input-section">
-        <div class="input-card">
+        <div class="prompt-panel">
+          <div class="prompt-panel-head">
+            <div>
+              <span class="panel-eyebrow">新应用</span>
+              <h2 class="panel-title">描述你要交付的东西</h2>
+            </div>
+            <span class="panel-shortcut">Ctrl Enter</span>
+          </div>
           <a-textarea
             v-model:value="prompt"
-            :rows="4"
-            placeholder="描述你想要的应用，例如：一个在线商城、一个博客系统、一个任务管理工具..."
+            :rows="5"
+            placeholder="例如：做一个给摄影师展示作品、预约档期、收集客户需求的网站，首页要有作品分类和联系表单。"
             class="prompt-input"
             @keydown.enter.ctrl="handleGenerate"
           />
-          <div class="input-footer">
-            <a-tooltip title="按 Ctrl+Enter 生成">
-              <span class="shortcut-hint">
-                <InfoCircleOutlined />
-                Ctrl + Enter
-              </span>
-            </a-tooltip>
-            <a-button
-              type="primary"
-              :loading="generating"
-              @click="handleGenerate"
-              class="generate-btn"
-            >
-              <RocketOutlined />
-              生成应用
+          <div class="prompt-footer">
+            <div class="prompt-hint">先创建资产，再进入工作台继续细化。</div>
+            <a-button type="primary" :loading="generating" @click="handleGenerate">
+              <RocketOutlined /> 创建应用
             </a-button>
           </div>
+          <div class="templates">
+            <button v-for="t in templates" :key="t.name" class="tpl-btn" @click="useTemplate(t.name)">
+              <component :is="t.icon" class="tpl-icon" />
+              {{ t.label }}
+            </button>
+          </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- 快捷操作 -->
-      <section class="quick-actions">
-        <button
-          v-for="tpl in templates"
-          :key="tpl.name"
-          class="template-btn"
-          @click="useTemplate(tpl.name)"
-        >
-          <span class="template-icon">{{ tpl.icon }}</span>
-          <span class="template-label">{{ tpl.label }}</span>
-        </button>
-      </section>
+    <section class="workflow-section">
+      <div class="section-inner">
+        <div class="section-head compact">
+          <span class="section-kicker">生成链路</span>
+          <h2 class="section-title">每个页面只负责一件事</h2>
+        </div>
+        <div class="workflow-list">
+          <div v-for="step in workflow" :key="step.title" class="workflow-item">
+            <div class="workflow-index">{{ step.index }}</div>
+            <div class="workflow-copy">
+              <h3 class="workflow-title">{{ step.title }}</h3>
+              <p class="workflow-desc">{{ step.desc }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-      <!-- 精选应用 -->
-      <section class="section">
-        <div class="section-header">
-          <h2 class="section-title">精选应用</h2>
-          <span class="section-subtitle">探索社区创建的优秀应用</span>
+    <section class="featured-section">
+      <div class="section-inner wide">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">公开样本</span>
+            <h2 class="section-title">看看别人把需求沉淀成了什么</h2>
+          </div>
+          <a-button @click="$router.push('/app')">进入我的资产</a-button>
         </div>
         <a-spin :spinning="loading">
-          <div class="featured-grid">
-            <AppCard
-              v-for="app in appList"
-              :key="app.id"
-              :app="app"
-              @click="goToApp(app.id)"
-            />
+          <div class="app-grid" v-if="appList.length > 0">
+            <AppCard v-for="app in appList" :key="app.id" :app="app" @click="goToApp(app.id)" />
           </div>
-          <a-empty v-if="!loading && appList.length === 0" description="暂无精选应用" />
+          <EmptyState v-if="!loading && appList.length === 0" title="还没有公开样本" description="创建并部署应用后，可以在这里看到可复用的案例资产。" />
         </a-spin>
-        <div class="pagination-wrapper" v-if="total > pageSize">
-          <a-pagination
-            v-model:current="currentPage"
-            :total="total"
-            :page-size="pageSize"
-            @change="handlePageChange"
-          />
+        <div class="pagination-wrap" v-if="total > pageSize">
+          <a-pagination v-model:current="currentPage" :total="total" :page-size="pageSize" @change="handlePageChange" />
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -101,433 +95,355 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  RocketOutlined,
-  InfoCircleOutlined,
-  ShoppingOutlined,
-  ReadOutlined,
-  CheckSquareOutlined,
-  MessageOutlined
+  RocketOutlined, ShoppingOutlined, ReadOutlined, CheckSquareOutlined, MessageOutlined
 } from '@ant-design/icons-vue'
 import AppCard from '@/components/AppCard.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import workflowPreview from '@/assets/workflow-preview.webp'
 import { getGoodAppList, createApp } from '@/api/app'
 
 const router = useRouter()
-
-// 输入状态
 const prompt = ref('')
 const generating = ref(false)
 const loading = ref(false)
-
-// 分页状态
 const currentPage = ref(1)
-const pageSize = ref(12)
+const pageSize = ref(9)
 const total = ref(0)
-
-// 应用列表
 const appList = ref<any[]>([])
 
-// 模板
 const templates = [
-  { name: '商城', label: '商城应用', icon: '🛒' },
-  { name: '博客', label: '博客系统', icon: '📝' },
-  { name: '任务', label: '任务管理', icon: '✅' },
-  { name: '聊天', label: '聊天应用', icon: '💬' }
+  { name: '电商展示与下单', label: '电商站', icon: ShoppingOutlined },
+  { name: '内容博客与分类归档', label: '内容站', icon: ReadOutlined },
+  { name: '团队任务看板', label: '任务板', icon: CheckSquareOutlined },
+  { name: '客服对话页面', label: '对话页', icon: MessageOutlined },
 ]
 
-// 获取精选应用列表
+const workflow = [
+  { index: '01', title: '描述需求', desc: '把目标用户、页面内容和核心动作说清楚。' },
+  { index: '02', title: '生成资产', desc: '系统创建应用记录，并保存后续迭代上下文。' },
+  { index: '03', title: '对话迭代', desc: '围绕同一个应用持续调整页面、文案和交互。' },
+  { index: '04', title: '预览部署', desc: '确认交付结果，并把可访问地址沉淀到资产列表。' },
+]
+
 const fetchAppList = async () => {
   loading.value = true
   try {
-    const res: any = await getGoodAppList({
-      pageNum: currentPage.value,
-      pageSize: pageSize.value
-    })
-    appList.value = res.data?.records || []
+    const res: any = await getGoodAppList({ pageNum: currentPage.value, pageSize: pageSize.value })
+    appList.value = (res.data?.records || []).map((a: any) => ({ ...a, title: a.appName || a.title }))
     total.value = res.data?.totalRow || 0
-  } catch (error) {
-    console.error('获取应用列表失败:', error)
-  } finally {
-    loading.value = false
-  }
+  } catch (e) { console.error(e) }
+  finally { loading.value = false }
 }
 
-// 生成应用
 const handleGenerate = async () => {
-  if (!prompt.value.trim()) {
-    message.warning('请输入应用描述')
-    return
-  }
-
+  if (!prompt.value.trim()) { message.warning('先写一句你要做什么'); return }
   generating.value = true
   try {
     const res = await createApp({ initPrompt: prompt.value })
-    message.success('应用创建成功！')
+    message.success('应用资产已创建')
     router.push(`/app/edit/${res.data}`)
-  } catch (error) {
-    message.error('创建失败，请重试')
-  } finally {
-    generating.value = false
-  }
+  } catch (e) { message.error('创建失败，请重试') }
+  finally { generating.value = false }
 }
 
-// 使用模板
-const useTemplate = (template: string) => {
-  prompt.value = `请帮我生成一个${template}应用`
-}
-
-// 跳转应用
-const goToApp = (id: number) => {
-  router.push(`/app/chat/${id}`)
-}
-
-// 分页变化
-const handlePageChange = (page: number) => {
-  currentPage.value = page
-  fetchAppList()
-}
-
-onMounted(() => {
-  fetchAppList()
-})
+const useTemplate = (t: string) => { prompt.value = `请帮我生成一个${t}应用` }
+const goToApp = (id: number) => router.push(`/app/chat/${id}`)
+const handlePageChange = (page: number) => { currentPage.value = page; fetchAppList() }
+onMounted(() => fetchAppList())
 </script>
 
 <style scoped>
-.home-page {
-  position: relative;
+.home {
   min-height: 100vh;
 }
 
-.bg-decoration {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
+.hero {
+  padding: 72px 24px 58px;
+  background:
+    linear-gradient(135deg, rgba(49, 92, 83, 0.08), transparent 34%),
+    var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
 }
 
-.bg-gradient {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100vh;
-  background: linear-gradient(180deg, rgba(59, 130, 246, 0.04) 0%, rgba(139, 92, 246, 0.02) 50%, transparent 100%);
-}
-
-.bg-grid {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-image:
-    linear-gradient(rgba(59, 130, 246, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.025) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, black 30%, transparent 70%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 20%, black 30%, transparent 70%);
-}
-
-.bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.4;
-}
-
-.bg-orb-1 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
-  top: -10%;
-  right: -5%;
-  animation: float1 20s ease-in-out infinite;
-}
-
-.bg-orb-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.12), transparent 70%);
-  top: 15%;
-  left: -8%;
-  animation: float2 25s ease-in-out infinite;
-}
-
-.bg-orb-3 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.1), transparent 70%);
-  bottom: 20%;
-  right: 10%;
-  animation: float3 18s ease-in-out infinite;
-}
-
-@keyframes float1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-30px, 20px) scale(1.05); }
-  66% { transform: translate(20px, -15px) scale(0.95); }
-}
-
-@keyframes float2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(25px, -20px) scale(1.08); }
-  66% { transform: translate(-15px, 25px) scale(0.92); }
-}
-
-@keyframes float3 {
-  0%, 100% { transform: translate(0, 0); }
-  50% { transform: translate(-20px, -30px); }
-}
-
-.container {
-  max-width: 1200px;
+.hero-grid {
+  max-width: 1120px;
   margin: 0 auto;
-  padding: 24px 20px;
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-/* Hero Section */
-.hero-section {
-  text-align: center;
-  padding: 72px 0 48px;
-  position: relative;
-}
-
-.hero-badge {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: minmax(0, 0.94fr) minmax(420px, 1fr);
+  gap: 44px;
   align-items: center;
-  gap: 8px;
-  padding: 6px 16px;
-  background: rgba(59, 130, 246, 0.08);
-  border: 1px solid rgba(59, 130, 246, 0.15);
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #3b82f6;
-  margin-bottom: 24px;
 }
 
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #3b82f6;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+.hero-kicker,
+.section-kicker,
+.panel-eyebrow {
+  display: inline-flex;
+  color: var(--c-primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 
 .hero-title {
-  font-size: 52px;
-  font-weight: 800;
-  margin: 0 0 16px;
-  line-height: 1.15;
-  background: linear-gradient(135deg, #1e293b 0%, #3b82f6 50%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -1.5px;
-  animation: fadeInUp 0.8s ease-out;
+  max-width: 640px;
+  font-size: clamp(38px, 5vw, 64px);
+  font-weight: 850;
+  line-height: 1.02;
+  color: var(--t-primary);
+  margin: 14px 0 18px;
+  letter-spacing: -2px;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.hero-slogan {
-  font-size: 20px;
-  margin: 0 0 8px;
-  color: #334155;
-  font-weight: 500;
-  animation: fadeInUp 0.8s ease-out 0.1s both;
-}
-
-.hero-description {
-  font-size: 15px;
+.hero-desc {
+  max-width: 560px;
+  font-size: 16px;
+  color: var(--t-muted);
   margin: 0;
-  color: #64748b;
-  animation: fadeInUp 0.8s ease-out 0.2s both;
+  line-height: 1.85;
 }
 
-/* Input Section */
-.input-section {
-  max-width: 720px;
-  margin: 0 auto 32px;
-  animation: fadeInUp 0.8s ease-out 0.3s both;
+.hero-notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 26px;
 }
 
-.input-card {
-  background: rgba(255, 255, 255, 0.9);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-radius: var(--radius-xl);
-  border: 1px solid rgba(226, 232, 240, 0.8);
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  transition: all var(--transition-base);
+.hero-notes span {
+  padding: 6px 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-full);
+  background: color-mix(in srgb, var(--bg-soft) 70%, transparent);
+  color: var(--t-secondary);
+  font-size: 12px;
+  font-weight: 650;
 }
 
-.input-card:focus-within {
-  border-color: rgba(59, 130, 246, 0.3);
-  box-shadow: var(--shadow-lg), 0 0 0 4px rgba(59, 130, 246, 0.06);
+.workflow-preview {
+  margin: 28px 0 0;
+  padding: 10px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-2xl);
+  background: color-mix(in srgb, var(--bg-card) 76%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.workflow-preview img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: calc(var(--r-2xl) - 8px);
+}
+
+.prompt-panel {
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-2xl);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-md);
+}
+
+.prompt-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.panel-title {
+  margin: 5px 0 0;
+  color: var(--t-primary);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.panel-shortcut {
+  padding: 4px 8px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-sm);
+  color: var(--t-light);
+  background: var(--bg-soft);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .prompt-input {
-  border: none !important;
+  border: 1px solid var(--border-light) !important;
   box-shadow: none !important;
-  border-radius: 0 !important;
-  font-size: 15px;
-  padding: 20px 24px 8px;
-  background: transparent !important;
+  padding: 14px !important;
+  font-size: 14px !important;
   resize: none;
+  background: var(--bg-input) !important;
 }
 
-.prompt-input:focus {
-  box-shadow: none !important;
-  border: none !important;
-}
-
-.input-footer {
+.prompt-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px 12px;
+  gap: 14px;
+  padding-top: 14px;
 }
 
-.shortcut-hint {
+.prompt-hint {
+  font-size: 12px;
+  color: var(--t-light);
+}
+
+.templates {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.tpl-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #94a3b8;
-  padding: 4px 10px;
-  border-radius: 6px;
-  background: #f8fafc;
-}
-
-.generate-btn {
-  border-radius: 10px !important;
-  padding: 6px 24px !important;
-  height: auto !important;
-  font-weight: 600 !important;
-}
-
-/* Quick Actions */
-.quick-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 64px;
-  flex-wrap: wrap;
-  animation: fadeInUp 0.8s ease-out 0.4s both;
-}
-
-.template-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.85);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border: 1px solid #e2e8f0;
+  padding: 7px 12px;
+  border-radius: var(--r-full);
+  background: transparent;
+  border: 1px solid var(--border-light);
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  color: #334155;
-  transition: all var(--transition-base);
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--t-secondary);
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
 }
 
-.template-btn:hover {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-primary);
+.tpl-btn:hover {
+  border-color: var(--c-primary-200);
+  color: var(--c-primary);
+  background: var(--c-primary-50);
 }
 
-.template-icon {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.template-btn:hover .template-icon {
-  filter: brightness(0) invert(1);
-}
-
-/* Section */
-.section {
-  margin-bottom: 64px;
-}
-
-.section-header {
-  margin-bottom: 32px;
+.tpl-icon {
+  font-size: 13px;
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+}
+
+.workflow-section {
+  padding: 54px 24px;
+  background: var(--bg-body);
+}
+
+.section-inner {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.section-inner.wide {
+  max-width: 1120px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.section-head.compact {
+  display: block;
 }
 
 .section-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 26px;
+  font-weight: 830;
+  color: var(--t-primary);
+  margin: 6px 0 0;
+  letter-spacing: -0.7px;
+}
+
+.workflow-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-xl);
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.workflow-item {
+  min-height: 168px;
+  padding: 20px;
+  border-right: 1px solid var(--border-light);
+}
+
+.workflow-item:last-child {
+  border-right: none;
+}
+
+.workflow-index {
+  color: var(--c-cta);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  margin-bottom: 36px;
+}
+
+.workflow-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--t-primary);
+  margin: 0 0 8px;
+}
+
+.workflow-desc {
+  color: var(--t-muted);
+  font-size: 13px;
+  line-height: 1.7;
   margin: 0;
-  letter-spacing: -0.3px;
 }
 
-.section-subtitle {
-  font-size: 14px;
-  color: var(--text-muted);
+.featured-section {
+  padding: 56px 24px 72px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-light);
 }
 
-.featured-grid {
+.app-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
+  gap: 14px;
 }
 
-.pagination-wrapper {
+.pagination-wrap {
   display: flex;
   justify-content: center;
-  margin-top: 32px;
+  margin-top: 24px;
 }
 
-/* 响应式 */
-@media (max-width: 768px) {
-  .hero-section {
-    padding: 48px 0 32px;
-  }
-  .hero-title {
-    font-size: 32px;
-    letter-spacing: -0.5px;
-  }
-  .hero-slogan {
-    font-size: 16px;
-  }
-  .hero-description {
-    font-size: 14px;
-  }
-  .featured-grid {
+@media (max-width: 920px) {
+  .hero-grid {
     grid-template-columns: 1fr;
   }
-  .quick-actions {
-    gap: 8px;
+
+  .workflow-list {
+    grid-template-columns: 1fr 1fr;
   }
-  .template-btn {
-    padding: 8px 14px;
-    font-size: 13px;
+
+  .workflow-item:nth-child(2) {
+    border-right: none;
   }
+}
+
+@media (max-width: 768px) {
+  .hero { padding: 46px 16px 38px; }
+  .hero-title { letter-spacing: -1.1px; }
+  .prompt-panel { padding: 16px; }
+  .prompt-footer { align-items: stretch; flex-direction: column; }
+  .prompt-footer :deep(.ant-btn) { width: 100%; }
+  .section-head { align-items: flex-start; flex-direction: column; }
+  .workflow-list { grid-template-columns: 1fr; }
+  .workflow-item { min-height: auto; border-right: none; border-bottom: 1px solid var(--border-light); }
+  .workflow-item:last-child { border-bottom: none; }
+  .workflow-index { margin-bottom: 18px; }
+  .app-grid { grid-template-columns: 1fr; }
 }
 </style>

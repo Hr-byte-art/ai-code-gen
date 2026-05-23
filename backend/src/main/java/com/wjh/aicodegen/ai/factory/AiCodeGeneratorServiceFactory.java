@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Duration;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 @Configuration
 @Slf4j

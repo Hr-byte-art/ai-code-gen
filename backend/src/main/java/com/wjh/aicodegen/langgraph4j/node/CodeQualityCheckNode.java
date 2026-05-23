@@ -18,7 +18,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
 
 /**
  * 代码质量检查节点
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 public class CodeQualityCheckNode {

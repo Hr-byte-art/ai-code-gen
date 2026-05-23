@@ -20,7 +20,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -117,11 +116,11 @@ public class UserController {
     @GetMapping("/get")
     @Operation(summary =  "根据 id 获取用户" , responses = {@ApiResponse(description = "用户信息")})
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<User> getUserById(long id) {
+    public BaseResponse<UserVO> getUserById(long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         User user = userService.getById(id);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
-        return ResultUtils.success(user);
+        return ResultUtils.success(userService.getUserVO(user));
     }
 
     /**
@@ -130,9 +129,9 @@ public class UserController {
     @GetMapping("/get/vo")
     @Operation(summary =  "根据 id 获取用户包装类（已脱敏）" , responses = {@ApiResponse(description = "脱敏后的用户信息")})
     public BaseResponse<UserVO> getUserVOById(long id) {
-        BaseResponse<User> response = getUserById(id);
-        User user = response.getData();
-        return ResultUtils.success(userService.getUserVO(user));
+        BaseResponse<UserVO> response = getUserById(id);
+        UserVO userVO = response.getData();
+        return ResultUtils.success(userVO);
     }
 
     /**

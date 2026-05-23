@@ -14,7 +14,7 @@ import org.springframework.context.annotation.Scope;
 import java.util.List;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 @Configuration
 @ConfigurationProperties(prefix = "langchain4j.open-ai.streaming-chat-model")

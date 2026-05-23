@@ -1,227 +1,79 @@
 <template>
-  <div class="token-details-page">
-    <div class="container">
-      <div class="page-header">
-        <a-button @click="goBack" class="back-btn" size="small">
-          <ArrowLeftOutlined />
-          返回
-        </a-button>
-        <h1 class="page-title">Token 详情</h1>
-      </div>
+  <div class="page">
+    <PageHeader title="消耗明细" description="按时间查看每一次模型调用的输入、输出和总消耗。" eyebrow="资源账单">
+      <template #actions>
+        <a-button @click="router.back()" size="small"><ArrowLeftOutlined /> 返回</a-button>
+      </template>
+    </PageHeader>
 
-      <!-- 筛选条件 -->
-      <div class="filter-card">
-        <a-form layout="inline" :model="filterForm">
-          <a-form-item label="时间范围">
-            <a-range-picker v-model:value="filterForm.dateRange" />
-          </a-form-item>
-          <a-form-item>
-            <a-button type="primary" @click="handleSearch" size="small">
-              <SearchOutlined />
-              查询
-            </a-button>
-            <a-button style="margin-left: 8px" @click="handleReset" size="small">
-              重置
-            </a-button>
-          </a-form-item>
-        </a-form>
-      </div>
+    <section class="filter-bar">
+      <a-form layout="inline">
+        <a-form-item label="时间范围"><a-range-picker v-model:value="filterForm.dateRange" /></a-form-item>
+        <a-form-item>
+          <a-button type="primary" @click="handleSearch" size="small">查询</a-button>
+          <a-button style="margin-left:8px" @click="handleReset" size="small">重置</a-button>
+        </a-form-item>
+      </a-form>
+    </section>
 
-      <!-- 统计信息 -->
-      <a-row :gutter="16" class="stats-row">
-        <a-col :xs="24" :sm="8">
-          <div class="stat-card stat-primary">
-            <div class="stat-label">总 Token 数</div>
-            <div class="stat-value">{{ formatNumber(summary.totalTokens || 0) }}</div>
-          </div>
-        </a-col>
-        <a-col :xs="24" :sm="8">
-          <div class="stat-card stat-success">
-            <div class="stat-label">输入 Token</div>
-            <div class="stat-value">{{ formatNumber(summary.totalInputTokens || 0) }}</div>
-          </div>
-        </a-col>
-        <a-col :xs="24" :sm="8">
-          <div class="stat-card stat-warning">
-            <div class="stat-label">输出 Token</div>
-            <div class="stat-value">{{ formatNumber(summary.totalOutputTokens || 0) }}</div>
-          </div>
-        </a-col>
-      </a-row>
+    <section class="mini-summary">
+      <div class="mini-item"><span>总 Token</span><strong>{{ fmtNum(summary.totalTokens || 0) }}</strong></div>
+      <div class="mini-item"><span>输入</span><strong>{{ fmtNum(summary.totalInputTokens || 0) }}</strong></div>
+      <div class="mini-item"><span>输出</span><strong>{{ fmtNum(summary.totalOutputTokens || 0) }}</strong></div>
+    </section>
 
-      <!-- 数据表格 -->
-      <div class="table-card">
-        <a-table
-          :columns="columns"
-          :data-source="records"
-          :pagination="pagination"
-          :loading="loading"
-          @change="handleTableChange"
-          size="middle"
-        >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'modelName'">
-              <a-tag color="blue">{{ record.modelName }}</a-tag>
-            </template>
-            <template v-if="column.key === 'totalTokens'">
-              <span class="token-value">{{ record.totalTokens }}</span>
-            </template>
-            <template v-if="column.key === 'createTime'">
-              {{ formatTime(record.createTime) }}
-            </template>
-          </template>
-        </a-table>
-      </div>
-    </div>
+    <section class="card">
+      <a-table :columns="columns" :data-source="records" :pagination="pagination" :loading="loading" @change="handleTableChange" size="small">
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'modelName'"><a-tag color="blue">{{ record.modelName }}</a-tag></template>
+          <template v-if="column.key === 'totalTokens'"><span class="tv">{{ record.totalTokens }}</span></template>
+          <template v-if="column.key === 'createTime'">{{ formatTime(record.createTime) }}</template>
+        </template>
+      </a-table>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeftOutlined, SearchOutlined } from '@ant-design/icons-vue'
+import { ArrowLeftOutlined } from '@ant-design/icons-vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import { getUserTokenSummary, getUserTokenDetails } from '@/api/token'
 
 const router = useRouter()
-
 const loading = ref(false)
-
-const filterForm = reactive({
-  dateRange: []
-})
-
+const filterForm = reactive({ dateRange: [] })
 const summary = ref<any>({})
-
-const pagination = reactive({
-  current: 1,
-  pageSize: 10,
-  total: 0,
-  showSizeChanger: true,
-  showTotal: (total: number) => `共 ${total} 条`
-})
-
+const pagination = reactive({ current: 1, pageSize: 10, total: 0, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` })
 const columns = [
-  { title: '应用名称', dataIndex: 'appName', key: 'appName' },
+  { title: '应用', dataIndex: 'appName', key: 'appName' },
   { title: '模型', dataIndex: 'modelName', key: 'modelName' },
   { title: '用途', dataIndex: 'aiCallPurpose', key: 'aiCallPurpose' },
-  { title: '输入 Token', dataIndex: 'inputTokens', key: 'inputTokens' },
-  { title: '输出 Token', dataIndex: 'outputTokens', key: 'outputTokens' },
+  { title: '输入', dataIndex: 'inputTokens', key: 'inputTokens' },
+  { title: '输出', dataIndex: 'outputTokens', key: 'outputTokens' },
   { title: '总 Token', dataIndex: 'totalTokens', key: 'totalTokens' },
-  { title: '时间', dataIndex: 'createTime', key: 'createTime' }
+  { title: '时间', dataIndex: 'createTime', key: 'createTime' },
 ]
-
 const records = ref<any[]>([])
-
-const formatNumber = (num: number) => {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-  return num.toString()
-}
-
-const formatTime = (time: string) => {
-  if (!time) return ''
-  return new Date(time).toLocaleString('zh-CN')
-}
-
-const fetchSummary = async () => {
-  try {
-    const res = await getUserTokenSummary()
-    summary.value = res.data || {}
-  } catch (error) {
-    console.error('获取统计失败:', error)
-  }
-}
-
-const fetchRecords = async () => {
-  loading.value = true
-  try {
-    const res: any = await getUserTokenDetails({
-      page: pagination.current,
-      pageSize: pagination.pageSize
-    })
-    records.value = res.data || []
-    pagination.total = res.data?.length || 0
-  } catch (error) {
-    console.error('获取记录失败:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const goBack = () => { router.back() }
+const fmtNum = (n: number) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n)
+const formatTime = (t: string) => t ? new Date(t).toLocaleString('zh-CN') : ''
+const fetchSummary = async () => { try { const r = await getUserTokenSummary(); summary.value = r.data || {} } catch (e) {} }
+const fetchRecords = async () => { loading.value = true; try { const r: any = await getUserTokenDetails({ page: pagination.current, pageSize: pagination.pageSize }); records.value = r.data || []; pagination.total = r.data?.length || 0 } catch (e) {} finally { loading.value = false } }
 const handleSearch = () => { pagination.current = 1; fetchRecords() }
 const handleReset = () => { filterForm.dateRange = []; handleSearch() }
-const handleTableChange = (pag: any) => { pagination.current = pag.current; pagination.pageSize = pag.pageSize; fetchRecords() }
-
+const handleTableChange = (p: any) => { pagination.current = p.current; pagination.pageSize = p.pageSize; fetchRecords() }
 onMounted(() => { fetchSummary(); fetchRecords() })
 </script>
 
 <style scoped>
-.token-details-page {
-  padding: 24px;
-  background: var(--bg-page);
-  min-height: calc(100vh - 64px);
-}
-
-.container { max-width: 1200px; margin: 0 auto; }
-
-.page-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.back-btn { border-radius: 8px !important; }
-
-.page-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.filter-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #f1f5f9;
-}
-
-.stats-row { margin-bottom: 20px; }
-
-.stat-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #f1f5f9;
-  margin-bottom: 16px;
-  border-left: 3px solid transparent;
-}
-
-.stat-primary { border-left-color: #3b82f6; }
-.stat-success { border-left-color: #10b981; }
-.stat-warning { border-left-color: #f59e0b; }
-
-.stat-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
-
-.stat-value { font-size: 22px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px; }
-
-.table-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #f1f5f9;
-}
-
-.token-value { font-weight: 600; color: var(--color-primary); }
-
-@media (max-width: 768px) {
-  .token-details-page { padding: 16px; }
-  .page-header { flex-direction: column; align-items: flex-start; }
-}
+.page { padding: 30px 24px 48px; max-width: 1280px; margin: 0 auto; }
+.filter-bar { background: var(--bg-card); border-radius: var(--r-lg); padding: 14px 16px; margin-bottom: 16px; border: 1px solid var(--border-light); }
+.mini-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; overflow: hidden; margin-bottom: 16px; border: 1px solid var(--border-light); border-radius: var(--r-xl); background: var(--border-light); }
+.mini-item { padding: 16px; background: var(--bg-card); }
+.mini-item span { display: block; color: var(--t-muted); font-size: 12px; font-weight: 750; margin-bottom: 5px; }
+.mini-item strong { color: var(--t-primary); font-size: 22px; font-weight: 850; }
+.card { background: var(--bg-card); border-radius: var(--r-xl); padding: 16px; border: 1px solid var(--border-light); }
+.tv { font-weight: 800; color: var(--c-primary); }
+@media (max-width: 768px) { .page { padding: 22px 16px 36px; } .mini-summary { grid-template-columns: 1fr; } }
 </style>

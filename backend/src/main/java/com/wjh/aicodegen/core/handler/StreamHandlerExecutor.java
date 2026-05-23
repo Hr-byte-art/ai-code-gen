@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  * 流处理器执行器
  * 根据代码生成类型创建合适的流处理器：
  * 1. 传统的 Flux<String> 流（HTML、MULTI_FILE） -> SimpleTextStreamHandler

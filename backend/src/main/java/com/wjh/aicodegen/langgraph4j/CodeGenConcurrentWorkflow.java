@@ -29,7 +29,7 @@ import static org.bsc.langgraph4j.action.AsyncEdgeAction.edge_async;
  *     相对于 CompletableFuture 创建工作流的方式，这个工作流更适合并发场景，但是 实现很麻烦，工作量大，代码复杂。
  *     实际 还是需要 创建一个线程池才可以真正的实现并发 ，不然还是会串行执行的
  * </p>
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 public class CodeGenConcurrentWorkflow {

@@ -27,7 +27,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  * JSON 消息流处理器
  * 处理 VUE_PROJECT 类型的复杂流式响应，包含工具调用信息
  */

@@ -1,183 +1,240 @@
 <template>
   <div class="app-card" @click="$emit('click')">
-    <div class="app-preview">
-      <img
-        v-if="app.cover"
-        :src="app.cover"
-        :alt="app.title"
-        class="app-cover"
-      />
-      <div v-else class="app-placeholder">
-        <img
-          v-if="app.avatar"
-          :src="app.avatar"
-          :alt="app.title"
-          class="placeholder-logo"
-        />
-        <AppstoreOutlined v-else />
+    <div class="card-head">
+      <div class="card-identity">
+        <div class="asset-mark">{{ initials }}</div>
+        <div class="card-title-group">
+          <h3 class="card-title">{{ app.title }}</h3>
+          <div class="card-subline">
+            <span v-if="app.codeGenType">{{ app.codeGenType }}</span>
+            <span>{{ timeAgo }}</span>
+          </div>
+        </div>
       </div>
-      <div class="app-overlay">
-        <a-button type="primary" ghost class="overlay-btn">
-          <MessageOutlined />
-          打开对话
-        </a-button>
-      </div>
+      <span :class="['status-pill', statusClass]">{{ statusLabel }}</span>
     </div>
-    <div class="app-info">
-      <div class="app-info-left">
-        <a-avatar :src="app.avatar" :size="36">
-          <template #icon><UserOutlined /></template>
-        </a-avatar>
-      </div>
-      <div class="app-info-right">
-        <h3 class="app-title">{{ app.title }}</h3>
-        <p class="app-author">{{ app.author }}</p>
-      </div>
+
+    <p class="card-desc">{{ app.description || app.initPrompt || '还没有补充应用说明' }}</p>
+
+    <div class="next-step">
+      <span class="next-label">下一步</span>
+      <span class="next-text">{{ nextStep }}</span>
+    </div>
+
+    <div class="card-actions">
+      <a-button size="small" type="primary" @click.stop="$emit('chat')">
+        <MessageOutlined /> 继续迭代
+      </a-button>
+      <a-button size="small" @click.stop="$emit('preview')" v-if="app.deployedTime">
+        <EyeOutlined /> 预览
+      </a-button>
+      <a-button size="small" @click.stop="$emit('deploy')" v-else>
+        <CloudUploadOutlined /> 部署
+      </a-button>
+      <a-button size="small" @click.stop="$emit('edit')">
+        <EditOutlined /> 交付
+      </a-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { AppstoreOutlined, UserOutlined, MessageOutlined } from '@ant-design/icons-vue'
+import { computed } from 'vue'
+import {
+  MessageOutlined, EditOutlined, EyeOutlined,
+  CloudUploadOutlined
+} from '@ant-design/icons-vue'
 
 interface AppInfo {
   id: number
   title: string
-  description: string
-  author: string
-  avatar: string
-  cover: string
+  description?: string
+  initPrompt?: string
+  author?: string
+  avatar?: string
+  cover?: string
+  codeGenType?: string
+  deployedTime?: string
+  createTime?: string
+  updateTime?: string
+  deployKey?: string
 }
 
-defineProps<{
-  app: AppInfo
-}>()
+const props = defineProps<{ app: AppInfo }>()
+defineEmits<{ click: []; chat: []; edit: []; preview: []; deploy: [] }>()
 
-defineEmits<{
-  click: []
-}>()
+const statusLabel = computed(() => props.app.deployedTime ? '已上线' : props.app.deployKey ? '可部署' : '草稿')
+const statusClass = computed(() => props.app.deployedTime ? 'online' : props.app.deployKey ? 'ready' : 'draft')
+const nextStep = computed(() => props.app.deployedTime ? '查看线上效果或继续迭代' : props.app.deployKey ? '部署并确认访问地址' : '继续对话完善需求')
+const initials = computed(() => (props.app.title || '应用').slice(0, 2))
+
+const timeAgo = computed(() => {
+  const time = props.app.updateTime || props.app.createTime
+  if (!time) return '时间未知'
+  const diff = Date.now() - new Date(time).getTime()
+  if (diff < 60000) return '刚刚更新'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  if (diff < 2592000000) return `${Math.floor(diff / 86400000)} 天前`
+  return new Date(time).toLocaleDateString('zh-CN')
+})
 </script>
 
 <style scoped>
 .app-card {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #f1f5f9;
-  transition: all var(--transition-slow);
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-light);
+  padding: 16px;
   cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
 }
 
 .app-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(59, 130, 246, 0.12);
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--bg-card) 86%, var(--c-primary-50));
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
-.app-preview {
-  height: 180px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e8eef6 100%);
+.card-head {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-}
-
-.app-cover {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform var(--transition-slow);
-}
-
-.app-card:hover .app-cover {
-  transform: scale(1.05);
-}
-
-.app-placeholder {
-  font-size: 48px;
-  color: #d1d5db;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.placeholder-logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  opacity: 0.5;
-  transition: opacity var(--transition-base);
-}
-
-.app-card:hover .placeholder-logo {
-  opacity: 0.7;
-}
-
-.app-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(139, 92, 246, 0.8));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity var(--transition-slow);
-}
-
-.app-card:hover .app-overlay {
-  opacity: 1;
-}
-
-.overlay-btn {
-  border-color: rgba(255, 255, 255, 0.9) !important;
-  color: #fff !important;
-  font-weight: 600;
-  border-radius: 10px !important;
-  padding: 6px 20px !important;
-  height: auto !important;
-  backdrop-filter: blur(4px);
-}
-
-.overlay-btn:hover {
-  background: rgba(255, 255, 255, 0.15) !important;
-}
-
-.app-info {
-  padding: 14px 16px;
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
-  border-top: 1px solid #f8fafc;
 }
 
-.app-info-left {
-  flex-shrink: 0;
-}
-
-.app-info-right {
-  flex: 1;
+.card-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
   min-width: 0;
 }
 
-.app-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 2px;
-  color: var(--text-primary);
+.asset-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-light);
+  color: var(--c-primary);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.card-title-group {
+  min-width: 0;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 780;
+  color: var(--t-primary);
+  margin: 0 0 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.app-author {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin: 0;
+.card-subline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.card-subline span + span::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  vertical-align: middle;
+}
+
+.status-pill {
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 780;
   white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.status-pill.online {
+  color: var(--c-success);
+  background: #eaf4ee;
+  border-color: #cfe5d8;
+}
+
+.status-pill.ready {
+  color: var(--c-warning);
+  background: #f6ede1;
+  border-color: #e8d4bb;
+}
+
+.status-pill.draft {
+  color: var(--t-muted);
+  background: var(--bg-soft);
+  border-color: var(--border-light);
+}
+
+.card-desc {
+  min-height: 40px;
+  font-size: 13px;
+  color: var(--t-muted);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.6;
+}
+
+.next-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+  border: 1px solid var(--border-light);
+}
+
+.next-label {
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.next-text {
+  color: var(--t-secondary);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.card-actions {
+  display: flex;
+  gap: 7px;
+  padding-top: 1px;
+  flex-wrap: wrap;
+}
+
+.card-actions :deep(.ant-btn) {
+  font-size: 12px !important;
+  height: 29px !important;
+  padding: 0 10px !important;
 }
 </style>

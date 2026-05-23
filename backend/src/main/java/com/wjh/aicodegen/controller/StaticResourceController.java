@@ -16,9 +16,10 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
 import java.io.File;
+import java.nio.file.Files;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 @RestController
 @RequestMapping("/static")
@@ -52,9 +53,15 @@ public class StaticResourceController {
             if ("/".equals(resourcePath)) {
                 resourcePath = "/index.html";
             }
-            // 构建文件路径
+            // 构建文件路径并校验路径遍历
             String filePath = PREVIEW_ROOT_DIR + "/" + deployKey + resourcePath;
             File file = new File(filePath);
+            // 防止路径遍历攻击：规范化后必须在根目录内
+            String canonicalPath = file.getCanonicalPath();
+            String canonicalRoot = new File(PREVIEW_ROOT_DIR).getCanonicalPath();
+            if (!canonicalPath.startsWith(canonicalRoot + File.separator) && !canonicalPath.equals(canonicalRoot)) {
+                return ResponseEntity.badRequest().build();
+            }
             // 检查文件是否存在
             if (!file.exists()) {
                 return ResponseEntity.notFound().build();
@@ -70,14 +77,20 @@ public class StaticResourceController {
     }
 
     /**
-     * 根据文件扩展名返回带字符编码的 Content-Type
+     * 根据文件扩展名返回 Content-Type，文本类型自动加 charset
      */
     private String getContentTypeWithCharset(String filePath) {
-        if (filePath.endsWith(".html")) {return "text/html; charset=UTF-8";}
-        if (filePath.endsWith(".css")) {return "text/css; charset=UTF-8";}
-        if (filePath.endsWith(".js")) {return "application/javascript; charset=UTF-8";}
-        if (filePath.endsWith(".png")) {return "image/png";}
-        if (filePath.endsWith(".jpg")) {return "image/jpeg";}
+        try {
+            String contentType = Files.probeContentType(new File(filePath).toPath());
+            if (contentType != null) {
+                // 文本类型自动加 charset
+                if (contentType.startsWith("text/") || contentType.contains("javascript") || contentType.contains("json") || contentType.contains("xml")) {
+                    return contentType + "; charset=UTF-8";
+                }
+                return contentType;
+            }
+        } catch (Exception ignored) {
+        }
         return "application/octet-stream";
     }
 }

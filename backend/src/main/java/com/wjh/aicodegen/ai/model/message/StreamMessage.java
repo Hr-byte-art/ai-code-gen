@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * 流式消息响应基类
- * @author 木子宸
+ * @author 王哈哈
  */
 @Data
 @AllArgsConstructor

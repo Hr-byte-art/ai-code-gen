@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
  * 工具基类
  * 定义所有工具的通用接口
  * 
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 public abstract class BaseTool {

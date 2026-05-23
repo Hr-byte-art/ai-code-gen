@@ -4,7 +4,7 @@ import lombok.Getter;
 
 /**
  * 流式消息类型枚举
- * @author 木子宸
+ * @author 王哈哈
  */
 @Getter
 public enum StreamMessageTypeEnum {

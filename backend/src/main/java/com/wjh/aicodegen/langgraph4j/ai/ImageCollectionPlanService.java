@@ -5,7 +5,7 @@ import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 public interface ImageCollectionPlanService {
 

@@ -16,7 +16,7 @@ import java.nio.file.Paths;
 /**
  * 文件读取工具
  * 支持 AI 通过工具调用的方式读取文件内容
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 @Component
@@ -30,10 +30,14 @@ public class FileReadTool extends BaseTool {
     ) {
         try {
             Path path = Paths.get(relativeFilePath);
+            String projectDirName = "vue_project_" + appId;
+            Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
             if (!path.isAbsolute()) {
-                String projectDirName = "vue_project_" + appId;
-                Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
                 path = projectRoot.resolve(relativeFilePath);
+            }
+            path = path.normalize();
+            if (!path.startsWith(projectRoot.normalize())) {
+                return "错误：路径超出项目目录，拒绝访问 - " + relativeFilePath;
             }
             if (!Files.exists(path) || !Files.isRegularFile(path)) {
                 return "错误：文件不存在或不是文件 - " + relativeFilePath;

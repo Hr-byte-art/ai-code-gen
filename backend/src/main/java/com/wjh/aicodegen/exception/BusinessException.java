@@ -3,7 +3,7 @@ package com.wjh.aicodegen.exception;
 import lombok.Getter;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 @Getter
 public class BusinessException extends RuntimeException {

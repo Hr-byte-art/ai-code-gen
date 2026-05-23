@@ -8,3 +8,5 @@
 {"level":30,"time":1779557930884,"pid":94772,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
 {"level":30,"time":1779558318503,"pid":61404,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
 {"level":30,"time":1779558318503,"pid":61404,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779568651312,"pid":89532,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779568651313,"pid":89532,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}

@@ -23,7 +23,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
  * 优化图片收集节点（优化的计划见 ImageCollectorNode_bak ）
  * 当前是：CompletableFuture 并发实现
  * 直接修改图片收集工作节点。先调用 AI 进行规划，‍然后并发收集图片并汇总，最后设置 imageList 状态。
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 public class ImageCollectorNode {

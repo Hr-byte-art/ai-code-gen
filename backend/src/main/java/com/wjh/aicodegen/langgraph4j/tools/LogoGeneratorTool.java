@@ -20,7 +20,7 @@ import java.util.Map;
 
 /**
  * logo生成工具(因为要钱，而且挺贵的，所以使用放回一张静态图片)
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 @Component

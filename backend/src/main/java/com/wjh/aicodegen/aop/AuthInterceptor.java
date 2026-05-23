@@ -43,12 +43,8 @@ public class AuthInterceptor {
 
         // 获取当前用户的角色
         String currentUserRole = currentUser.getUserRole();
-        // 没有权限，拒绝访问
+        // 角色不匹配，拒绝访问
         if (!currentUserRole.equals(mustRole)){
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        // 必须要求有权限，但是当前用户没有管理员权限，拒绝访问
-        if (mustUserRole.equals(UserRoleEnum.ADMIN) && !currentUserRole.equals(UserRoleEnum.ADMIN.getValue())){
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         // 校验通过，放行

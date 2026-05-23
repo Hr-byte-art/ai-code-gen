@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 @Configuration
 public class RedissonConfig {

@@ -4,7 +4,7 @@ import dev.langchain4j.model.output.structured.Description;
 import lombok.Data;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 @Data
 @Description("多文件代码结果")

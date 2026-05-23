@@ -1,134 +1,127 @@
 <template>
-  <div class="chat-page">
-    <div class="chat-container">
-      <!-- 左侧对话列表 -->
-      <div class="chat-sidebar">
-        <div class="sidebar-header">
-          <h3 class="sidebar-title">对话列表</h3>
-          <a-button type="primary" size="small" @click="createNewChat" class="new-chat-btn">
-            <PlusOutlined />
-            新建
-          </a-button>
+  <div class="generation-page">
+    <section class="work-context">
+      <div class="context-main">
+        <div class="asset-mark">
+          <AppstoreOutlined />
         </div>
-
-        <div class="chat-list">
-          <div
-            v-for="chat in chatList"
-            :key="chat.id"
-            :class="['chat-item', { active: currentChatId === chat.id }]"
-            @click="switchChat(chat.id)"
-          >
-            <div class="chat-item-icon">
-              <MessageOutlined />
-            </div>
-            <div class="chat-item-info">
-              <div class="chat-item-title">{{ chat.message?.substring(0, 20) || '新对话' }}...</div>
-              <div class="chat-item-time">{{ formatTime(chat.createTime) }}</div>
-            </div>
+        <div class="context-copy">
+          <div class="context-eyebrow">生成工作台</div>
+          <h1 class="context-title">{{ appInfo.appName || '加载应用中' }}</h1>
+          <div class="context-meta">
+            <span :class="['status-pill', appInfo.deployedTime ? 'online' : 'draft']">
+              {{ appInfo.deployedTime ? '已上线' : '迭代中' }}
+            </span>
+            <span v-if="appInfo.codeGenType" class="meta-chip">{{ appInfo.codeGenType }}</span>
+            <span class="meta-chip">应用 ID {{ appId }}</span>
           </div>
-          <a-empty v-if="chatList.length === 0" description="暂无对话记录" :image-style="{ height: '40px' }" />
         </div>
       </div>
+      <div class="context-actions">
+        <a-button @click="goToEdit"><EditOutlined /> 交付页</a-button>
+        <a-button @click="goToPreview" v-if="appInfo.deployKey"><EyeOutlined /> 预览</a-button>
+        <a-button type="primary" @click="handleDeploy" :loading="deploying">
+          <CloudUploadOutlined /> {{ appInfo.deployedTime ? '重新部署' : '部署' }}
+        </a-button>
+      </div>
+    </section>
 
-      <!-- 右侧聊天区域 -->
-      <div class="chat-main">
-        <!-- 应用信息头部 -->
-        <div class="chat-header">
-          <div class="app-info">
-            <a-avatar :size="36" :src="appInfo.cover" class="app-avatar">
-              <template #icon><AppstoreOutlined /></template>
-            </a-avatar>
-            <div class="app-details">
-              <h2 class="app-name">{{ appInfo.appName || '加载中...' }}</h2>
-              <p class="app-description">{{ appInfo.initPrompt }}</p>
+    <section class="workspace-grid">
+      <aside class="brief-panel">
+        <div class="panel-section">
+          <div class="panel-title">当前阶段</div>
+          <div class="stage-list">
+            <div class="stage-item done">
+              <span class="stage-index">01</span>
+              <span>需求已建档</span>
             </div>
-          </div>
-          <div class="header-actions">
-            <a-button size="small" @click="goToEdit" class="header-btn">
-              <EditOutlined />
-              编辑
-            </a-button>
-            <a-button size="small" @click="handleDeploy" :loading="deploying" class="header-btn">
-              <CloudUploadOutlined />
-              部署
-            </a-button>
-          </div>
-        </div>
-
-        <!-- 消息列表 -->
-        <div class="messages-container" ref="messagesContainer">
-          <div class="messages-list">
-            <div v-if="chatStore.loading" class="loading-more">
-              <a-spin size="small" />
-              <span>加载中...</span>
+            <div class="stage-item active">
+              <span class="stage-index">02</span>
+              <span>对话迭代</span>
             </div>
-            <div v-if="chatStore.pagination.hasMore && !chatStore.loading" class="load-more-btn">
-              <a-button type="link" @click="loadMore" size="small">加载更多历史消息</a-button>
+            <div :class="['stage-item', appInfo.deployKey ? 'done' : '']">
+              <span class="stage-index">03</span>
+              <span>预览确认</span>
             </div>
-
-            <div
-              v-for="msg in chatStore.messages"
-              :key="msg.id"
-              :class="['message-item', msg.messageType]"
-            >
-              <a-avatar :size="34" :class="['msg-avatar', msg.messageType]">
-                <template #icon>
-                  <UserOutlined v-if="msg.messageType === 'user'" />
-                  <RobotOutlined v-else />
-                </template>
-              </a-avatar>
-              <div class="message-content">
-                <div class="message-header">
-                  <span class="message-sender">{{ msg.messageType === 'user' ? '我' : 'AI 助手' }}</span>
-                  <span class="message-time">{{ formatTime(msg.createTime) }}</span>
-                </div>
-                <div class="message-text" v-html="formatMessage(msg.message)"></div>
-              </div>
-            </div>
-
-            <!-- 加载状态 -->
-            <div v-if="sending" class="message-item assistant">
-              <a-avatar :size="34" class="msg-avatar assistant">
-                <template #icon><RobotOutlined /></template>
-              </a-avatar>
-              <div class="message-content">
-                <div class="message-text loading">
-                  <span class="typing-indicator">
-                    <span></span><span></span><span></span>
-                  </span>
-                  <span>AI 正在思考...</span>
-                </div>
-              </div>
+            <div :class="['stage-item', appInfo.deployedTime ? 'done' : '']">
+              <span class="stage-index">04</span>
+              <span>部署交付</span>
             </div>
           </div>
         </div>
 
-        <!-- 输入区域 -->
-        <div class="input-container">
-          <div class="input-wrapper">
+        <div class="panel-section">
+          <div class="panel-title">可直接这样说</div>
+          <button v-for="item in promptHints" :key="item" class="hint-btn" @click="useHint(item)">
+            {{ item }}
+          </button>
+        </div>
+      </aside>
+
+      <main class="conversation-panel">
+        <div class="messages" ref="messagesContainer">
+          <div class="messages-inner">
+            <div v-if="chatStore.messages.length === 0 && !sending" class="chat-empty">
+              <div class="empty-icon"><RobotOutlined /></div>
+              <h3 class="empty-title">从一个明确修改点开始</h3>
+              <p class="empty-desc">比如先补页面结构、调整配色、增加登录态提示，或者要求重新生成某个模块。</p>
+            </div>
+
+            <div v-if="chatStore.loading" class="load-more"><a-spin size="small" /> 加载历史记录</div>
+            <div v-if="chatStore.pagination.hasMore && !chatStore.loading" class="load-more">
+              <a-button type="link" size="small" @click="loadMore">加载更早记录</a-button>
+            </div>
+
+            <div v-for="msg in chatStore.messages" :key="msg.id" :class="['msg', msg.messageType]">
+              <div :class="['msg-rail', msg.messageType]">
+                <UserOutlined v-if="msg.messageType === 'user'" />
+                <RobotOutlined v-else />
+              </div>
+              <div class="msg-body">
+                <div class="msg-head">
+                  <span class="msg-name">{{ msg.messageType === 'user' ? '你提交的修改' : '生成反馈' }}</span>
+                  <span class="msg-time">{{ formatTime(msg.createTime) }}</span>
+                </div>
+                <div class="msg-text">{{ msg.message }}</div>
+              </div>
+            </div>
+
+            <div v-if="sending" class="msg assistant">
+              <div class="msg-rail assistant"><RobotOutlined /></div>
+              <div class="msg-body">
+                <div class="msg-head">
+                  <span class="msg-name">生成反馈</span>
+                </div>
+                <div class="msg-text typing">
+                  <span class="dots"><i></i><i></i><i></i></span>
+                  正在生成并写入应用资产
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer">
+          <div class="composer-head">
+            <span>下一条修改指令</span>
+            <span>Enter 发送</span>
+          </div>
+          <div class="input-wrap">
             <a-textarea
               v-model:value="inputMessage"
               :rows="3"
-              placeholder="输入你的问题... (Enter 发送，Shift+Enter 换行)"
+              placeholder="写清楚你想改哪里、改成什么效果。"
               @keydown.enter.exact.prevent="sendMessage"
               :disabled="sending"
-              class="chat-input"
+              class="input"
             />
-            <div class="input-actions">
-              <a-button
-                type="primary"
-                :loading="sending"
-                @click="sendMessage"
-                class="send-btn"
-              >
-                <SendOutlined />
-                发送
-              </a-button>
-            </div>
+            <a-button type="primary" :loading="sending" @click="sendMessage" class="send-btn">
+              <SendOutlined /> 发送
+            </a-button>
           </div>
         </div>
-      </div>
-    </div>
+      </main>
+    </section>
   </div>
 </template>
 
@@ -137,14 +130,8 @@ import { ref, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  PlusOutlined,
-  AppstoreOutlined,
-  EditOutlined,
-  CloudUploadOutlined,
-  UserOutlined,
-  RobotOutlined,
-  SendOutlined,
-  MessageOutlined
+  AppstoreOutlined, EditOutlined, EyeOutlined, CloudUploadOutlined,
+  UserOutlined, RobotOutlined, SendOutlined
 } from '@ant-design/icons-vue'
 import { useChatStore } from '@/stores/chat'
 import { getAppById, deployApp } from '@/api/app'
@@ -154,22 +141,21 @@ const router = useRouter()
 const chatStore = useChatStore()
 
 const appId = Number(route.params.id)
-
 const appInfo = ref<any>({})
-const chatList = ref<any[]>([])
-const currentChatId = ref<number | null>(null)
 const inputMessage = ref('')
 const sending = ref(false)
 const deploying = ref(false)
 const messagesContainer = ref<HTMLElement>()
 
+const promptHints = [
+  '把首页首屏改得更像真实产品官网',
+  '补一个空状态和错误提示',
+  '调整移动端布局，优先保证可读性',
+  '把按钮和表单文案改得更具体',
+]
+
 const fetchAppInfo = async () => {
-  try {
-    const res = await getAppById(appId)
-    appInfo.value = res.data
-  } catch (error) {
-    console.error('获取应用信息失败:', error)
-  }
+  try { const res = await getAppById(appId); appInfo.value = res.data } catch (e) {}
 }
 
 const fetchChatHistory = async () => {
@@ -181,449 +167,465 @@ const fetchChatHistory = async () => {
 const sendMessage = async () => {
   const content = inputMessage.value.trim()
   if (!content || sending.value) return
-
   chatStore.addUserMessage(content)
   inputMessage.value = ''
   sending.value = true
-
   await nextTick()
   scrollToBottom()
-
   try {
     chatStore.addAiMessage('')
-
-    const eventSource = new EventSource(
+    const es = new EventSource(
       `${import.meta.env.VITE_API_BASE_URL}/app/chat/gen/code?appId=${appId}&message=${encodeURIComponent(content)}`,
       { withCredentials: true }
     )
-
-    let fullResponse = ''
-
-    eventSource.onmessage = (event) => {
-      const data = event.data
-      if (data === '[DONE]') {
-        eventSource.close()
-        sending.value = false
-        fetchChatList()
-        return
-      }
-      fullResponse += data
-      chatStore.updateLastMessage(fullResponse)
+    let full = ''
+    es.onmessage = (e) => {
+      if (e.data === '[DONE]') { es.close(); sending.value = false; fetchAppInfo(); return }
+      full += e.data
+      chatStore.updateLastMessage(full)
       scrollToBottom()
     }
-
-    eventSource.onerror = (error) => {
-      console.error('SSE错误:', error)
-      eventSource.close()
-      sending.value = false
-      message.error('AI响应失败，请重试')
-    }
-  } catch (error) {
-    console.error('发送消息失败:', error)
-    sending.value = false
-    message.error('发送失败，请重试')
-  }
+    es.onerror = () => { es.close(); sending.value = false; message.error('生成响应失败') }
+  } catch (e) { sending.value = false; message.error('发送失败') }
 }
 
-const formatMessage = (content: string) => {
-  if (!content) return ''
-  return content
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\n/g, '<br>')
-}
-
-const formatTime = (time: string) => {
-  if (!time) return ''
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-
+const formatTime = (t: string) => {
+  if (!t) return ''
+  const diff = Date.now() - new Date(t).getTime()
   if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
-  return date.toLocaleDateString('zh-CN')
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  return new Date(t).toLocaleDateString('zh-CN')
 }
 
 const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
+  if (messagesContainer.value) messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
 }
 
-const fetchChatList = async () => {
-  try {
-    const { getChatHistory } = await import('@/api/chat')
-    const res: any = await getChatHistory(appId, { pageSize: 50 })
-    chatList.value = res.data?.records || []
-  } catch (error) {
-    console.error('获取对话列表失败:', error)
-  }
+const useHint = (hint: string) => { inputMessage.value = hint }
+const goToEdit = () => router.push(`/app/edit/${appId}`)
+const goToPreview = () => {
+  if (appInfo.value.deployKey) window.open(`/api/static/${appInfo.value.deployKey}/`, '_blank')
 }
-
-const createNewChat = () => {
-  chatStore.clearMessages()
-  currentChatId.value = null
-}
-
-const switchChat = (chatId: number) => {
-  currentChatId.value = chatId
-}
-
-const loadMore = async () => {
-  await chatStore.loadMore(appId)
-}
-
-const goToEdit = () => {
-  router.push(`/app/edit/${appId}`)
-}
-
 const handleDeploy = async () => {
   deploying.value = true
-  try {
-    await deployApp(appId)
-    message.success('部署请求已提交')
-  } catch (error) {
-    message.error('部署失败')
-  } finally {
-    deploying.value = false
-  }
+  try { await deployApp(appId); message.success('部署请求已提交'); fetchAppInfo() }
+  catch (e) { message.error('部署失败') }
+  finally { deploying.value = false }
 }
 
-watch(() => chatStore.messages, () => {
-  nextTick(() => scrollToBottom())
-}, { deep: true })
+const loadMore = async () => { await chatStore.loadMore(appId) }
 
-onMounted(() => {
-  fetchAppInfo()
-  fetchChatHistory()
-  fetchChatList()
-})
+watch(() => chatStore.messages, () => nextTick(scrollToBottom), { deep: true })
+onMounted(() => { fetchAppInfo(); fetchChatHistory() })
 </script>
 
 <style scoped>
-.chat-page {
-  height: calc(100vh - 64px);
-  background: var(--bg-page);
+.generation-page {
+  min-height: calc(100vh - var(--header-height));
+  padding: 22px;
 }
 
-.chat-container {
+.work-context {
   display: flex;
-  height: 100%;
-}
-
-/* Sidebar */
-.chat-sidebar {
-  width: 260px;
-  background: var(--bg-card);
-  border-right: 1px solid #f1f5f9;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-}
-
-.sidebar-header {
-  padding: 16px;
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
+  gap: 18px;
+  max-width: 1360px;
+  margin: 0 auto 18px;
+  padding: 16px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-xl);
+  background: var(--bg-card);
 }
 
-.sidebar-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.new-chat-btn {
-  border-radius: 8px !important;
-  font-size: 12px !important;
-  height: 28px !important;
-  padding: 0 10px !important;
-}
-
-.chat-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px;
-}
-
-.chat-item {
+.context-main {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  margin-bottom: 2px;
-}
-
-.chat-item:hover {
-  background: #f1f5f9;
-}
-
-.chat-item.active {
-  background: rgba(59, 130, 246, 0.08);
-}
-
-.chat-item.active .chat-item-icon {
-  color: var(--color-primary);
-}
-
-.chat-item-icon {
-  font-size: 14px;
-  color: #94a3b8;
-  flex-shrink: 0;
-}
-
-.chat-item-info {
+  gap: 14px;
   min-width: 0;
-  flex: 1;
 }
 
-.chat-item-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.asset-mark {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 15px;
+  color: var(--c-primary);
+  background: var(--c-primary-50);
+  border: 1px solid var(--c-primary-100);
+  font-size: 18px;
 }
 
-.chat-item-time {
+.context-copy {
+  min-width: 0;
+}
+
+.context-eyebrow {
+  color: var(--t-light);
   font-size: 11px;
-  color: #94a3b8;
-  margin-top: 2px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
 }
 
-/* Chat Main */
-.chat-main {
-  flex: 1;
+.context-title {
+  margin: 3px 0 7px;
+  color: var(--t-primary);
+  font-size: 22px;
+  font-weight: 850;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+}
+
+.context-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+}
+
+.status-pill,
+.meta-chip {
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.status-pill.online {
+  color: var(--c-success);
+  background: #eaf4ee;
+  border: 1px solid #cfe5d8;
+}
+
+.status-pill.draft {
+  color: var(--c-warning);
+  background: #f6ede1;
+  border: 1px solid #e8d4bb;
+}
+
+.meta-chip {
+  color: var(--t-muted);
+  background: var(--bg-soft);
+  border: 1px solid var(--border-light);
+}
+
+.context-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.workspace-grid {
+  max-width: 1360px;
+  height: calc(100vh - var(--header-height) - 118px);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 18px;
+  min-height: 600px;
+}
+
+.brief-panel,
+.conversation-panel {
+  min-height: 0;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-xl);
+  background: var(--bg-card);
+}
+
+.brief-panel {
+  padding: 16px;
+}
+
+.panel-section + .panel-section {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-light);
+}
+
+.panel-title {
+  margin-bottom: 12px;
+  color: var(--t-primary);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.stage-list {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  gap: 8px;
 }
 
-.chat-header {
-  padding: 12px 24px;
-  background: var(--bg-card);
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.app-info {
+.stage-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: var(--r-md);
+  color: var(--t-muted);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.app-avatar {
-  flex-shrink: 0;
+.stage-item.active {
+  color: var(--c-primary);
+  background: var(--c-primary-50);
 }
 
-.app-details {
-  min-width: 0;
+.stage-item.done {
+  color: var(--t-secondary);
 }
 
-.app-name {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
+.stage-index {
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 850;
 }
 
-.app-description {
-  margin: 2px 0 0;
+.hint-btn {
+  width: 100%;
+  display: block;
+  text-align: left;
+  padding: 10px 11px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+  color: var(--t-secondary);
+  cursor: pointer;
   font-size: 12px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 350px;
+  font-weight: 650;
+  line-height: 1.55;
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
 }
 
-.header-actions {
+.hint-btn + .hint-btn {
+  margin-top: 8px;
+}
+
+.hint-btn:hover {
+  color: var(--c-primary);
+  border-color: var(--c-primary-200);
+  background: var(--c-primary-50);
+}
+
+.conversation-panel {
   display: flex;
-  gap: 6px;
-  flex-shrink: 0;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.header-btn {
-  border-radius: 8px !important;
-  font-size: 12px !important;
-  height: 30px !important;
-}
-
-/* Messages */
-.messages-container {
+.messages {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 22px;
 }
 
-.messages-list {
-  max-width: 780px;
+.messages-inner {
+  max-width: 880px;
   margin: 0 auto;
 }
 
-.loading-more,
-.load-more-btn {
+.chat-empty {
+  max-width: 460px;
+  margin: 80px auto;
   text-align: center;
-  padding: 12px;
-  color: var(--text-muted);
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  background: var(--c-primary-50);
+  color: var(--c-primary);
+  font-size: 22px;
+}
+
+.empty-title {
+  margin: 0 0 8px;
+  color: var(--t-primary);
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.empty-desc {
+  margin: 0;
+  color: var(--t-muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.load-more {
+  text-align: center;
+  padding: 10px;
+  color: var(--t-muted);
   font-size: 13px;
 }
 
-.message-item {
+.msg {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 11px;
+  margin-bottom: 18px;
+}
+
+.msg-rail {
+  width: 32px;
+  height: 32px;
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: var(--bg-soft);
+  color: var(--t-muted);
 }
 
-.message-item.user {
-  flex-direction: row-reverse;
+.msg-rail.user {
+  color: var(--c-primary);
+  background: var(--c-primary-50);
 }
 
-.msg-avatar {
-  flex-shrink: 0;
-  border: none !important;
+.msg-rail.assistant {
+  color: var(--c-cta);
+  background: #f6ede1;
 }
 
-.msg-avatar.user {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
+.msg-body {
+  min-width: 0;
 }
 
-.msg-avatar.assistant {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
-  color: #fff;
+.msg-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 5px;
 }
 
-.message-content {
-  max-width: 70%;
-}
-
-.message-header {
-  margin-bottom: 4px;
-}
-
-.message-item.user .message-header {
-  text-align: right;
-}
-
-.message-sender {
+.msg-name {
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 850;
+  color: var(--t-secondary);
 }
 
-.message-time {
+.msg-time {
   font-size: 11px;
-  color: #94a3b8;
-  margin-left: 8px;
+  color: var(--t-light);
 }
 
-.message-text {
-  background: var(--bg-card);
-  padding: 12px 16px;
-  border-radius: 14px;
+.msg-text {
+  width: fit-content;
+  max-width: 100%;
+  padding: 11px 13px;
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  border: 1px solid var(--border-light);
+  color: var(--t-primary);
   font-size: 14px;
-  line-height: 1.7;
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #f1f5f9;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.message-item.user .message-text {
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: #fff;
-  border: none;
+.msg.user .msg-text {
+  background: var(--c-primary-50);
+  border-color: var(--c-primary-100);
 }
 
-.message-text.loading {
+.msg.assistant .msg-text {
+  background: var(--bg-card);
+}
+
+.msg-text.typing {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* Typing indicator */
-.typing-indicator {
+.dots {
   display: inline-flex;
   gap: 3px;
-  align-items: center;
 }
 
-.typing-indicator span {
-  width: 6px;
-  height: 6px;
+.dots i {
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
-  background: var(--color-primary);
-  animation: typing 1.4s infinite;
+  background: var(--c-primary);
+  display: block;
+  animation: dotPulse 1.4s infinite;
 }
 
-.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
-.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+.dots i:nth-child(2) { animation-delay: 0.2s; }
+.dots i:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes typing {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+@keyframes dotPulse {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.3; }
   30% { transform: translateY(-4px); opacity: 1; }
 }
 
-/* Input */
-.input-container {
-  padding: 16px 24px;
-  background: var(--bg-card);
-  border-top: 1px solid #f1f5f9;
+.composer {
+  padding: 14px 18px 18px;
+  border-top: 1px solid var(--border-light);
+  background: color-mix(in srgb, var(--bg-card) 86%, var(--bg-soft));
 }
 
-.input-wrapper {
-  max-width: 780px;
+.composer-head {
+  max-width: 880px;
+  margin: 0 auto 8px;
+  display: flex;
+  justify-content: space-between;
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.input-wrap {
+  max-width: 880px;
   margin: 0 auto;
-  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
 }
 
-.chat-input {
-  border-radius: 14px !important;
-  border-color: #e2e8f0 !important;
-  padding-right: 100px;
-  font-size: 14px;
-}
-
-.chat-input:focus {
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.08) !important;
-}
-
-.input-actions {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
+.input {
+  font-size: 14px !important;
 }
 
 .send-btn {
-  border-radius: 10px !important;
-  height: 32px !important;
-  padding: 0 16px !important;
-  font-size: 13px !important;
+  height: 44px;
+  padding: 0 18px !important;
+}
+
+@media (max-width: 980px) {
+  .workspace-grid {
+    height: auto;
+    grid-template-columns: 1fr;
+  }
+
+  .brief-panel {
+    order: 2;
+  }
+
+  .conversation-panel {
+    min-height: 640px;
+  }
 }
 
 @media (max-width: 768px) {
-  .chat-sidebar {
-    display: none;
-  }
-  .chat-header {
-    padding: 10px 16px;
-  }
-  .messages-container {
-    padding: 16px;
-  }
-  .input-container {
-    padding: 12px 16px;
-  }
+  .generation-page { padding: 14px; }
+  .work-context { align-items: flex-start; flex-direction: column; }
+  .context-actions { width: 100%; flex-wrap: wrap; }
+  .input-wrap { grid-template-columns: 1fr; }
+  .send-btn { width: 100%; }
 }
 </style>

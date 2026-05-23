@@ -339,6 +339,7 @@ public class AppController {
      * @return 测试应用数据
      */
     @GetMapping("/test/time")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     @Operation(summary = "测试时间序列化格式")
     public BaseResponse<AppVO> testTimeFormat() {
         App app = new App();
@@ -395,10 +396,11 @@ public class AppController {
                         log.info(" SSE连接已断开，应用ID: {}, 优雅结束流", appId);
                         return Flux.empty(); // 优雅结束，不发送错误事件
                     } else {
-                        // 其他错误，发送错误事件
+                        // 其他错误，记录详细日志，仅向客户端返回通用提示
+                        log.error("SSE 流处理异常，应用ID: {}", appId, error);
                         return Flux.just(ServerSentEvent.<String>builder()
                                 .event("error")
-                                .data("{\"error\":true,\"message\":\"" + error.getMessage() + "\"}")
+                                .data("{\"error\":true,\"message\":\"生成过程中出现异常，请稍后重试\"}")
                                 .build());
                     }
                 })

@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * AI 响应消息
- * @author 木子宸
+ * @author 王哈哈
  */
 @EqualsAndHashCode(callSuper = true)
 @Data

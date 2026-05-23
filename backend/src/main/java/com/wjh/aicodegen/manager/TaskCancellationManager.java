@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentMap;
  * 任务取消管理器
  * 用于管理正在进行的代码生成任务，支持任务取消
  * 
- * @author 木子宸
+ * @author 王哈哈
  */
 @Component
 @Slf4j

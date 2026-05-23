@@ -1,108 +1,88 @@
 <template>
-  <div class="edit-page">
-    <div class="edit-container">
-      <!-- 顶部工具栏 -->
-      <div class="edit-toolbar">
-        <div class="toolbar-left">
-          <a-button @click="goBack" class="back-btn">
-            <ArrowLeftOutlined />
-            返回
-          </a-button>
-          <h2 class="page-title">编辑应用</h2>
-        </div>
-        <div class="toolbar-right">
-          <a-button @click="handlePreview" class="toolbar-action">
-            <EyeOutlined />
-            预览
-          </a-button>
-          <a-button type="primary" @click="handleSave" :loading="saving">
-            <SaveOutlined />
-            保存
-          </a-button>
-          <a-button @click="handleDeploy" :loading="deploying" class="toolbar-action deploy-btn">
-            <CloudUploadOutlined />
-            部署
-          </a-button>
+  <div class="delivery-page">
+    <PageHeader :title="appForm.appName || '应用交付'" :description="phaseLabel" eyebrow="交付工作台">
+      <template #actions>
+        <a-button @click="goBack" size="small"><ArrowLeftOutlined /> 返回</a-button>
+        <a-button @click="goToChat" size="small"><MessageOutlined /> 继续迭代</a-button>
+        <a-button @click="handlePreview" size="small"><EyeOutlined /> 预览</a-button>
+        <a-button type="primary" @click="handleDeploy" :loading="deploying" size="small">
+          <CloudUploadOutlined /> {{ appForm.deployedTime ? '重新部署' : '部署' }}
+        </a-button>
+      </template>
+    </PageHeader>
+
+    <section class="delivery-status">
+      <div v-for="step in phaseSteps" :key="step.key" :class="['phase-node', step.state]">
+        <span class="phase-index">{{ step.index }}</span>
+        <div>
+          <div class="phase-title">{{ step.title }}</div>
+          <div class="phase-desc">{{ step.desc }}</div>
         </div>
       </div>
+    </section>
 
-      <!-- 编辑区域 -->
-      <a-row :gutter="20">
-        <!-- 左侧配置 -->
-        <a-col :xs="24" :md="8">
-          <div class="config-card">
-            <div class="card-label">应用配置</div>
-            <a-form :model="appForm" layout="vertical" class="config-form">
-              <a-form-item label="应用名称">
-                <a-input v-model:value="appForm.appName" placeholder="应用名称" />
-              </a-form-item>
+    <section class="delivery-grid">
+      <aside class="config-panel">
+        <div class="panel-head">
+          <span class="panel-kicker">应用信息</span>
+          <a-button type="link" size="small" @click="handleSave" :loading="saving">
+            <SaveOutlined /> 保存名称
+          </a-button>
+        </div>
 
-              <a-form-item label="应用 ID">
-                <a-input :value="String(appId)" disabled class="disabled-input" />
-              </a-form-item>
-
-              <a-form-item label="初始提示词">
-                <a-textarea
-                  v-model:value="appForm.initPrompt"
-                  :rows="5"
-                  placeholder="描述你想要的应用..."
-                  disabled
-                  class="disabled-input"
-                />
-              </a-form-item>
-
-              <a-form-item label="代码生成类型">
-                <a-tag color="blue">{{ appForm.codeGenType || '默认' }}</a-tag>
-              </a-form-item>
-
-              <a-form-item label="部署状态">
-                <div class="deploy-status">
-                  <span class="status-dot" :class="appForm.deployedTime ? 'status-active' : 'status-pending'"></span>
-                  <a-tag :color="appForm.deployedTime ? 'green' : 'orange'">
-                    {{ appForm.deployedTime ? '已部署' : '未部署' }}
-                  </a-tag>
-                </div>
-              </a-form-item>
-
-              <a-form-item v-if="appForm.deployKey" label="部署地址">
-                <a :href="deployUrl" target="_blank" class="deploy-link">{{ deployUrl }}</a>
-              </a-form-item>
-            </a-form>
+        <a-form :model="appForm" layout="vertical" class="config-form">
+          <a-form-item label="应用名称">
+            <a-input v-model:value="appForm.appName" placeholder="应用名称" />
+          </a-form-item>
+          <div class="info-row">
+            <span>应用 ID</span>
+            <strong>{{ appId }}</strong>
           </div>
-        </a-col>
-
-        <!-- 右侧预览 -->
-        <a-col :xs="24" :md="16">
-          <div class="preview-card">
-            <div class="preview-header">
-              <h3 class="preview-title">
-                <EyeOutlined />
-                应用预览
-              </h3>
-              <a-button v-if="appForm.deployedTime" type="primary" size="small" @click="openDeploy">
-                <LinkOutlined />
-                打开应用
-              </a-button>
-            </div>
-            <div class="preview-content">
-              <div v-if="appForm.deployedTime" class="deploy-preview">
-                <iframe :src="deployUrl" frameborder="0" class="preview-iframe"></iframe>
-              </div>
-              <div v-else class="no-deploy">
-                <div class="no-deploy-icon">
-                  <CloudUploadOutlined />
-                </div>
-                <p class="no-deploy-text">应用尚未部署</p>
-                <p class="no-deploy-desc">部署后可在此处预览应用效果</p>
-                <a-button type="primary" @click="handleDeploy" :loading="deploying">
-                  立即部署
-                </a-button>
-              </div>
-            </div>
+          <div class="info-row">
+            <span>生成类型</span>
+            <a-tag color="blue">{{ appForm.codeGenType || '默认' }}</a-tag>
           </div>
-        </a-col>
-      </a-row>
-    </div>
+          <div class="info-row">
+            <span>部署状态</span>
+            <a-tag :color="appForm.deployedTime ? 'green' : 'orange'">
+              {{ appForm.deployedTime ? '已上线' : '未上线' }}
+            </a-tag>
+          </div>
+          <a-form-item label="初始需求">
+            <a-textarea v-model:value="appForm.initPrompt" :rows="6" disabled />
+          </a-form-item>
+        </a-form>
+
+        <div v-if="appForm.deployKey" class="deploy-box">
+          <span class="deploy-label">访问地址</span>
+          <a :href="deployUrl" target="_blank" class="deploy-link">{{ deployUrl }}</a>
+        </div>
+      </aside>
+
+      <main class="preview-panel">
+        <div class="preview-head">
+          <div>
+            <span class="panel-kicker">预览确认</span>
+            <h2 class="preview-title">{{ appForm.deployedTime ? '线上版本' : '等待部署' }}</h2>
+          </div>
+          <a-button v-if="appForm.deployKey" type="primary" size="small" @click="openDeploy">
+            <LinkOutlined /> 打开应用
+          </a-button>
+        </div>
+
+        <div v-if="appForm.deployKey" class="preview-frame">
+          <iframe :src="deployUrl" frameborder="0" class="iframe"></iframe>
+        </div>
+        <EmptyState v-else title="还没有可预览地址" description="完成部署后，这里会展示应用页面。你也可以先回到生成工作台继续调整需求。">
+          <template #action>
+            <div class="empty-actions">
+              <a-button @click="goToChat">继续迭代</a-button>
+              <a-button type="primary" @click="handleDeploy" :loading="deploying">立即部署</a-button>
+            </div>
+          </template>
+        </EmptyState>
+      </main>
+    </section>
   </div>
 </template>
 
@@ -111,288 +91,256 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  ArrowLeftOutlined,
-  EyeOutlined,
-  SaveOutlined,
-  CloudUploadOutlined,
-  LinkOutlined
+  ArrowLeftOutlined, EyeOutlined, SaveOutlined,
+  CloudUploadOutlined, LinkOutlined, MessageOutlined
 } from '@ant-design/icons-vue'
+import PageHeader from '@/components/common/PageHeader.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { getAppById, updateApp, deployApp } from '@/api/app'
 
 const route = useRoute()
 const router = useRouter()
-
 const appId = Number(route.params.id)
-
 const saving = ref(false)
 const deploying = ref(false)
 
 const appForm = reactive<any>({
-  appName: '',
-  initPrompt: '',
-  codeGenType: '',
-  deployKey: '',
-  deployedTime: '',
-  priority: 0
+  appName: '', initPrompt: '', codeGenType: '', deployKey: '', deployedTime: '', priority: 0
 })
 
-const deployUrl = computed(() => {
-  if (appForm.deployKey) {
-    return `/api/static/${appForm.deployKey}/`
-  }
-  return ''
+const deployUrl = computed(() => appForm.deployKey ? `/api/static/${appForm.deployKey}/` : '')
+
+const currentPhase = computed(() => {
+  if (appForm.deployedTime) return 4
+  if (appForm.deployKey) return 3
+  if (appForm.initPrompt) return 2
+  return 1
 })
+
+const phaseLabel = computed(() => {
+  const labels: Record<number, string> = {
+    1: '等待应用信息生成',
+    2: '代码已生成，可以继续迭代或部署',
+    3: '已有部署地址，请确认预览效果',
+    4: '已部署上线，可以继续迭代后重新部署',
+  }
+  return labels[currentPhase.value] || ''
+})
+
+const phaseSteps = computed(() => [
+  { key: 'created', index: '01', title: '需求建档', desc: '应用记录已创建', state: currentPhase.value >= 1 ? 'done' : '' },
+  { key: 'generated', index: '02', title: '生成代码', desc: '可以进入对话继续改', state: currentPhase.value >= 2 ? 'done' : '' },
+  { key: 'preview', index: '03', title: '预览确认', desc: '确认页面和交互', state: currentPhase.value >= 3 ? 'done' : 'active' },
+  { key: 'deploy', index: '04', title: '部署交付', desc: '获得可访问地址', state: currentPhase.value >= 4 ? 'done' : '' },
+])
 
 const fetchAppInfo = async () => {
-  try {
-    const res = await getAppById(appId)
-    Object.assign(appForm, res.data)
-  } catch (error) {
-    console.error('获取应用信息失败:', error)
-    message.error('获取应用信息失败')
-  }
+  try { const res = await getAppById(appId); Object.assign(appForm, res.data) }
+  catch (e) { message.error('获取应用信息失败') }
 }
 
-const goBack = () => {
-  router.back()
-}
-
+const goBack = () => router.back()
+const goToChat = () => router.push(`/app/chat/${appId}`)
 const handlePreview = () => {
-  if (appForm.deployedTime) {
-    window.open(deployUrl.value, '_blank')
-  } else {
-    message.info('请先部署应用')
-  }
+  appForm.deployKey ? window.open(deployUrl.value, '_blank') : message.info('请先部署应用')
 }
-
-const openDeploy = () => {
-  window.open(deployUrl.value, '_blank')
-}
-
+const openDeploy = () => window.open(deployUrl.value, '_blank')
 const handleSave = async () => {
   saving.value = true
-  try {
-    await updateApp({
-      id: appId,
-      appName: appForm.appName
-    })
-    message.success('保存成功')
-  } catch (error) {
-    message.error('保存失败')
-  } finally {
-    saving.value = false
-  }
+  try { await updateApp({ id: appId, appName: appForm.appName }); message.success('保存成功') }
+  catch (e) { message.error('保存失败') }
+  finally { saving.value = false }
 }
-
 const handleDeploy = async () => {
   deploying.value = true
-  try {
-    await deployApp(appId)
-    message.success('部署请求已提交，请稍后刷新查看状态')
-    setTimeout(() => {
-      fetchAppInfo()
-    }, 3000)
-  } catch (error) {
-    message.error('部署失败')
-  } finally {
-    deploying.value = false
-  }
+  try { await deployApp(appId); message.success('部署请求已提交'); setTimeout(fetchAppInfo, 3000) }
+  catch (e) { message.error('部署失败') }
+  finally { deploying.value = false }
 }
 
-onMounted(() => {
-  fetchAppInfo()
-})
+onMounted(() => fetchAppInfo())
 </script>
 
 <style scoped>
-.edit-page {
-  padding: 24px;
-  background: var(--bg-page);
-  min-height: calc(100vh - 64px);
-}
-
-.edit-container {
+.delivery-page {
   max-width: 1400px;
   margin: 0 auto;
+  padding: 30px 24px 48px;
 }
 
-.edit-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-  padding: 16px 20px;
+.delivery-status {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  overflow: hidden;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-xl);
+  background: var(--border-light);
+}
+
+.phase-node {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 11px;
+  min-height: 92px;
+  padding: 16px;
   background: var(--bg-card);
-  border-radius: var(--radius-md);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #f1f5f9;
 }
 
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.phase-node.active {
+  background: var(--c-primary-50);
 }
 
-.back-btn {
-  border-radius: 8px !important;
+.phase-index {
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
 }
 
-.page-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--text-primary);
+.phase-node.done .phase-index,
+.phase-node.active .phase-index {
+  color: var(--c-primary);
 }
 
-.toolbar-right {
-  display: flex;
-  gap: 8px;
+.phase-title {
+  color: var(--t-primary);
+  font-size: 14px;
+  font-weight: 850;
+  margin-bottom: 4px;
 }
 
-.toolbar-action {
-  border-radius: 8px !important;
-}
-
-.deploy-btn {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.04)) !important;
-  border-color: rgba(16, 185, 129, 0.3) !important;
-  color: #059669 !important;
-}
-
-.config-card,
-.preview-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-md);
-  padding: 24px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid #f1f5f9;
-}
-
-.card-label {
+.phase-desc {
+  color: var(--t-muted);
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  line-height: 1.6;
+}
+
+.delivery-grid {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.config-panel,
+.preview-panel {
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-xl);
+  background: var(--bg-card);
+}
+
+.config-panel {
+  padding: 18px;
+}
+
+.panel-head,
+.preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.panel-kicker {
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+}
+
+.config-form :deep(.ant-form-item) {
   margin-bottom: 16px;
 }
 
-.config-form :deep(.ant-form-item-label > label) {
-  font-weight: 500;
-  color: var(--text-secondary);
+.info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--t-muted);
   font-size: 13px;
 }
 
-.disabled-input {
-  background: #f8fafc !important;
-  color: var(--text-muted) !important;
+.info-row strong {
+  color: var(--t-primary);
 }
 
-.deploy-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.deploy-box {
+  margin-top: 2px;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+  border: 1px solid var(--border-light);
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.status-active {
-  background: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15);
-}
-
-.status-pending {
-  background: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15);
+.deploy-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .deploy-link {
-  color: var(--color-primary);
-  font-weight: 500;
+  color: var(--c-primary);
+  font-weight: 700;
   word-break: break-all;
 }
 
-.preview-header {
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f1f5f9;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.preview-panel {
+  min-height: 620px;
+  padding: 18px;
 }
 
 .preview-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  margin: 4px 0 0;
+  color: var(--t-primary);
+  font-size: 20px;
+  font-weight: 850;
+  letter-spacing: -0.4px;
 }
 
-.preview-content {
-  min-height: 400px;
-}
-
-.deploy-preview {
-  width: 100%;
-  height: 500px;
-  border-radius: var(--radius-sm);
+.preview-frame {
+  height: 560px;
+  border-radius: var(--r-lg);
   overflow: hidden;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
 }
 
-.preview-iframe {
+.iframe {
   width: 100%;
   height: 100%;
+  background: #fff;
 }
 
-.no-deploy {
+.empty-actions {
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  gap: 10px;
   justify-content: center;
-  height: 400px;
-  text-align: center;
+  flex-wrap: wrap;
 }
 
-.no-deploy-icon {
-  font-size: 48px;
-  color: #d1d5db;
-  margin-bottom: 16px;
-}
+@media (max-width: 980px) {
+  .delivery-status {
+    grid-template-columns: repeat(2, 1fr);
+  }
 
-.no-deploy-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  margin: 0 0 4px;
-}
-
-.no-deploy-desc {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin: 0 0 20px;
+  .delivery-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 768px) {
-  .edit-page {
-    padding: 16px;
-  }
-  .edit-toolbar {
-    flex-direction: column;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  .toolbar-right {
-    width: 100%;
-    justify-content: flex-end;
-  }
+  .delivery-page { padding: 22px 16px 36px; }
+  .delivery-status { grid-template-columns: 1fr; }
+  .preview-frame { height: 460px; }
 }
 </style>

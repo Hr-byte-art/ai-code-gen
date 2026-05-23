@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  * 简单文本流处理器
  * 处理 HTML 和 MULTI_FILE 类型的流式响应
  */

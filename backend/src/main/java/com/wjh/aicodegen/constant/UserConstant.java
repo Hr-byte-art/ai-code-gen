@@ -1,7 +1,7 @@
 package com.wjh.aicodegen.constant;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 public interface UserConstant {
 

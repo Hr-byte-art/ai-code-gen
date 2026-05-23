@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * @author 木子宸
+ * @author 王哈哈
  */
 public class PromptSafetyInputGuardrail implements InputGuardrail {
 

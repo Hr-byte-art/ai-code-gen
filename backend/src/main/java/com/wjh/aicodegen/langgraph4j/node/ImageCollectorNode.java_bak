@@ -25,7 +25,7 @@ import static org.bsc.langgraph4j.action.AsyncNodeAction.node_async;
  * 3）利用 LangGraph4j 的子图能力
  * 把每个图片收集工具定义成子图，并发执行这些工具，最后再统一汇总结果。
  * </p>
- * @author 木子宸
+ * @author 王哈哈
  */
 @Slf4j
 public class ImageCollectorNode {

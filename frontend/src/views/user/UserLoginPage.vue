@@ -1,84 +1,54 @@
 <template>
-  <div class="login-page">
-    <div class="login-bg">
-      <div class="bg-orb bg-orb-1"></div>
-      <div class="bg-orb bg-orb-2"></div>
-      <div class="bg-grid"></div>
+  <div class="auth-page">
+    <div class="auth-left">
+      <div class="auth-left-content">
+        <div class="auth-brand">
+          <img src="@/assets/logo.svg" alt="Logo" class="brand-logo" />
+          <span class="brand-name">{{ $t('brand.name') }}</span>
+        </div>
+        <h1 class="auth-headline">AI 驱动的智能应用生成平台</h1>
+        <p class="auth-sub">输入想法，AI 为你构建完整应用</p>
+        <div class="auth-features">
+          <div class="feature"><RocketOutlined class="f-icon" /> 一键生成 Web 应用</div>
+          <div class="feature"><ThunderboltOutlined class="f-icon" /> 支持多种生成模式</div>
+          <div class="feature"><BgColorsOutlined class="f-icon" /> AI 自动设计界面</div>
+        </div>
+      </div>
     </div>
 
-    <div class="login-container">
-      <div class="login-card">
-        <div class="login-header">
-          <router-link to="/" class="login-logo">
-            <img src="@/assets/logo.svg" alt="Logo" />
-          </router-link>
-          <h1 class="login-title">欢迎回来</h1>
-          <p class="login-subtitle">登录你的账号继续使用</p>
-        </div>
+    <div class="auth-right">
+      <div class="auth-form-wrap">
+        <h2 class="form-title">欢迎回来</h2>
+        <p class="form-subtitle">登录你的账号继续使用</p>
 
-        <a-form
-          :model="formState"
-          @finish="handleLogin"
-          layout="vertical"
-          class="login-form"
-        >
-          <a-form-item
-            name="userAccount"
-            :rules="[{ required: true, message: '请输入用户名' }]"
-          >
-            <a-input
-              v-model:value="formState.userAccount"
-              size="large"
-              placeholder="用户名"
-              class="form-input"
-            >
+        <a-form :model="formState" @finish="handleLogin" layout="vertical" class="auth-form">
+          <a-form-item name="userAccount" :rules="[{ required: true, message: '请输入用户名' }]">
+            <a-input v-model:value="formState.userAccount" size="large" placeholder="用户名">
               <template #prefix><UserOutlined /></template>
             </a-input>
           </a-form-item>
 
-          <a-form-item
-            name="userPassword"
-            :rules="[{ required: true, message: '请输入密码' }]"
-          >
-            <a-input-password
-              v-model:value="formState.userPassword"
-              size="large"
-              placeholder="密码"
-              class="form-input"
-            >
+          <a-form-item name="userPassword" :rules="[{ required: true, message: '请输入密码' }]">
+            <a-input-password v-model:value="formState.userPassword" size="large" placeholder="密码">
               <template #prefix><LockOutlined /></template>
             </a-input-password>
           </a-form-item>
 
           <a-form-item>
-            <div class="form-options">
-              <a-checkbox v-model:checked="formState.remember">
-                记住我
-              </a-checkbox>
-              <a class="forgot-link" @click="handleForgotPassword">
-                忘记密码？
-              </a>
+            <div class="form-row">
+              <a-checkbox v-model:checked="formState.remember">记住我</a-checkbox>
+              <a class="forgot-link" @click="handleForgotPassword">忘记密码？</a>
             </div>
           </a-form-item>
 
           <a-form-item>
-            <a-button
-              type="primary"
-              html-type="submit"
-              size="large"
-              block
-              :loading="loading"
-              class="submit-btn"
-            >
+            <a-button type="primary" html-type="submit" size="large" block :loading="loading">
               登录
             </a-button>
           </a-form-item>
 
-          <div class="login-footer">
-            <span>还没有账号？</span>
-            <router-link to="/user/register" class="register-link">
-              立即注册
-            </router-link>
+          <div class="form-footer">
+            还没有账号？<router-link to="/user/register" class="link">立即注册</router-link>
           </div>
         </a-form>
       </div>
@@ -90,200 +60,175 @@
 import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, LockOutlined, RocketOutlined, ThunderboltOutlined, BgColorsOutlined } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-
 const loading = ref(false)
-
-const formState = reactive({
-  userAccount: '',
-  userPassword: '',
-  remember: false
-})
+const formState = reactive({ userAccount: '', userPassword: '', remember: false })
 
 const handleLogin = async () => {
   loading.value = true
   try {
-    const success = await userStore.login({
-      userAccount: formState.userAccount,
-      userPassword: formState.userPassword
-    })
-
-    if (success) {
-      const redirect = (route.query.redirect as string) || '/'
-      router.push(redirect)
-    }
-  } catch (error) {
-    message.error('登录失败，请检查用户名和密码')
-  } finally {
-    loading.value = false
-  }
+    const success = await userStore.login({ userAccount: formState.userAccount, userPassword: formState.userPassword })
+    if (success) router.push((route.query.redirect as string) || '/app')
+  } catch (e) { message.error('登录失败，请检查用户名和密码') }
+  finally { loading.value = false }
 }
 
-const handleForgotPassword = () => {
-  message.info('请联系管理员重置密码')
-}
+const handleForgotPassword = () => message.info('请联系管理员重置密码')
 </script>
 
 <style scoped>
-.login-page {
+.auth-page {
   min-height: 100vh;
+  display: flex;
+}
+
+.auth-left {
+  flex: 1;
+  background: #0f172a;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 50%, #f5f0ff 100%);
-  padding: 20px;
+  padding: 60px;
   position: relative;
   overflow: hidden;
 }
 
-.login-bg {
+.auth-left::before {
+  content: '';
   position: absolute;
   inset: 0;
-  pointer-events: none;
-  overflow: hidden;
+  background:
+    radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.15), transparent 50%),
+    radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.1), transparent 50%);
 }
 
-.bg-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-.bg-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-}
-
-.bg-orb-1 {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.15), transparent 70%);
-  top: -15%;
-  right: -10%;
-}
-
-.bg-orb-2 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.12), transparent 70%);
-  bottom: -10%;
-  left: -8%;
-}
-
-.login-container {
-  width: 100%;
-  max-width: 420px;
+.auth-left-content {
   position: relative;
   z-index: 1;
+  max-width: 420px;
+  color: #fff;
 }
 
-.login-card {
-  background: rgba(255, 255, 255, 0.92);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-  border-radius: 20px;
-  padding: 40px 36px;
-  box-shadow:
-    0 20px 60px rgba(15, 23, 42, 0.08),
-    0 4px 16px rgba(15, 23, 42, 0.04),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  animation: fadeInUp 0.6s ease-out;
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 48px;
 }
 
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
 }
 
-.login-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.login-logo {
-  display: inline-block;
-  margin-bottom: 16px;
-}
-
-.login-logo img {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
-}
-
-.login-title {
-  font-size: 26px;
+.brand-name {
+  font-size: 18px;
   font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 6px;
+}
+
+.auth-headline {
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin: 0 0 16px;
   letter-spacing: -0.5px;
 }
 
-.login-subtitle {
-  font-size: 14px;
-  color: var(--text-muted);
-  margin: 0;
+.auth-sub {
+  font-size: 16px;
+  opacity: 0.7;
+  margin: 0 0 40px;
+  line-height: 1.6;
 }
 
-.login-form {
+.auth-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+.f-icon {
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.auth-right {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background: #fff;
+}
+
+.auth-form-wrap {
+  width: 100%;
+  max-width: 360px;
+}
+
+.form-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--t-primary);
+  margin: 0 0 6px;
+  letter-spacing: -0.3px;
+}
+
+.form-subtitle {
+  font-size: 14px;
+  color: var(--t-muted);
+  margin: 0 0 28px;
+}
+
+.auth-form {
   width: 100%;
 }
 
-.form-input {
-  border-radius: 10px !important;
-}
-
-.submit-btn {
-  height: 44px !important;
-  border-radius: 10px !important;
-  font-size: 15px !important;
-  font-weight: 600 !important;
-}
-
-.form-options {
+.form-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .forgot-link {
-  color: var(--color-primary);
+  color: var(--c-primary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: color var(--transition-fast);
 }
 
-.forgot-link:hover {
-  color: var(--color-primary-dark);
-}
-
-.login-footer {
+.form-footer {
   text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  color: var(--text-muted);
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--t-muted);
 }
 
-.register-link {
-  color: var(--color-primary);
+.link {
+  color: var(--c-primary);
   font-weight: 600;
   margin-left: 4px;
-  transition: color var(--transition-fast);
 }
 
-.register-link:hover {
-  color: var(--color-primary-dark);
+@media (max-width: 900px) {
+  .auth-page { flex-direction: column; }
+  .auth-left { padding: 40px 24px; min-height: auto; }
+  .auth-headline { font-size: 24px; }
+  .auth-right { padding: 32px 24px; }
 }
 </style>
