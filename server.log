@@ -1,0 +1,10 @@
+{"level":30,"time":1779554249600,"pid":90084,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779554249600,"pid":90084,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779556291583,"pid":76724,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779556291584,"pid":76724,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779557562903,"pid":92112,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779557562904,"pid":92112,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779557930884,"pid":94772,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779557930884,"pid":94772,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779558318503,"pid":61404,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779558318503,"pid":61404,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}

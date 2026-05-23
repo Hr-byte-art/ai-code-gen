@@ -1,0 +1,14 @@
+{"level":30,"time":1779542998374,"pid":73164,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779542998376,"pid":73164,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779554032626,"pid":48708,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779554032627,"pid":48708,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779554120031,"pid":76060,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779554120032,"pid":76060,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779554512594,"pid":68124,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779554512595,"pid":68124,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779556368413,"pid":80144,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779556368414,"pid":80144,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779556392304,"pid":94364,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779556392304,"pid":94364,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779557815469,"pid":73476,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779557815470,"pid":73476,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
