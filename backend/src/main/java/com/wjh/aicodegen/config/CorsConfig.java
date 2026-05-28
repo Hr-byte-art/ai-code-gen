@@ -1,8 +1,12 @@
 package com.wjh.aicodegen.config;
 
+import com.wjh.aicodegen.constant.AppConstant;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.io.File;
 
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
@@ -21,5 +25,12 @@ public class CorsConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .exposedHeaders("*");
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String deployLocation = new File(AppConstant.CODE_DEPLOY_ROOT_DIR).toURI().toString();
+        registry.addResourceHandler("/code_deploy/**")
+                .addResourceLocations(deployLocation);
     }
 }

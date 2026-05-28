@@ -18,10 +18,10 @@
         </div>
       </div>
       <div class="context-actions">
-        <a-button @click="goToEdit"><EditOutlined /> 交付页</a-button>
-        <a-button @click="goToPreview" v-if="appInfo.deployKey"><EyeOutlined /> 预览</a-button>
-        <a-button type="primary" @click="handleDeploy" :loading="deploying">
-          <CloudUploadOutlined /> {{ appInfo.deployedTime ? '重新部署' : '部署' }}
+        <a-button @click="goToEdit" :disabled="deploying || sending"><EditOutlined /> 交付页</a-button>
+        <a-button @click="goToPreview" :disabled="deploying || sending"><EyeOutlined /> 预览</a-button>
+        <a-button type="primary" @click="handleDeploy" :loading="deploying" :disabled="sending">
+          <CloudUploadOutlined /> {{ deploying ? '部署中...' : (appInfo.deployedTime ? '重新部署' : '部署') }}
         </a-button>
       </div>
     </section>
@@ -82,7 +82,8 @@
                   <span class="msg-name">{{ msg.messageType === 'user' ? '你提交的修改' : '生成反馈' }}</span>
                   <span class="msg-time">{{ formatTime(msg.createTime) }}</span>
                 </div>
-                <div class="msg-text">{{ msg.message }}</div>
+                <MarkdownRenderer v-if="msg.messageType === 'ai'" :content="msg.message" />
+                <div v-else class="msg-text">{{ msg.message }}</div>
               </div>
             </div>
 
@@ -106,16 +107,23 @@
             <span>下一条修改指令</span>
             <span>Enter 发送</span>
           </div>
+          <div class="quick-actions">
+            <button class="quick-btn" @click="inputMessage = '把页面配色改成深色主题'">深色主题</button>
+            <button class="quick-btn" @click="inputMessage = '把导航栏改成顶部固定布局'">顶部导航</button>
+            <button class="quick-btn" @click="inputMessage = '添加一个登录弹窗'">登录弹窗</button>
+            <button class="quick-btn" @click="inputMessage = '优化移动端响应式布局'">移动端适配</button>
+          </div>
           <div class="input-wrap">
             <a-textarea
               v-model:value="inputMessage"
               :rows="3"
               placeholder="写清楚你想改哪里、改成什么效果。"
-              @keydown.enter.exact.prevent="sendMessage"
+              @keydown.enter.exact.prevent="handleSendMessage"
               :disabled="sending"
               class="input"
+              ref="inputTextareaRef"
             />
-            <a-button type="primary" :loading="sending" @click="sendMessage" class="send-btn">
+            <a-button type="primary" :loading="sending" @click="handleSendMessage" class="send-btn">
               <SendOutlined /> 发送
             </a-button>
           </div>
@@ -126,7 +134,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -134,18 +142,22 @@ import {
   UserOutlined, RobotOutlined, SendOutlined
 } from '@ant-design/icons-vue'
 import { useChatStore } from '@/stores/chat'
-import { getAppById, deployApp } from '@/api/app'
+import { getAppById, deployApp, hasActiveGenerationStream } from '@/api/app'
+import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 
 const route = useRoute()
 const router = useRouter()
 const chatStore = useChatStore()
 
-const appId = Number(route.params.id)
+const appId = route.params.id as string
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 const appInfo = ref<any>({})
 const inputMessage = ref('')
 const sending = ref(false)
 const deploying = ref(false)
 const messagesContainer = ref<HTMLElement>()
+const inputTextareaRef = ref()
+let activeStream: EventSource | null = null
 
 const promptHints = [
   '把首页首屏改得更像真实产品官网',
@@ -155,7 +167,13 @@ const promptHints = [
 ]
 
 const fetchAppInfo = async () => {
-  try { const res = await getAppById(appId); appInfo.value = res.data } catch (e) {}
+  try {
+    const res = await getAppById(appId)
+    appInfo.value = res.data
+  } catch (e) {
+    message.error('应用不存在或已被删除')
+    router.push('/app')
+  }
 }
 
 const fetchChatHistory = async () => {
@@ -164,28 +182,97 @@ const fetchChatHistory = async () => {
   scrollToBottom()
 }
 
-const sendMessage = async () => {
-  const content = inputMessage.value.trim()
+const normalizeStreamChunk = (data: string) => {
+  if (!data || data === '[DONE]') return ''
+  try {
+    const parsed = JSON.parse(data)
+    return typeof parsed?.d === 'string' ? parsed.d : data
+  } catch {
+    return data
+  }
+}
+
+const parseStreamErrorMessage = (data: string) => {
+  if (!data) return '生成失败，请稍后重试'
+  try {
+    const parsed = JSON.parse(data)
+    return parsed?.message || parsed?.error || '生成失败，请稍后重试'
+  } catch {
+    return data
+  }
+}
+
+const appendStreamChunk = (rawData: string, currentContent: string) => {
+  const chunk = normalizeStreamChunk(rawData)
+  if (!chunk) return currentContent
+  const nextContent = currentContent + chunk
+  chatStore.updateLastMessage(nextContent)
+  scrollToBottom()
+  return nextContent
+}
+
+const bindGenerationStream = (es: EventSource, initialContent = '', showErrorToast = true) => {
+  activeStream?.close()
+  activeStream = es
+  sending.value = true
+  let full = initialContent
+  const handleChunk = (e: MessageEvent) => {
+    full = appendStreamChunk(e.data, full)
+  }
+  es.addEventListener('message', handleChunk)
+  es.addEventListener('chunk', handleChunk)
+  es.addEventListener('bizError', (e) => {
+    const errorMessage = parseStreamErrorMessage((e as MessageEvent).data)
+    es.close()
+    if (activeStream === es) activeStream = null
+    chatStore.updateLastMessage(errorMessage)
+    if (showErrorToast) message.error(errorMessage)
+    finishSending()
+  })
+  es.addEventListener('done', () => {
+    es.close()
+    if (activeStream === es) activeStream = null
+    finishSending()
+  })
+  es.onerror = () => {
+    es.close()
+    if (activeStream === es) activeStream = null
+    finishSending()
+    if (showErrorToast) message.error('生成响应失败')
+  }
+}
+
+const finishSending = async () => {
+  sending.value = false
+  await fetchAppInfo()
+}
+
+const clearInputMessage = async () => {
+  inputMessage.value = ''
+  await nextTick()
+  const textarea = inputTextareaRef.value?.resizableTextArea?.textArea
+  if (textarea instanceof HTMLTextAreaElement) textarea.value = ''
+}
+
+const handleSendMessage = () => {
+  sendMessage()
+}
+
+const sendMessage = async (presetContent?: string) => {
+  const content = (typeof presetContent === 'string' ? presetContent : inputMessage.value).trim()
   if (!content || sending.value) return
   chatStore.addUserMessage(content)
-  inputMessage.value = ''
+  await clearInputMessage()
   sending.value = true
   await nextTick()
   scrollToBottom()
   try {
     chatStore.addAiMessage('')
     const es = new EventSource(
-      `${import.meta.env.VITE_API_BASE_URL}/app/chat/gen/code?appId=${appId}&message=${encodeURIComponent(content)}`,
+      `${apiBaseUrl}/app/chat/gen/code?appId=${appId}&message=${encodeURIComponent(content)}`,
       { withCredentials: true }
     )
-    let full = ''
-    es.onmessage = (e) => {
-      if (e.data === '[DONE]') { es.close(); sending.value = false; fetchAppInfo(); return }
-      full += e.data
-      chatStore.updateLastMessage(full)
-      scrollToBottom()
-    }
-    es.onerror = () => { es.close(); sending.value = false; message.error('生成响应失败') }
+    bindGenerationStream(es)
   } catch (e) { sending.value = false; message.error('发送失败') }
 }
 
@@ -205,19 +292,64 @@ const scrollToBottom = () => {
 const useHint = (hint: string) => { inputMessage.value = hint }
 const goToEdit = () => router.push(`/app/edit/${appId}`)
 const goToPreview = () => {
-  if (appInfo.value.deployKey) window.open(`/api/static/${appInfo.value.deployKey}/`, '_blank')
+  if (appInfo.value.deployKey) {
+    // 已部署，打开部署后的页面
+    window.open(`/api/code_deploy/${appInfo.value.deployKey}/index.html`, '_blank')
+  } else {
+    // 未部署，打开预览页面（本地预览）
+    window.open(`/api/static/preview/${appId}/index.html`, '_blank')
+  }
 }
 const handleDeploy = async () => {
   deploying.value = true
-  try { await deployApp(appId); message.success('部署请求已提交'); fetchAppInfo() }
-  catch (e) { message.error('部署失败') }
-  finally { deploying.value = false }
+  try {
+    await deployApp(appId)
+    message.success('部署成功！')
+    await fetchAppInfo()
+  } catch (e: any) {
+    message.error(e?.response?.data?.message || '部署失败，请重试')
+  } finally { deploying.value = false }
 }
 
 const loadMore = async () => { await chatStore.loadMore(appId) }
 
+const autoGenerateFromInitPrompt = async () => {
+  if (route.query.autoGenerate !== '1') return
+  if (!appInfo.value?.initPrompt || chatStore.messages.length > 0) return
+  router.replace({ path: route.path, query: {} })
+  await sendMessage(appInfo.value.initPrompt)
+}
+
+const resumeActiveGenerationStream = async () => {
+  if (route.query.autoGenerate === '1' || sending.value) return
+  try {
+    const res = await hasActiveGenerationStream(appId)
+    if (!res.data) return
+    chatStore.addAiMessage('')
+    await nextTick()
+    scrollToBottom()
+    const es = new EventSource(
+      `${apiBaseUrl}/app/chat/gen/stream?appId=${appId}`,
+      { withCredentials: true }
+    )
+    bindGenerationStream(es, '', false)
+  } catch (e) {
+    // 恢复订阅失败不影响历史消息展示
+  }
+}
+
 watch(() => chatStore.messages, () => nextTick(scrollToBottom), { deep: true })
-onMounted(() => { fetchAppInfo(); fetchChatHistory() })
+onMounted(async () => {
+  await fetchAppInfo()
+  await fetchChatHistory()
+  await autoGenerateFromInitPrompt()
+  await resumeActiveGenerationStream()
+})
+
+onUnmounted(() => {
+  activeStream?.close()
+  activeStream = null
+})
 </script>
 
 <style scoped>
@@ -538,6 +670,7 @@ onMounted(() => { fetchAppInfo(); fetchChatHistory() })
 .msg.user .msg-text {
   background: var(--c-primary-50);
   border-color: var(--c-primary-100);
+  color: var(--t-primary);
 }
 
 .msg.assistant .msg-text {
@@ -586,6 +719,31 @@ onMounted(() => { fetchAppInfo(); fetchChatHistory() })
   color: var(--t-light);
   font-size: 11px;
   font-weight: 750;
+}
+
+.quick-actions {
+  max-width: 880px;
+  margin: 0 auto 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.quick-btn {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-primary);
+  background: var(--c-primary-50);
+  border: 1px solid var(--c-primary-200);
+  border-radius: var(--r-md);
+  cursor: pointer;
+  transition: all var(--t-fast);
+}
+
+.quick-btn:hover {
+  background: var(--c-primary-100);
+  border-color: var(--c-primary-300);
 }
 
 .input-wrap {

@@ -96,6 +96,12 @@ const router = createRouter({
       name: 'userManage',
       component: () => import('@/views/admin/UserManagePage.vue'),
       meta: { title: '用户管理', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
+    },
+    {
+      path: '/admin/skillManage',
+      name: 'skillManage',
+      component: () => import('@/views/admin/SkillManagePage.vue'),
+      meta: { title: '技能管理', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
     }
   ]
 })

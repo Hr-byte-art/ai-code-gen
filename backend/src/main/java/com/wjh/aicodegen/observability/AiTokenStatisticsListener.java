@@ -85,7 +85,6 @@ public class AiTokenStatisticsListener implements ChatModelListener {
 
         // 重新设置到ThreadLocal，确保当前线程可以访问
         MonitorContextHolder.setContext(context);
-
     }
 
     /**
@@ -193,21 +192,32 @@ public class AiTokenStatisticsListener implements ChatModelListener {
 
         // 验证上下文数据有效性
         if ("unknown".equals(context.getUserId()) || "unknown".equals(context.getAppId())) {
-            log.warn("MonitorContext包含无效数据 userId={}, appId={}, 尝试从模型响应中提取信息",
+            log.warn("MonitorContext包含无效数据 userId={}, appId={}, 尝试从全局存储恢复",
                     context.getUserId(), context.getAppId());
 
+            // 尝试从全局存储恢复（解决跨线程上下文丢失问题）
+            MonitorContext globalContext = GlobalContextStorage.getLatestContext();
+            if (globalContext != null && !"unknown".equals(globalContext.getUserId())) {
+                context = globalContext;
+                log.info("从全局存储恢复MonitorContext成功: userId={}, appId={}",
+                        context.getUserId(), context.getAppId());
+            }
+        }
+
+        // 再次验证，如果仍然无效则使用兜底
+        if ("unknown".equals(context.getUserId()) || "unknown".equals(context.getAppId())) {
             // 尝试兜底处理：使用system用户ID记录统计，至少不丢失token信息
             TokenUsage fallbackTokenUsage = new TokenUsage();
-            // 系统用户ID
             fallbackTokenUsage.setUserId(0L);
-            // 系统应用ID
             fallbackTokenUsage.setAppId(0L);
             fallbackTokenUsage.setModelName(responseContext.chatResponse().modelName());
             fallbackTokenUsage.setAppType("UNKNOWN");
             fallbackTokenUsage.setRequestTokenCount(responseContext.chatResponse().tokenUsage().inputTokenCount());
             fallbackTokenUsage.setCreateTime(LocalDateTime.now());
+            fallbackTokenUsage.setUpdateTime(LocalDateTime.now());
             fallbackTokenUsage.setResponseTokenCount(responseContext.chatResponse().tokenUsage().outputTokenCount());
             fallbackTokenUsage.setTotalTokenCount(responseContext.chatResponse().tokenUsage().totalTokenCount());
+            fallbackTokenUsage.setVersion(0);
 
             try {
                 tokenUsageService.save(fallbackTokenUsage);
@@ -239,44 +249,54 @@ public class AiTokenStatisticsListener implements ChatModelListener {
             log.info("Token统计: userId={}, appId={}, aiCallPurpose={}, totalTokens={}",
                     context.getUserId(), context.getAppId(), appType, totalTokens);
 
-            // 【Token累加合并】对于CODE_GENERATION类型，检查是否已存在记录并累加
+            // 【Token累加合并】对于CODE_GENERATION类型，检查是否已存在记录并累加（带乐观锁重试）
             if ("CODE_GENERATION".equals(appType)) {
-                TokenUsage existingRecord = tokenUsageService.findByAppIdAndPurpose(appId, appType);
+                boolean updated = false;
+                for (int retry = 0; retry < 3; retry++) {
+                    TokenUsage existingRecord = tokenUsageService.findByAppIdAndPurpose(appId, appType);
 
-                if (existingRecord != null) {
+                    if (existingRecord != null) {
+                        // 累加Token到已存在的记录
+                        existingRecord.setRequestTokenCount(existingRecord.getRequestTokenCount() + inputTokens);
+                        existingRecord.setResponseTokenCount(existingRecord.getResponseTokenCount() + outputTokens);
+                        existingRecord.setTotalTokenCount(existingRecord.getTotalTokenCount() + totalTokens);
+                        // 保留原始 createTime，只更新 updateTime
+                        existingRecord.setUpdateTime(LocalDateTime.now());
+                        // 只保留最新模型名，不拼接
+                        existingRecord.setModelName(responseContext.chatResponse().modelName());
 
-                    // 累加Token到已存在的记录
-                    existingRecord.setRequestTokenCount(existingRecord.getRequestTokenCount() + inputTokens);
-                    existingRecord.setResponseTokenCount(existingRecord.getResponseTokenCount() + outputTokens);
-                    existingRecord.setTotalTokenCount(existingRecord.getTotalTokenCount() + totalTokens);
-                    // 更新时间为最新
-                    existingRecord.setCreateTime(LocalDateTime.now());
+                        boolean success = tokenUsageService.updateById(existingRecord);
+                        if (success) {
+                            log.info("Token累加成功: appId={}, totalTokens={}, version={}",
+                                    context.getAppId(), existingRecord.getTotalTokenCount(), existingRecord.getVersion());
+                            updated = true;
+                            break;
+                        } else {
+                            log.warn("Token累加乐观锁冲突，重试 {}/3: appId={}", retry + 1, context.getAppId());
+                            Thread.sleep(50 * (retry + 1));
+                        }
+                    } else {
+                        // 首次创建CODE_GENERATION记录
+                        TokenUsage tokenUsage = new TokenUsage();
+                        tokenUsage.setUserId(userId);
+                        tokenUsage.setAppId(appId);
+                        tokenUsage.setModelName(responseContext.chatResponse().modelName());
+                        tokenUsage.setAppType(appType);
+                        tokenUsage.setRequestTokenCount(inputTokens);
+                        tokenUsage.setResponseTokenCount(outputTokens);
+                        tokenUsage.setTotalTokenCount(totalTokens);
+                        tokenUsage.setCreateTime(LocalDateTime.now());
+                        tokenUsage.setUpdateTime(LocalDateTime.now());
+                        tokenUsage.setVersion(0);
 
-                    // 如果模型名称不同，用逗号分隔记录多个模型
-                    if (!existingRecord.getModelName().contains(responseContext.chatResponse().modelName())) {
-                        existingRecord.setModelName(
-                                existingRecord.getModelName() + "," + responseContext.chatResponse().modelName());
+                        tokenUsageService.save(tokenUsage);
+                        log.info("Token统计创建: appId={}, totalTokens={}", context.getAppId(), totalTokens);
+                        updated = true;
+                        break;
                     }
-
-                    tokenUsageService.updateById(existingRecord);
-
-                    log.info("Token累加: appId={}, totalTokens={}",
-                            context.getAppId(), existingRecord.getTotalTokenCount());
-                } else {
-                    // 首次创建CODE_GENERATION记录
-                    TokenUsage tokenUsage = new TokenUsage();
-                    tokenUsage.setUserId(userId);
-                    tokenUsage.setAppId(appId);
-                    tokenUsage.setModelName(responseContext.chatResponse().modelName());
-                    tokenUsage.setAppType(appType);
-                    tokenUsage.setRequestTokenCount(inputTokens);
-                    tokenUsage.setResponseTokenCount(outputTokens);
-                    tokenUsage.setTotalTokenCount(totalTokens);
-                    tokenUsage.setCreateTime(LocalDateTime.now());
-
-                    tokenUsageService.save(tokenUsage);
-
-                    log.info("Token统计创建: appId={}, totalTokens={}", context.getAppId(), totalTokens);
+                }
+                if (!updated) {
+                    log.error("Token累加失败，重试3次后仍失败: appId={}", context.getAppId());
                 }
             } else {
                 // 非CODE_GENERATION类型，正常保存（ROUTING, INPUT_SAFETY_CHECK等）
@@ -289,6 +309,8 @@ public class AiTokenStatisticsListener implements ChatModelListener {
                 tokenUsage.setResponseTokenCount(outputTokens);
                 tokenUsage.setTotalTokenCount(totalTokens);
                 tokenUsage.setCreateTime(LocalDateTime.now());
+                tokenUsage.setUpdateTime(LocalDateTime.now());
+                tokenUsage.setVersion(0);
 
                 tokenUsageService.save(tokenUsage);
 

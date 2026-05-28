@@ -1,11 +1,19 @@
 package com.wjh.aicodegen.ai.tools;
 
 import cn.hutool.json.JSONObject;
+import com.wjh.aicodegen.constant.AppConstant;
+import com.wjh.aicodegen.manager.SpringContextUtil;
+import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.enums.AiCallPurposeEnum;
 import com.wjh.aicodegen.monitor.GlobalContextStorage;
 import com.wjh.aicodegen.monitor.MonitorContext;
 import com.wjh.aicodegen.monitor.MonitorContextHolder;
+import com.wjh.aicodegen.service.AppService;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * 工具基类
@@ -55,6 +63,35 @@ public abstract class BaseTool {
     }
 
     /**
+     * 根据 appId 解析项目目录名
+     * 先检查磁盘上是否存在目录，再从数据库查询 codeGenType
+     */
+    protected String resolveProjectDirName(Long appId) {
+        String[] candidates = {"landing_page_" + appId, "vue_project_" + appId, "fullstack_" + appId,
+                "react_ts_" + appId, "nextjs_" + appId, "html_" + appId, "multi_file_" + appId};
+        for (String dir : candidates) {
+            if (new File(AppConstant.CODE_OUTPUT_ROOT_DIR, dir).exists()) {
+                return dir;
+            }
+        }
+        // 磁盘上没有，从数据库查询
+        try {
+            AppService appService = SpringContextUtil.getBean(AppService.class);
+            App app = appService.getById(appId);
+            if (app != null && app.getCodeGenType() != null) {
+                return app.getCodeGenType() + "_" + appId;
+            }
+        } catch (Exception e) {
+            log.warn("查询应用 codeGenType 失败: appId={}", appId, e);
+        }
+        return "vue_project_" + appId;
+    }
+
+    protected Path resolveProjectRoot(Long appId) {
+        return Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, resolveProjectDirName(appId));
+    }
+
+    /**
      * 根据工具类型获取具体的AI调用用途
      * 子类可以重写此方法来提供更精确的分类
      * 
@@ -64,39 +101,40 @@ public abstract class BaseTool {
         String toolName = getToolName();
 
         // 根据工具名称映射到具体的AI调用用途
-        return switch (toolName) {
+        switch (toolName) {
             // 图片和素材相关
-            case "searchContentImages" -> AiCallPurposeEnum.IMAGE_SEARCH.getCode();
-            case "generateLogo" -> AiCallPurposeEnum.LOGO_GENERATION.getCode();
-            case "generateIllustration" -> AiCallPurposeEnum.ILLUSTRATION_GENERATION.getCode();
-            case "generateMermaidDiagram" -> AiCallPurposeEnum.MERMAID_DIAGRAM.getCode();
+            case "searchContentImages": return AiCallPurposeEnum.IMAGE_SEARCH.getCode();
+            case "generateLogo": return AiCallPurposeEnum.LOGO_GENERATION.getCode();
+            case "generateIllustration": return AiCallPurposeEnum.ILLUSTRATION_GENERATION.getCode();
+            case "generateMermaidDiagram": return AiCallPurposeEnum.MERMAID_DIAGRAM.getCode();
 
             // 文件操作相关
-            case "readFile" -> AiCallPurposeEnum.FILE_READ.getCode();
-            case "writeFile" -> AiCallPurposeEnum.FILE_WRITE.getCode();
-            case "modifyFile" -> AiCallPurposeEnum.FILE_MODIFY.getCode();
-            case "deleteFile" -> AiCallPurposeEnum.FILE_DELETE.getCode();
-            case "readDir", "readDirectory" -> AiCallPurposeEnum.DIRECTORY_READ.getCode();
+            case "readFile": return AiCallPurposeEnum.FILE_READ.getCode();
+            case "writeFile": return AiCallPurposeEnum.FILE_WRITE.getCode();
+            case "modifyFile": return AiCallPurposeEnum.FILE_MODIFY.getCode();
+            case "deleteFile": return AiCallPurposeEnum.FILE_DELETE.getCode();
+            case "readDir":
+            case "readDirectory": return AiCallPurposeEnum.DIRECTORY_READ.getCode();
 
             // 安全检查相关
-            case "safetyCheck", "inputSafetyCheck" -> AiCallPurposeEnum.INPUT_SAFETY_CHECK.getCode();
-            case "contentModeration" -> AiCallPurposeEnum.CONTENT_MODERATION.getCode();
+            case "safetyCheck":
+            case "inputSafetyCheck": return AiCallPurposeEnum.INPUT_SAFETY_CHECK.getCode();
+            case "contentModeration": return AiCallPurposeEnum.CONTENT_MODERATION.getCode();
 
             // 代码相关
-            case "codeQualityCheck" -> AiCallPurposeEnum.CODE_QUALITY_CHECK.getCode();
-            case "codeOptimization" -> AiCallPurposeEnum.CODE_OPTIMIZATION.getCode();
-            case "testGeneration" -> AiCallPurposeEnum.TEST_GENERATION.getCode();
+            case "codeQualityCheck": return AiCallPurposeEnum.CODE_QUALITY_CHECK.getCode();
+            case "codeOptimization": return AiCallPurposeEnum.CODE_OPTIMIZATION.getCode();
+            case "testGeneration": return AiCallPurposeEnum.TEST_GENERATION.getCode();
 
             // 项目分析相关
-            case "projectAnalysis" -> AiCallPurposeEnum.PROJECT_ANALYSIS.getCode();
-            case "dependencyAnalysis" -> AiCallPurposeEnum.DEPENDENCY_ANALYSIS.getCode();
+            case "projectAnalysis": return AiCallPurposeEnum.PROJECT_ANALYSIS.getCode();
+            case "dependencyAnalysis": return AiCallPurposeEnum.DEPENDENCY_ANALYSIS.getCode();
 
             // 默认为通用工具执行
-            default -> {
+            default:
                 log.debug("未找到工具 {} 的具体分类，使用默认分类", toolName);
-                yield AiCallPurposeEnum.TOOL_EXECUTION.getCode();
-            }
-        };
+                return AiCallPurposeEnum.TOOL_EXECUTION.getCode();
+        }
     }
 
     /**
@@ -119,7 +157,7 @@ public abstract class BaseTool {
      * @return 工具请求显示内容
      */
     public String generateToolRequestResponse() {
-        return String.format("\n\n[选择工具] %s\n\n", getDisplayName());
+        return String.format("\n⏳ %s...\n", getDisplayName());
     }
 
     /**

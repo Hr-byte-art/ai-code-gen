@@ -1,12 +1,23 @@
-{"level":30,"time":1779554249600,"pid":90084,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
-{"level":30,"time":1779554249600,"pid":90084,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
-{"level":30,"time":1779556291583,"pid":76724,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
-{"level":30,"time":1779556291584,"pid":76724,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
-{"level":30,"time":1779557562903,"pid":92112,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
-{"level":30,"time":1779557562904,"pid":92112,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
-{"level":30,"time":1779557930884,"pid":94772,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
-{"level":30,"time":1779557930884,"pid":94772,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
-{"level":30,"time":1779558318503,"pid":61404,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
-{"level":30,"time":1779558318503,"pid":61404,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
-{"level":30,"time":1779568651312,"pid":89532,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
-{"level":30,"time":1779568651313,"pid":89532,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779860716338,"pid":25032,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779860716339,"pid":25032,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":50,"time":1779866806376,"pid":25032,"hostname":"DESKTOP-NBM19I8","msg":"Query execution failed","sql":"SELECT id, skill_key, skill_name, code_gen_type, build_strategy, model_strategy, tool_names FROM code_skill WHERE code_gen_type = 'landing_page' OR skill_key LIKE '%landing%'","error":"Unknown column 'skill_name' in 'field list'"}
+{"level":30,"time":1779873802116,"pid":214796,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779873802117,"pid":214796,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779873864719,"pid":208004,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779873864720,"pid":208004,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":50,"time":1779878906255,"pid":208004,"hostname":"DESKTOP-NBM19I8","msg":"Query execution failed","sql":"SELECT id, code_gen_type, init_prompt, deploy_url FROM app WHERE id = '417195029929525248'","error":"Unknown column 'code_gen_type' in 'field list'"}
+{"level":50,"time":1779878922792,"pid":208004,"hostname":"DESKTOP-NBM19I8","msg":"Query execution failed","sql":"SELECT id, message_type, LEFT(message, 100) as msg_preview FROM chat_history WHERE app_id = '417195029929525248' ORDER BY create_time DESC LIMIT 5","error":"Unknown column 'message_type' in 'field list'"}
+{"level":30,"time":1779894470624,"pid":71792,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779894470624,"pid":71792,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779895985056,"pid":11872,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779895985064,"pid":15164,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779895985066,"pid":15164,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779895985058,"pid":11872,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779897166530,"pid":14484,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779897166531,"pid":14484,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779934712867,"pid":24176,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779934712867,"pid":24176,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":30,"time":1779934712868,"pid":20556,"hostname":"DESKTOP-NBM19I8","msg":"config>{\"host\":\"localhost\",\"user\":\"root\",\"password\":\"******\",\"database\":\"ai_code_gen\",\"port\":3306}"}
+{"level":30,"time":1779934712870,"pid":20556,"hostname":"DESKTOP-NBM19I8","msg":"MySQL MCP server running on stdio"}
+{"level":50,"time":1779983153986,"pid":24176,"hostname":"DESKTOP-NBM19I8","msg":"Execute execution failed","sql":"ALTER TABLE `code_skill` ADD COLUMN `content_hash` VARCHAR(64) DEFAULT NULL COMMENT '内容哈希（MD5）'","error":"Duplicate column name 'content_hash'"}
+{"level":50,"time":1779983173424,"pid":24176,"hostname":"DESKTOP-NBM19I8","msg":"Execute execution failed","sql":"ALTER TABLE `code_skill` ADD COLUMN `source` VARCHAR(20) DEFAULT 'file' COMMENT '数据来源: file=文件, manual=手动'","error":"Duplicate column name 'source'"}

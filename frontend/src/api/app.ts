@@ -7,10 +7,16 @@ import type {
   AppAdminUpdateRequest,
   AppDeployRequest,
   AppQueryRequest,
+  RoutingRecommendation,
   PageResponse
 } from '@/types'
 
 // ==================== 应用基础接口 ====================
+
+// 获取路由推荐（AI 预判全栈/前端）
+export function getRoutingRecommendation(data: AppAddRequest) {
+  return request.post<ApiResponse<RoutingRecommendation>>('/app/routing/recommend', data)
+}
 
 // 创建应用
 export function createApp(data: AppAddRequest) {
@@ -23,12 +29,12 @@ export function updateApp(data: AppUpdateRequest) {
 }
 
 // 删除应用（用户只能删除自己的应用）
-export function deleteApp(id: number) {
+export function deleteApp(id: string) {
   return request.post<ApiResponse<boolean>>('/app/delete', { id })
 }
 
 // 根据id获取应用详情
-export function getAppById(id: number) {
+export function getAppById(id: string) {
   return request.get<ApiResponse<AppVO>>('/app/get/vo', { params: { id } })
 }
 
@@ -45,22 +51,27 @@ export function getGoodAppList(data: AppQueryRequest) {
 // ==================== 应用操作接口 ====================
 
 // 应用部署
-export function deployApp(appId: number) {
+export function deployApp(appId: string) {
   return request.post<ApiResponse<string>>('/app/deploy', { appId })
 }
 
 // 取消应用代码生成任务
-export function cancelApp(appId: number) {
+export function cancelApp(appId: string) {
   return request.post<ApiResponse<boolean>>(`/app/cancel/${appId}`)
 }
 
 // 获取应用构建状态（轮询查询）
-export function getAppBuildStatus(appId: number) {
+export function getAppBuildStatus(appId: string) {
   return request.get<ApiResponse<Record<string, any>>>(`/app/build/status/${appId}`)
 }
 
+// 查询是否存在运行中的代码生成流
+export function hasActiveGenerationStream(appId: string) {
+  return request.get<ApiResponse<boolean>>('/app/chat/gen/active', { params: { appId } })
+}
+
 // 应用下载
-export function downloadApp(appId: number) {
+export function downloadApp(appId: string) {
   return request.get(`/app/download/${appId}`, { responseType: 'blob' })
 }
 
@@ -81,7 +92,7 @@ export function getAdminAppList(data: AppQueryRequest) {
 }
 
 // 管理员根据id获取应用详情
-export function getAdminAppById(id: number) {
+export function getAdminAppById(id: string) {
   return request.get<ApiResponse<AppVO>>('/app/admin/get/vo', { params: { id } })
 }
 
@@ -91,7 +102,7 @@ export function adminUpdateApp(data: AppAdminUpdateRequest) {
 }
 
 // 删除应用（管理员）
-export function adminDeleteApp(id: number) {
+export function adminDeleteApp(id: string) {
   return request.post<ApiResponse<boolean>>('/app/admin/delete', { id })
 }
 

@@ -119,4 +119,22 @@ public interface AppService extends IService<App> {
      * @return map
      */
     Map<String, Object> getBuildStatus(Long appId , HttpServletRequest request);
+
+    /**
+     * 获取构建事件 SSE 流
+     *
+     * @param appId 应用ID
+     * @return SSE 事件流
+     */
+    Flux<String> getBuildEventStream(Long appId);
+
+    /**
+     * 是否存在运行中的代码生成流
+     */
+    boolean hasActiveGenerationStream(Long appId, User loginUser);
+
+    /**
+     * 订阅运行中的代码生成流
+     */
+    Flux<String> getGenerationEventStream(Long appId, User loginUser);
 }

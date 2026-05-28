@@ -28,8 +28,7 @@ public class FileWriteTool extends BaseTool {
     public String writeFile(@P("文件的相对路径") String relativeFilePath, @P("要写入文件的内容") String content, @ToolMemoryId Long appId  ) {
         try {
             Path path = Paths.get(relativeFilePath);
-            String projectDirName = "vue_project_" + appId;
-            Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
+            Path projectRoot = resolveProjectRoot(appId);
             if (!path.isAbsolute()) {
                 // 相对路径处理，创建基于 appId 的项目目录
                 path = projectRoot.resolve(relativeFilePath);
@@ -77,13 +76,6 @@ public class FileWriteTool extends BaseTool {
     @Override
     public String generateToolExecutedResult(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        String suffix = FileUtil.getSuffix(relativeFilePath);
-        String content = arguments.getStr("content");
-        return String.format("""
-                【工具调用】%s %s
-                ```%s
-                %s
-                ```
-                """,getDisplayName() , relativeFilePath , suffix , content);
+        return String.format("✅ %s → `%s`", getDisplayName(), relativeFilePath);
     }
 }

@@ -38,7 +38,7 @@ const columns = [
 ]
 const chatList = ref<any[]>([])
 const ft = (t: string) => t ? new Date(t).toLocaleString('zh-CN') : ''
-const fetchChatList = async () => { loading.value = true; try { const r: any = await getAdminChatHistory({ pageNum: pagination.current, pageSize: pagination.pageSize, message: filter.message || undefined, appId: filter.appId ? Number(filter.appId) : undefined, userId: filter.userId ? Number(filter.userId) : undefined }); chatList.value = r.data?.records || []; pagination.total = r.data?.totalRow || 0 } catch (e) {} finally { loading.value = false } }
+const fetchChatList = async () => { loading.value = true; try { const r: any = await getAdminChatHistory({ pageNum: pagination.current, pageSize: pagination.pageSize, message: filter.message || undefined, appId: filter.appId || undefined, userId: filter.userId || undefined }); chatList.value = r.data?.records || []; pagination.total = r.data?.totalRow || 0 } catch (e) {} finally { loading.value = false } }
 const handleSearch = () => { pagination.current = 1; fetchChatList() }
 const handleReset = () => { filter.message = ''; filter.appId = ''; filter.userId = ''; handleSearch() }
 const handleTableChange = (p: any) => { pagination.current = p.current; pagination.pageSize = p.pageSize; fetchChatList() }

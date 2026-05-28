@@ -69,10 +69,16 @@ public class TokenUsage implements Serializable {
     private Integer requestTokenCount;
 
     /**
-     * 创建时间
+     * 首次创建时间
      */
     @Column("createTime")
     private LocalDateTime createTime;
+
+    /**
+     * 最后更新时间
+     */
+    @Column("updateTime")
+    private LocalDateTime updateTime;
 
     /**
      * 响应 Token 数量
@@ -86,4 +92,9 @@ public class TokenUsage implements Serializable {
     @Column("totalTokens")
     private Integer totalTokenCount;
 
+    /**
+     * 乐观锁版本号
+     */
+    @Column(value = "version", version = true)
+    private Integer version;
 }

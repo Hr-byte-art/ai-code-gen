@@ -7,9 +7,15 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
+        <processor name="lombok.launch.AnnotationProcessorHider$AnnotationProcessor" />
+        <processor name="org.mapstruct.ap.MappingProcessor" />
         <processorPath useClasspath="false">
           <entry name="E:/codeTools/maven/repository/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar" />
           <entry name="E:/codeTools/maven/repository/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+          <entry name="E:/codeTools/maven/repository/org/projectlombok/lombok-mapstruct-binding/0.2.0/lombok-mapstruct-binding-0.2.0.jar" />
+          <entry name="E:/codeTools/maven/repository/org/projectlombok/lombok/1.18.36/lombok-1.18.36.jar" />
+          <entry name="E:/codeTools/maven/repository/org/mapstruct/mapstruct-processor/1.6.3/mapstruct-processor-1.6.3.jar" />
+          <entry name="E:/codeTools/maven/repository/org/projectlombok/lombok-mapstruct-binding/0.2.0/lombok-mapstruct-binding-0.2.0.jar" />
         </processorPath>
         <module name="ai-code-gen" />
       </profile>

@@ -7,6 +7,7 @@ import type {
   ModelTokenSummaryDTO,
   TokenRankingDTO,
   ModelTokenRankingDTO,
+  GenerationStatsDTO,
   PageResponse
 } from '@/types'
 
@@ -23,12 +24,12 @@ export function getUserTokenDetails(params?: { page?: number; pageSize?: number 
 }
 
 // 获取指定用户Token消耗汇总（管理员）
-export function getUserTokenSummaryById(userId: number) {
+export function getUserTokenSummaryById(userId: string) {
   return request.get<ApiResponse<UserTokenSummaryDTO>>(`/token/user/${userId}/summary`)
 }
 
 // 获取指定用户Token使用详情（管理员）
-export function getUserTokenDetailsById(userId: number, params?: { page?: number; pageSize?: number }) {
+export function getUserTokenDetailsById(userId: string, params?: { page?: number; pageSize?: number }) {
   return request.get<ApiResponse<TokenDetailDTO[]>>(`/token/user/${userId}/details`, { params })
 }
 
@@ -66,6 +67,13 @@ export function getAllModelTokenSummary(params?: { startTime?: string; endTime?:
 // ==================== 应用Token接口 ====================
 
 // 获取应用Token使用详情
-export function getAppTokenDetails(appId: number, params?: { page?: number; pageSize?: number }) {
+export function getAppTokenDetails(appId: string, params?: { page?: number; pageSize?: number }) {
   return request.get<ApiResponse<TokenDetailDTO[]>>(`/token/app/${appId}/details`, { params })
+}
+
+// ==================== 生成统计接口 ====================
+
+// 获取用户生成历史统计
+export function getUserGenerationStats() {
+  return request.get<ApiResponse<GenerationStatsDTO>>('/token/user/generation-stats')
 }

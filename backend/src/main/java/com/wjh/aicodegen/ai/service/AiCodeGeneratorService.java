@@ -1,56 +1,27 @@
 package com.wjh.aicodegen.ai.service;
 
-import com.wjh.aicodegen.ai.model.HtmlCodeResult;
-import com.wjh.aicodegen.ai.model.MultiFileCodeResult;
 import dev.langchain4j.service.MemoryId;
-import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
 /**
+ * AI 代码生成服务接口
+ * 通用接口，system prompt 由 Factory 在构建时动态注入
+ *
  * @author 王哈哈
  */
 public interface AiCodeGeneratorService {
-    /**
-     * 生成 HTML 代码
-     * @param userMessage 用户输入(流式)
-     * @return  生成的代码
-     */
-    @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
-    Flux<String> generateHtmlCodeStream(String userMessage);
 
     /**
-     * 生成多文件代码
-     * @param userMessage 用户输入(流式)
-     * @return  生成的代码
+     * 标准代码生成（HTML / 多文件）
+     * 返回 Flux<String>，流式输出代码文本
      */
-    @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
-    Flux<String> generateMultiFileCodeStream(String userMessage);
+    Flux<String> generateCode(@UserMessage String userMessage);
 
     /**
-     * 生成 Vue 项目代码（流式）
-     *
-     * @param userMessage 用户消息
-     * @return 生成过程的流式响应
+     * 工具增强代码生成（Vue 工程 / 全栈）
+     * 返回 TokenStream，支持工具调用回调
      */
-    @SystemMessage(fromResource = "prompt/codegen-vue-project-system-prompt.txt")
-    TokenStream generateVueProjectCodeStream(@MemoryId long appId, @UserMessage String userMessage);
-
-
-//    /**
-//     * 生成 HTML 代码
-//     * @param userMessage 用户输入
-//     * @return  生成的代码
-//     */
-//    @SystemMessage(fromResource = "prompt/codegen-html-system-prompt.txt")
-//    HtmlCodeResult generateHtmlCode(String userMessage);
-//
-//    /**
-//     * 生成多文件代码
-//     * @param userMessage 用户输入
-//     * @return  生成的代码
-//     */
-//    @SystemMessage(fromResource = "prompt/codegen-multi-file-system-prompt.txt")
-//    MultiFileCodeResult generateMultiFileCode(String userMessage);
+    TokenStream generateCodeWithTools(@MemoryId long appId, @UserMessage String userMessage);
 }

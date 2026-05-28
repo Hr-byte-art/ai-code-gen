@@ -2,6 +2,14 @@ import axios from 'axios'
 import { message } from 'ant-design-vue'
 import router from '@/router'
 
+// 处理大数字精度丢失：将超过安全整数范围的数字转为字符串
+const jsonBigIntReviver = (_key: string, value: any) => {
+  if (typeof value === 'number' && value > Number.MAX_SAFE_INTEGER) {
+    return String(value)
+  }
+  return value
+}
+
 // 创建axios实例
 const request = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
@@ -9,7 +17,15 @@ const request = axios.create({
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  // 用自定义 transformResponse 在 JSON.parse 时处理大数字
+  transformResponse: [(data) => {
+    try {
+      return JSON.parse(data, jsonBigIntReviver)
+    } catch {
+      return data
+    }
+  }]
 })
 
 // 请求拦截器

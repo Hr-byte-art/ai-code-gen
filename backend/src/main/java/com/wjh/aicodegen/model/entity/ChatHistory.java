@@ -40,6 +40,7 @@ public class ChatHistory implements Serializable {
     /**
      * 消息
      */
+    @Column("message")
     private String message;
 
     /**

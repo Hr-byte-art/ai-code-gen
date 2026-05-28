@@ -93,7 +93,7 @@ public class VueProjectBuilder {
      */
     private boolean executeNpmBuild(File projectDir) {
         log.info("执行 npm run build...");
-        String command = String.format("%s run build", buildCommand("npm"));
+        String command = String.format("%s run build -- --base=./", buildCommand("npm"));
         // 3分钟超时
         return executeCommand(projectDir, command, 180);
     }

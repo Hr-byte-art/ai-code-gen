@@ -46,6 +46,13 @@ export const darkTokens = {
   '--border-light': '#30332c',
   '--border-strong': '#55594d',
 
+  '--c-primary': '#5a9e8f',
+  '--c-primary-light': '#6db3a3',
+  '--c-primary-dark': '#3d7a6c',
+  '--c-primary-50': '#1e332e',
+  '--c-primary-100': '#2a4a43',
+  '--c-primary-200': '#3a635a',
+
   '--shadow-xs': '0 1px 2px rgba(0, 0, 0, 0.22)',
   '--shadow-sm': '0 8px 22px rgba(0, 0, 0, 0.28)',
   '--shadow-md': '0 16px 36px rgba(0, 0, 0, 0.34)',

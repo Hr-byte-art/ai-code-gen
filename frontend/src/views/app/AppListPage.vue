@@ -58,6 +58,7 @@
           @edit="goToEdit(app.id)"
           @preview="goToPreview(app)"
           @deploy="handleDeploy(app.id)"
+          @delete="handleDelete(app.id)"
         />
       </div>
       <EmptyState
@@ -87,7 +88,7 @@ import {
 import AppCard from '@/components/AppCard.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { getMyAppList, deployApp } from '@/api/app'
+import { getMyAppList, deployApp, deleteApp } from '@/api/app'
 
 const router = useRouter()
 const loading = ref(false)
@@ -130,13 +131,20 @@ const fetchMyApps = async () => {
 }
 
 const handleCreate = () => router.push('/')
-const goToChat = (id: number) => router.push(`/app/chat/${id}`)
-const goToEdit = (id: number) => router.push(`/app/edit/${id}`)
+const goToChat = (id: string) => router.push(`/app/chat/${id}`)
+const goToEdit = (id: string) => router.push(`/app/edit/${id}`)
 const goToPreview = (app: any) => {
-  if (app.deployKey) window.open(`/api/static/${app.deployKey}/`, '_blank')
+  if (app.deployKey) window.open(`/api/code_deploy/${app.deployKey}/index.html`, '_blank')
 }
-const handleDeploy = async (id: number) => {
-  try { await deployApp(id); message.success('部署请求已提交') } catch (e) { message.error('部署失败') }
+const handleDeploy = async (id: string) => {
+  try { await deployApp(id); message.success('部署成功') } catch (e) { message.error('部署失败') }
+}
+const handleDelete = async (id: string) => {
+  try {
+    await deleteApp(id)
+    message.success('删除成功')
+    fetchMyApps()
+  } catch (e) { message.error('删除失败') }
 }
 const handlePageChange = (page: number) => { currentPage.value = page; fetchMyApps() }
 onMounted(() => fetchMyApps())

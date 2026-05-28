@@ -1,12 +1,16 @@
 <template>
   <div class="app-card" @click="$emit('click')">
+    <div class="cover-wrap">
+      <img class="cover-image" :src="coverImage" :alt="app.title" @error="handleCoverError" />
+    </div>
+
     <div class="card-head">
       <div class="card-identity">
         <div class="asset-mark">{{ initials }}</div>
         <div class="card-title-group">
           <h3 class="card-title">{{ app.title }}</h3>
           <div class="card-subline">
-            <span v-if="app.codeGenType">{{ app.codeGenType }}</span>
+            <span v-if="app.codeGenType">{{ codeGenTypeLabel }}</span>
             <span>{{ timeAgo }}</span>
           </div>
         </div>
@@ -34,19 +38,31 @@
       <a-button size="small" @click.stop="$emit('edit')">
         <EditOutlined /> 交付
       </a-button>
+      <a-popconfirm title="确定删除此应用？删除后不可恢复。" @confirm.stop="$emit('delete')">
+        <a-button size="small" danger @click.stop>
+          <DeleteOutlined />
+        </a-button>
+      </a-popconfirm>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   MessageOutlined, EditOutlined, EyeOutlined,
-  CloudUploadOutlined
+  CloudUploadOutlined, DeleteOutlined
 } from '@ant-design/icons-vue'
+import defaultCover from '@/assets/default-cover.webp'
+import coverCreated from '@/assets/cover-created.webp'
+import coverGenerated from '@/assets/cover-generated.webp'
+import coverFailed from '@/assets/cover-failed.webp'
+import coverCancelled from '@/assets/cover-cancelled.webp'
+import coverDeployed from '@/assets/cover-deployed.webp'
+import coverRestricted from '@/assets/cover-restricted.webp'
 
 interface AppInfo {
-  id: number
+  id: string
   title: string
   description?: string
   initPrompt?: string
@@ -61,8 +77,48 @@ interface AppInfo {
 }
 
 const props = defineProps<{ app: AppInfo }>()
-defineEmits<{ click: []; chat: []; edit: []; preview: []; deploy: [] }>()
+defineEmits<{ click: []; chat: []; edit: []; preview: []; deploy: []; delete: [] }>()
 
+const STATUS_COVER_MARKERS = {
+  generated: 'defaultAppCover.jpg',
+  failed: 'createFailed.png',
+  cancelled: 'userCancel.png',
+  restricted: 'noPermission.png',
+}
+
+const isRealScreenshotCover = (cover: string) => cover.includes('/screenshots/')
+
+const resolveCoverImage = (cover?: string) => {
+  if (cover) {
+    if (cover.includes(STATUS_COVER_MARKERS.failed)) return coverFailed
+    if (cover.includes(STATUS_COVER_MARKERS.cancelled)) return coverCancelled
+    if (cover.includes(STATUS_COVER_MARKERS.restricted)) return coverRestricted
+    if (isRealScreenshotCover(cover)) return cover
+    if (cover.includes(STATUS_COVER_MARKERS.generated)) {
+      return props.app.deployedTime ? coverDeployed : coverGenerated
+    }
+    return cover
+  }
+
+  if (props.app.deployedTime) return coverDeployed
+  if (props.app.deployKey) return coverGenerated
+  return coverCreated
+}
+
+const coverImage = ref(resolveCoverImage(props.app.cover))
+
+watch(() => [props.app.cover, props.app.deployedTime, props.app.deployKey], () => {
+  coverImage.value = resolveCoverImage(props.app.cover)
+})
+
+const handleCoverError = () => {
+  coverImage.value = props.app.deployedTime ? coverDeployed : defaultCover
+}
+
+const codeGenTypeLabel = computed(() => {
+  const labels: Record<string, string> = { html: 'HTML', multi_file: '多文件', vue_project: 'Vue', fullstack: '全栈' }
+  return labels[props.app.codeGenType || ''] || props.app.codeGenType
+})
 const statusLabel = computed(() => props.app.deployedTime ? '已上线' : props.app.deployKey ? '可部署' : '草稿')
 const statusClass = computed(() => props.app.deployedTime ? 'online' : props.app.deployKey ? 'ready' : 'draft')
 const nextStep = computed(() => props.app.deployedTime ? '查看线上效果或继续迭代' : props.app.deployKey ? '部署并确认访问地址' : '继续对话完善需求')
@@ -98,6 +154,21 @@ const timeAgo = computed(() => {
   background: color-mix(in srgb, var(--bg-card) 86%, var(--c-primary-50));
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
+}
+
+.cover-wrap {
+  height: 132px;
+  border-radius: calc(var(--r-lg) - 4px);
+  overflow: hidden;
+  background: var(--bg-soft);
+  border: 1px solid var(--border-light);
+}
+
+.cover-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .card-head {

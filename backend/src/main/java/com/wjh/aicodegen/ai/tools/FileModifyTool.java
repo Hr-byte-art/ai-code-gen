@@ -30,8 +30,7 @@ public class FileModifyTool extends BaseTool {
                              @ToolMemoryId Long appId) {
         try {
             Path path = Paths.get(relativeFilePath);
-            String projectDirName = "vue_project_" + appId;
-            Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
+            Path projectRoot = resolveProjectRoot(appId);
             if (!path.isAbsolute()) {
                 path = projectRoot.resolve(relativeFilePath);
             }
@@ -73,8 +72,6 @@ public class FileModifyTool extends BaseTool {
     @Override
     public String generateToolExecutedResult(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        String oldContent = arguments.getStr("oldContent");
-        String newContent = arguments.getStr("newContent");
-        return String.format("【工具调用】%s : %s, 旧内容: %s, 新内容: %s", getToolName(), relativeFilePath, oldContent, newContent);
+        return String.format("✅ %s → `%s`", getDisplayName(), relativeFilePath);
     }
 }

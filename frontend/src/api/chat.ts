@@ -9,7 +9,7 @@ import type {
 // ==================== 对话历史接口 ====================
 
 // 分页查询某个应用的对话历史（游标查询）
-export function getChatHistory(appId: number, params?: {
+export function getChatHistory(appId: string, params?: {
   pageSize?: number
   lastCreateTime?: string
 }) {

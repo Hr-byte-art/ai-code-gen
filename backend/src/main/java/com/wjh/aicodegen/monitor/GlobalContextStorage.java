@@ -27,7 +27,7 @@ public class GlobalContextStorage {
 
     /**
      * 存储上下文到全局存储
-     * 
+     *
      * @param context 监控上下文
      */
     public static void storeContext(MonitorContext context) {
@@ -36,6 +36,8 @@ public class GlobalContextStorage {
             LATEST_CONTEXT.set(context);
             log.debug("存储上下文到全局存储: userId={}, appId={}, aiCallPurpose={}",
                     context.getUserId(), context.getAppId(), context.getAiCallPurpose());
+            // 安全网：防止内存泄漏
+            evictIfOverCapacity(100);
         }
     }
 
@@ -63,7 +65,7 @@ public class GlobalContextStorage {
 
     /**
      * 清理指定AppId的上下文
-     * 
+     *
      * @param appId 应用ID
      */
     public static void removeContext(String appId) {
@@ -72,6 +74,10 @@ public class GlobalContextStorage {
             if (removed != null) {
                 log.debug("清理全局上下文: appId={}", appId);
             }
+        }
+        // 如果没有其他上下文，也清理 LATEST_CONTEXT
+        if (APP_CONTEXTS.isEmpty()) {
+            LATEST_CONTEXT.set(null);
         }
     }
 
@@ -82,6 +88,24 @@ public class GlobalContextStorage {
         APP_CONTEXTS.clear();
         LATEST_CONTEXT.set(null);
         log.debug("清理所有全局上下文");
+    }
+
+    /**
+     * 安全网：限制最大上下文数量，防止内存泄漏
+     * 当上下文数量超过限制时，清理最早的条目
+     */
+    public static void evictIfOverCapacity(int maxCapacity) {
+        if (APP_CONTEXTS.size() > maxCapacity) {
+            log.warn("全局上下文数量超过限制: size={}, max={}, 执行清理", APP_CONTEXTS.size(), maxCapacity);
+            // 简单策略：清理一半
+            int toRemove = APP_CONTEXTS.size() / 2;
+            var iterator = APP_CONTEXTS.keySet().iterator();
+            while (iterator.hasNext() && toRemove > 0) {
+                iterator.next();
+                iterator.remove();
+                toRemove--;
+            }
+        }
     }
 
     /**

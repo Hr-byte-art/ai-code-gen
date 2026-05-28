@@ -42,3 +42,8 @@ management:
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.wjh.aicodegen.observability.model
+langchain4j:
+  open-ai:
+    chat-model:
+      log-requests: false
+      log-responses: false

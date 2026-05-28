@@ -1,6 +1,6 @@
 <template>
   <div class="auth-page">
-    <div class="auth-left">
+    <div class="auth-left" :style="{ '--auth-bg-image': `url(${authBg})` }">
       <div class="auth-left-content">
         <div class="auth-brand">
           <img src="@/assets/logo.svg" alt="Logo" class="brand-logo" />
@@ -62,6 +62,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, LockOutlined, RocketOutlined, ThunderboltOutlined, BgColorsOutlined } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
+import authBg from '@/assets/auth-bg.webp'
 
 const router = useRouter()
 const route = useRoute()
@@ -89,7 +90,9 @@ const handleForgotPassword = () => message.info('请联系管理员重置密码'
 
 .auth-left {
   flex: 1;
-  background: #0f172a;
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(22, 32, 46, 0.78)),
+    var(--auth-bg-image) center / cover no-repeat;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -103,8 +106,8 @@ const handleForgotPassword = () => message.info('请联系管理员重置密码'
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 30% 70%, rgba(37, 99, 235, 0.15), transparent 50%),
-    radial-gradient(circle at 70% 30%, rgba(6, 182, 212, 0.1), transparent 50%);
+    radial-gradient(circle at 30% 70%, rgba(78, 116, 96, 0.18), transparent 52%),
+    radial-gradient(circle at 70% 30%, rgba(201, 166, 107, 0.12), transparent 48%);
 }
 
 .auth-left-content {

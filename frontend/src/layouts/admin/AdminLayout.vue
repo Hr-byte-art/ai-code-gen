@@ -19,6 +19,9 @@
           <router-link to="/admin/chatManage" :class="['admin-nav-link', { active: route.path === '/admin/chatManage' }]">
             {{ $t('sidebar.chatManage') }}
           </router-link>
+          <router-link to="/admin/skillManage" :class="['admin-nav-link', { active: route.path === '/admin/skillManage' }]">
+            技能管理
+          </router-link>
         </nav>
         <div class="admin-header-right">
           <ThemeToggle />

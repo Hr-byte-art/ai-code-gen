@@ -5,6 +5,7 @@ import com.wjh.aicodegen.common.BaseResponse;
 import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.constant.UserConstant;
 import com.wjh.aicodegen.exception.ErrorCode;
+import com.wjh.aicodegen.model.dto.token.GenerationStatsDTO;
 import com.wjh.aicodegen.model.dto.token.ModelTokenRankingDTO;
 import com.wjh.aicodegen.model.dto.token.ModelTokenSummaryDTO;
 import com.wjh.aicodegen.model.dto.token.SystemTokenSummaryDTO;
@@ -43,6 +44,22 @@ public class TokenStatisticsController {
 
     @Resource
     private UserService userService;
+
+    /**
+     * 获取当前用户的生成历史统计
+     */
+    @GetMapping("/user/generation-stats")
+    @Operation(summary = "获取用户生成历史统计", description = "查看当前用户的生成次数、Token消耗、应用类型分布等")
+    public BaseResponse<GenerationStatsDTO> getUserGenerationStats(HttpServletRequest request) {
+        try {
+            User loginUser = userService.getLoginUser(request);
+            GenerationStatsDTO stats = tokenUsageService.getUserGenerationStats(loginUser.getId());
+            return ResultUtils.success(stats);
+        } catch (Exception e) {
+            log.error("获取用户生成统计失败: {}", e.getMessage(), e);
+            return new BaseResponse<>(ErrorCode.SYSTEM_ERROR.getCode(), null, "获取生成统计失败");
+        }
+    }
 
     /**
      * 获取当前用户的Token消耗汇总

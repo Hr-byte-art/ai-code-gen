@@ -30,8 +30,7 @@ public class FileReadTool extends BaseTool {
     ) {
         try {
             Path path = Paths.get(relativeFilePath);
-            String projectDirName = "vue_project_" + appId;
-            Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
+            Path projectRoot = resolveProjectRoot(appId);
             if (!path.isAbsolute()) {
                 path = projectRoot.resolve(relativeFilePath);
             }
@@ -63,6 +62,6 @@ public class FileReadTool extends BaseTool {
     @Override
     public String generateToolExecutedResult(JSONObject arguments) {
         String relativeFilePath = arguments.getStr("relativeFilePath");
-        return String.format("【工具调用】%s : %s", getToolName(), relativeFilePath);
+        return String.format("✅ %s → `%s`", getDisplayName(), relativeFilePath);
     }
 }

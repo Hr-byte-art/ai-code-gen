@@ -5,26 +5,31 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.wjh.aicodegen.ai.guardrail.PromptSafetyInputGuardrailSpecifyContentAiDetection;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import com.wjh.aicodegen.ai.tools.*;
-import com.wjh.aicodegen.exception.BusinessException;
-import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.manager.SpringContextUtil;
-import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
+import com.wjh.aicodegen.model.entity.CodeSkill;
+import com.wjh.aicodegen.monitor.GlobalContextStorage;
 import com.wjh.aicodegen.monitor.MonitorContext;
 import com.wjh.aicodegen.monitor.MonitorContextHolder;
 import com.wjh.aicodegen.service.ChatHistoryService;
-import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
+import dev.langchain4j.store.memory.chat.ChatMemoryStore;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
+ * AI 代码生成服务工厂
+ * 根据 CodeSkill 动态构建 AI 服务实例（模型、工具、system prompt）
+ *
  * @author 王哈哈
  */
 @Configuration
@@ -35,7 +40,7 @@ public class AiCodeGeneratorServiceFactory {
     private ChatModel chatModel;
 
     @Resource
-    private RedisChatMemoryStore redisChatMemoryStore;
+    private ChatMemoryStore redisChatMemoryStore;
 
     @Resource
     private ChatHistoryService chatHistoryService;
@@ -43,16 +48,6 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private ToolManager toolManager;
 
-    @Resource
-    private AiImageSearchTool aiImageSearchTool;
-
-    /**
-     * AI 服务实例缓存
-     * 缓存策略：
-     * - 最大缓存 1000 个实例
-     * - 写入后 30 分钟过期
-     * - 访问后 10 分钟过期
-     */
     private final Cache<String, AiCodeGeneratorService> serviceCache = Caffeine.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(Duration.ofMinutes(30))
@@ -63,117 +58,141 @@ public class AiCodeGeneratorServiceFactory {
             .build();
 
     /**
-     * 根据 appId 获取服务（带缓存）这个方法是为了兼容历史逻辑
+     * 根据 appId 和 CodeSkill 获取服务（带缓存）
      */
-    public AiCodeGeneratorService getAiCodeGeneratorService(long appId) {
-        return getAiCodeGeneratorService(appId, CodeGenTypeEnum.HTML);
+    public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeSkill skill) {
+        String cacheKey = appId + "_" + skill.getSkillKey();
+        ensureMonitorContext(appId);
+        return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, skill));
     }
 
     /**
-     * 根据 appId 和代码生成类型获取服务（带缓存）
+     * 根据 CodeSkill 动态创建 AI 服务实例
      */
-    public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType) {
-        String cacheKey = buildCacheKey(appId, codeGenType);
-
-        // 在获取AI服务前，确保当前线程有正确的MonitorContext
-        ensureMonitorContext(appId, codeGenType);
-
-        // 返回实例，如果没有就返回createAiCodeGeneratorService方法创建的新的实例
-        return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, codeGenType));
-    }
-
-    /**
-     * 构建缓存键
-     */
-    private String buildCacheKey(long appId, CodeGenTypeEnum codeGenType) {
-        return appId + "_" + codeGenType.getValue();
-    }
-
-    /**
-     * 创建新的 AI 服务实例
-     */
-    private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeGenTypeEnum codeGenType) {
-        // 根据 appId 构建独立的对话记忆
+    private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeSkill skill) {
+        // 构建对话记忆
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
                 .builder()
                 .id(appId)
                 .chatMemoryStore(redisChatMemoryStore)
                 .maxMessages(20)
                 .build();
-        // 从数据库加载历史对话到记忆中
         chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 4);
-        // 根据代码生成类型选择不同的模型配置
-        return switch (codeGenType) {
-            case VUE_PROJECT -> {
-                // 使用多例模式的 StreamingChatModel 解决并发问题
-                StreamingChatModel reasoningStreamingChatModel = SpringContextUtil
-                        .getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
-                yield AiServices.builder(AiCodeGeneratorService.class)
-                        .streamingChatModel(reasoningStreamingChatModel)
-                        .chatMemoryProvider(memoryId -> chatMemory)
-                        .tools((Object[]) toolManager.getAllTools())
-                        // 添加输入护轨
-                        .inputGuardrails(
-                                SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class))
-                        // .inputGuardrails(new PromptSafetyInputGuardrail())
-                        .hallucinatedToolNameStrategy(toolExecutionRequest -> ToolExecutionResultMessage.from(
-                                toolExecutionRequest, "Error: there is no tool called " + toolExecutionRequest.name()))
-                        .build();
-            }
-            case HTML, MULTI_FILE -> {
-                // 使用多例模式的 StreamingChatModel 解决并发问题
-                StreamingChatModel openAiStreamingChatModel = SpringContextUtil.getBean("streamingChatModelPrototype",
-                        StreamingChatModel.class);
-                yield AiServices.builder(AiCodeGeneratorService.class)
-                        .chatModel(chatModel)
-                        .streamingChatModel(openAiStreamingChatModel)
-                        .chatMemory(chatMemory)
-                        .tools(aiImageSearchTool)
-                        .inputGuardrails(
-                                SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class))
-                        .build();
-            }
-            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR,
-                    "不支持的代码生成类型: " + codeGenType.getValue());
-        };
 
+        // 解析工具列表
+        Object[] tools = resolveTools(skill.getToolNames());
+
+        // 根据 model_strategy 选择模型
+        boolean useReasoning = "reasoning".equals(skill.getModelStrategy());
+
+        // 构建 AI Service
+        AiServices<AiCodeGeneratorService> builder = AiServices.builder(AiCodeGeneratorService.class);
+
+        if (useReasoning) {
+            StreamingChatModel reasoningModel = SpringContextUtil
+                    .getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
+            builder.streamingChatModel(reasoningModel)
+                    .chatMemoryProvider(memoryId -> chatMemory);
+        } else {
+            StreamingChatModel standardModel = SpringContextUtil
+                    .getBean("streamingChatModelPrototype", StreamingChatModel.class);
+            builder.chatModel(chatModel)
+                    .streamingChatModel(standardModel)
+                    .chatMemoryProvider(memoryId -> chatMemory);
+        }
+
+        // 动态注入 system prompt
+        builder.systemMessage(skill.getSystemPrompt());
+
+        // 注入工具
+        if (tools.length > 0) {
+            builder.tools(tools);
+        }
+
+        // 工具调用轮次上限（防止 AI 陷入无限循环）
+        builder.maxToolCallingRoundTrips(200);
+
+        // 输入护轨
+        builder.inputGuardrails(
+                SpringContextUtil.getBean(PromptSafetyInputGuardrailSpecifyContentAiDetection.class));
+
+        // 工具名幻觉处理
+        builder.hallucinatedToolNameStrategy(toolExecutionRequest ->
+                ToolExecutionResultMessage.from(toolExecutionRequest,
+                        "Error: there is no tool called " + toolExecutionRequest.name()));
+
+        AiCodeGeneratorService service = builder.build();
+        log.info("创建 AI 服务: skill={}, appId={}, model={}, tools={}",
+                skill.getSkillKey(), appId, useReasoning ? "reasoning" : "standard",
+                skill.getToolNames() != null ? skill.getToolNames() : "all");
+        return service;
     }
 
     /**
-     * 确保当前线程有正确的MonitorContext
-     * 这是为了解决线程切换导致的上下文丢失问题
+     * 解析工具名称列表，返回对应的工具实例
+     * null 或空表示使用代码生成默认工具集
      */
-    private void ensureMonitorContext(long appId, CodeGenTypeEnum codeGenType) {
-        MonitorContext existingContext = MonitorContextHolder.getContext();
+    private static final Set<String> DEFAULT_CODE_GENERATION_TOOLS = Set.of(
+            "readDir",
+            "readFile",
+            "writeFile",
+            "modifyFile",
+            "deleteFile",
+            "webSearch",
+            "webFetch",
+            "exit"
+    );
 
+    private Object[] resolveTools(String toolNames) {
+        // 始终包含默认代码生成工具
+        Set<String> allToolNames = new HashSet<>(DEFAULT_CODE_GENERATION_TOOLS);
+
+        // 追加自定义工具
+        if (toolNames != null && !toolNames.isBlank()) {
+            for (String name : toolNames.split(",")) {
+                String trimmed = name.trim();
+                if (!trimmed.isBlank()) {
+                    allToolNames.add(trimmed);
+                }
+            }
+        }
+
+        return allToolNames.stream()
+                .map(name -> {
+                    BaseTool tool = toolManager.getTool(name);
+                    if (tool == null) {
+                        log.warn("工具不存在: {}", name);
+                    }
+                    return tool;
+                })
+                .filter(t -> t != null)
+                .toArray();
+    }
+
+    private void ensureMonitorContext(long appId) {
+        MonitorContext existingContext = MonitorContextHolder.getContext();
         if (existingContext != null &&
                 !existingContext.getUserId().equals("unknown") &&
                 !existingContext.getAppId().equals("unknown")) {
-            // 已有有效的上下文，确保aiCallPurpose是最新的
             if (!"CODE_GENERATION".equals(existingContext.getAiCallPurpose())) {
                 existingContext.setAiCallPurpose("CODE_GENERATION");
                 MonitorContextHolder.setContext(existingContext);
-                log.debug("更新MonitorContext的aiCallPurpose: appId={}, aiCallPurpose=CODE_GENERATION", appId);
             }
+            // 存入全局存储，确保跨线程可访问
+            GlobalContextStorage.storeContext(existingContext);
             return;
         }
-
-        // 尝试通过appId重建上下文
         try {
-            // 这里可以从数据库查询App信息来重建上下文
-            // 但为了避免循环依赖，我们使用一个简化的默认上下文
             MonitorContext newContext = MonitorContext.builder()
                     .appId(String.valueOf(appId))
-                    .userId("system") // 使用system作为兜底，避免unknown
-                    .aiCallPurpose("CODE_GENERATION") // 设置AI调用用途
+                    .userId("system")
+                    .aiCallPurpose("CODE_GENERATION")
                     .build();
-
             MonitorContextHolder.setContext(newContext);
-            log.warn("AI服务工厂重建MonitorContext: appId={}, aiCallPurpose=CODE_GENERATION, 请检查上下文传递", appId);
-
+            // 存入全局存储，确保跨线程可访问
+            GlobalContextStorage.storeContext(newContext);
         } catch (Exception e) {
             log.error("重建MonitorContext失败: appId={}, error={}", appId, e.getMessage());
         }
     }
-
 }

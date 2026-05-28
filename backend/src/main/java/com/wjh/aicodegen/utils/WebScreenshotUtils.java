@@ -19,6 +19,8 @@ import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 
 /**
@@ -28,24 +30,48 @@ import java.time.Duration;
 
 public class WebScreenshotUtils {
 
-    private static final WebDriver WEB_DRIVER;
-    private static final String CHROMEDRIVER_LOCAL_PATH = "src/main/resources/chromedriver-win64/chromedriver.exe";
+    private static WebDriver webDriver;
+    private static final int DEFAULT_WIDTH = 1600;
+    private static final int DEFAULT_HEIGHT = 900;
+    private static final String[] CHROMEDRIVER_LOCAL_PATHS = {
+            "src/main/resources/chromedriver-win64/chromedriver.exe",
+            "backend/src/main/resources/chromedriver-win64/chromedriver.exe",
+            "chromedriver-win64/chromedriver.exe"
+    };
 //    public static final String CHROMEDRIVER_LOCAL_PATH = "/www/wwwroot/ai-code-gen/ai-code-gen/chromedriver-linux64/chromedriver";
-
-    static {
-        final int DEFAULT_WIDTH = 1600;
-        final int DEFAULT_HEIGHT = 900;
-//        System.setProperty("wdm.timeout", "300");
-//        System.setProperty("wdm.retryCount", "3");
-//        // 设置国内镜像
-//        System.setProperty("wdm.chromeDownloadUrl", "https://npmmirror.com/mirrors/chromedriver/");
-       System.setProperty("webdriver.chrome.driver", CHROMEDRIVER_LOCAL_PATH);
-        WEB_DRIVER = initChromeDriver(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-    }
 
     @PreDestroy
     public void destroy() {
-        WEB_DRIVER.quit();
+        if (webDriver != null) {
+            webDriver.quit();
+        }
+    }
+
+    private static synchronized WebDriver getWebDriver() {
+        if (webDriver == null) {
+            configureChromeDriver();
+            webDriver = initChromeDriver(DEFAULT_WIDTH, DEFAULT_HEIGHT);
+        }
+        return webDriver;
+    }
+
+    private static void configureChromeDriver() {
+        try {
+            WebDriverManager.chromedriver().setup();
+            log.info("使用 WebDriverManager 自动匹配 ChromeDriver");
+            return;
+        } catch (Exception e) {
+            log.warn("WebDriverManager 自动配置 ChromeDriver 失败，尝试使用本地驱动: {}", e.getMessage());
+        }
+        for (String localPath : CHROMEDRIVER_LOCAL_PATHS) {
+            Path driverPath = Path.of(localPath).toAbsolutePath().normalize();
+            if (Files.exists(driverPath)) {
+                System.setProperty("webdriver.chrome.driver", driverPath.toString());
+                log.info("使用本地 ChromeDriver: {}", driverPath);
+                return;
+            }
+        }
+        log.warn("未找到可用 ChromeDriver，本次截图将失败但不影响部署主流程");
     }
 
     /**
@@ -53,8 +79,6 @@ public class WebScreenshotUtils {
      */
     private static WebDriver initChromeDriver(int width, int height) {
         try {
-//            WebDriverManager.chromedriver().setup();
-
             // 配置 Chrome 选项
             ChromeOptions options = new ChromeOptions();
             // 无头模式
@@ -154,12 +178,13 @@ public class WebScreenshotUtils {
             final String IMAGE_SUFFIX = ".png";
             // 原始截图文件路径
             String imageSavePath = rootPath + File.separator + RandomUtil.randomNumbers(5) + IMAGE_SUFFIX;
+            WebDriver driver = getWebDriver();
             // 访问网页
-            WEB_DRIVER.get(webUrl);
+            driver.get(webUrl);
             // 等待页面加载完成
-            waitForPageLoad(WEB_DRIVER);
+            waitForPageLoad(driver);
             // 截图
-            byte[] screenshotBytes = ((TakesScreenshot) WEB_DRIVER).getScreenshotAs(OutputType.BYTES);
+            byte[] screenshotBytes = ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
             // 保存原始图片
             saveImage(screenshotBytes, imageSavePath);
             log.info("原始截图保存成功: {}", imageSavePath);

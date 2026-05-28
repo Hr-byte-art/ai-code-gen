@@ -1,6 +1,7 @@
 package com.wjh.aicodegen.service;
 
 import com.mybatisflex.core.service.IService;
+import com.wjh.aicodegen.model.dto.token.GenerationStatsDTO;
 import com.wjh.aicodegen.model.dto.token.ModelTokenRankingDTO;
 import com.wjh.aicodegen.model.dto.token.ModelTokenSummaryDTO;
 import com.wjh.aicodegen.model.dto.token.SystemTokenSummaryDTO;
@@ -113,5 +114,13 @@ public interface TokenUsageService extends IService<TokenUsage> {
      * @return 模型Token消耗统计列表
      */
     List<ModelTokenSummaryDTO> getAllModelTokenSummaries(LocalDateTime startTime, LocalDateTime endTime);
+
+    /**
+     * 获取用户生成历史统计
+     *
+     * @param userId 用户ID
+     * @return 生成历史统计
+     */
+    GenerationStatsDTO getUserGenerationStats(Long userId);
 
 }

@@ -18,13 +18,17 @@ import com.wjh.aicodegen.core.builder.VueProjectBuilder;
 import com.wjh.aicodegen.core.handler.StreamHandlerExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
+import com.wjh.aicodegen.manager.BuildEventSinkManager;
 import com.wjh.aicodegen.manager.CosManager;
+import com.wjh.aicodegen.manager.GenerationStreamManager;
 
 import com.wjh.aicodegen.manager.TaskCancellationManager;
 import com.wjh.aicodegen.mapper.AppMapper;
 import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
 import com.wjh.aicodegen.model.entity.App;
+import com.wjh.aicodegen.model.entity.CodeSkill;
+import com.wjh.aicodegen.model.entity.CodeTemplate;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
@@ -48,6 +52,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
@@ -56,6 +61,8 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -82,6 +89,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Value("${code.deploy-path:code_deploy}")
     private String deployPath;
 
+    /**
+     * 路由决策缓存：prompt hash -> CodeGenType
+     */
+    private final ConcurrentHashMap<String, CodeGenTypeEnum> routeCache = new ConcurrentHashMap<>();
+
     @Resource
     private UserService userService;
 
@@ -95,6 +107,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private ChatHistoryService chatHistoryService;
 
     @Resource
+    private AppSchemaRecordService appSchemaRecordService;
+
+    @Resource
+    private CodeSkillService codeSkillService;
+
+    @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
 
     @Resource
@@ -102,6 +120,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private TaskCancellationManager taskCancellationManager;
+
+    @Resource
+    private BuildEventSinkManager buildEventSinkManager;
+
+    @Resource
+    private GenerationStreamManager generationStreamManager;
 
     @Resource
     private AiGenerateAppNameServiceFactory AiGenerateAppNameServiceFactory;
@@ -125,6 +149,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private ModifyPointsUtils modifyPointsUtils;
+
+    @Resource
+    private UserQuotaService userQuotaService;
+
+    @Resource
+    private CodeTemplateService codeTemplateService;
 
     @Override
     public AppVO getAppVO(App app) {
@@ -201,23 +231,31 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!app.getUserId().equals(loginUser.getId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
         }
-        // 4. 获取应用的代码生成类型(普通用户可创建简单应用，VUE 项目只有VIP或ADMIN才可以创建)
-        String codeGenTypeStr = app.getCodeGenType();
-        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
-        if (codeGenTypeEnum == null) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
+        // 4. 如果同一应用已有生成任务，只订阅现有运行流，避免重复扣积分和重复写入用户消息
+        if (generationStreamManager.hasActiveSession(appId)) {
+            log.info("应用 {} 已存在运行中的生成流，本次请求直接订阅", appId);
+            return generationStreamManager.subscribe(appId);
         }
-        Integer requiredPoints = getRequiredPointsByCodeGenType(codeGenTypeEnum);
-        // VUE 项目 需要VIP或ADMIN权限
-        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
+        // 5. 获取应用的代码生成技能（带缓存）
+        String codeGenTypeStr = app.getCodeGenType();
+        CodeSkill skill = codeSkillService.getByCodeGenTypeCached(codeGenTypeStr);
+        if (skill == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenTypeStr);
+        }
+        Integer requiredPoints = skill.getPointCost();
+        // 工具增强模式（Vue/全栈）需要VIP或ADMIN权限
+        if (!"none".equals(skill.getBuildStrategy())) {
             if (!loginUser.getUserRole().equals(UserRoleEnum.VIP.getValue()) &&
                     !loginUser.getUserRole().equals(UserRoleEnum.ADMIN.getValue())) {
-                // 通过ApplicationContext获取代理对象，确保新事务生效
                 AppServiceImpl proxy = applicationContext.getBean(AppServiceImpl.class);
                 proxy.updateAppCoverInNewTransaction(appId,
                         "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/noPermission.png");
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
             }
+        }
+        // 检查用户配额（每日/每月生成次数和 Token 消耗）
+        if (!userQuotaService.checkQuota(loginUser.getId(), loginUser.getUserRole())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "已达到今日或本月使用上限，请升级 VIP 或等待额度刷新");
         }
         // 预扣减积分，避免校验与扣减之间的时间差导致的并发问题
         boolean preDeductSuccess = modifyPointsUtils.safeDeductPoints(loginUser.getId(), requiredPoints);
@@ -253,23 +291,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             updateById(app);
             log.info("为应用 {} 设置默认封面", appId);
         }
-        // 9. 调用 AI 生成代码（流式）- 在这里就开始注册任务管理
-        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenTypeEnum, appId)
-                // 在AI流的最开始就注册任务管理
-                .doOnSubscribe(subscription -> {
-                    // 注册任务到管理器 - 这是真正的AI生成流开始的地方
-                    taskCancellationManager.registerTask(appId, subscription);
-                    log.info("应用 {} 开始AI代码生成，任务已注册", appId);
-                })
+        // 9. 调用 AI 生成代码（流式）- 由后端后台订阅，不再绑定页面 SSE 连接生命周期
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, skill, appId)
                 .doOnCancel(() -> {
-                    // 修改3：改进任务取消时的积分处理逻辑
                     try {
-                        // AI任务取消时的处理 - 设置取消封面
                         String cancelCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/userCancel.png";
                         app.setCover(cancelCover);
                         updateById(app);
 
-                        // 任务取消时扣减额外惩罚积分
                         boolean penaltyDeductSuccess = modifyPointsUtils.safeDeductPoints(loginUser.getId(), 3);
                         if (penaltyDeductSuccess) {
                             log.warn("REACTOR收到取消信号：应用 {} AI生成流已被中断，已更新为取消状态，扣减用户{}惩罚积分3分", appId, loginUser.getId());
@@ -282,37 +311,32 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 })
                 .doOnError(error -> {
                     try {
-                        // AI任务出错时的处理 - 设置失败封面
                         String failedCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/createFailed.png";
                         app.setCover(failedCover);
                         updateById(app);
 
-                        // 任务失败时返还预扣减的积分
                         boolean refundSuccess = modifyPointsUtils.safeAddPoints(loginUser.getId(), requiredPoints);
                         if (refundSuccess) {
                             log.info("应用 {} AI生成失败，已返还用户 {} 积分 {} 分", appId, loginUser.getId(), requiredPoints);
                         } else {
-                            log.error("应用 {} AI生成失败，但返还积分失败，用户ID: {}, 应返还积分: {}", appId, loginUser.getId(),
-                                    requiredPoints);
+                            log.error("应用 {} AI生成失败，但返还积分失败，用户ID: {}, 应返还积分: {}", appId, loginUser.getId(), requiredPoints);
                         }
 
                         log.error("应用 {} AI生成失败，已更新为失败状态: {}", appId, error.getMessage());
                     } catch (Exception e) {
-                        log.error("处理AI生成失败时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(),
-                                e);
+                        log.error("处理AI生成失败时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
                     }
                 })
-                // 将监控上下文传递到Reactor流中
                 .contextWrite(context -> MonitorContextHolder.putContextToReactor(context, monitorContext));
 
-        // 10. 收集 AI 响应内容并在完成后记录到对话历史
-        Flux<String> managedStream = streamHandlerExecutor
-                .doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenTypeEnum)
+        // 10. 收集 AI 响应内容并在完成后记录到对话历史。后台订阅独立于页面连接。
+        generationStreamManager.start(appId);
+        Disposable generationTask = streamHandlerExecutor
+                .doExecute(codeStream, chatHistoryService, appId, loginUser, skill.getBuildStrategy())
+                .doOnNext(chunk -> generationStreamManager.emit(appId, chunk))
                 .doOnComplete(() -> {
                     try {
-                        // 代码生成完成，积分已在开始时预扣减，无需再次扣减
                         log.info("用户 {} 代码生成完成，已预扣减{}个积分", loginUser.getId(), requiredPoints);
-                        // 任务完成 -设置默认封面
                         String successCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/defaultAppCover.jpg";
                         app.setCover(successCover);
                         updateById(app);
@@ -320,20 +344,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                     } catch (Exception e) {
                         log.error("处理任务完成时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
                     }
-                }).doFinally(signalType -> {
-                    // 🔥 【修复】流结束时完整清理所有上下文（无论成功/失败/取消）
+                    generationStreamManager.complete(appId);
+                })
+                .doOnError(error -> generationStreamManager.error(appId, "AI回复失败: " + error.getMessage()))
+                .doFinally(signalType -> {
                     taskCancellationManager.unregisterTask(appId);
-
-                    // 清理ThreadLocal上下文
                     MonitorContextHolder.clearContext();
-
-                    // 清理GlobalContextStorage中的上下文
                     GlobalContextStorage.removeContext(appId.toString());
-
                     log.debug("🧹 应用 {} 任务资源和上下文已完整清理，结束信号: {}", appId, signalType);
-                });
+                })
+                .subscribe();
+        taskCancellationManager.registerTask(appId, generationTask);
+        log.info("应用 {} 后台AI代码生成任务已启动", appId);
 
-        return managedStream;
+        return generationStreamManager.subscribe(appId);
 
     }
 
@@ -344,15 +368,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             app.setCover(coverUrl);
             this.updateById(app);
         }
-    }
-
-    private Integer getRequiredPointsByCodeGenType(CodeGenTypeEnum codeGenTypeEnum) {
-        return switch (codeGenTypeEnum) {
-            case HTML -> 5;
-            case MULTI_FILE -> 8;
-            case VUE_PROJECT -> 15;
-            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenTypeEnum);
-        };
     }
 
     @Override
@@ -392,11 +407,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             try {
                 chatHistoryService.addChatMessage(appId, "任务已被用户取消",
                         ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                generationStreamManager.error(appId, "任务已被用户取消");
             } catch (Exception e) {
                 // 记录失败不影响取消操作
                 log.warn("记录任务取消到对话历史失败: {}", e.getMessage());
             }
         } else {
+            generationStreamManager.error(appId, "任务已被用户取消");
             log.info("用户请求取消：应用 {} 无活跃任务，已设置取消状态", appId);
         }
 
@@ -425,29 +442,75 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String codeGenType = app.getCodeGenType();
         String sourceDirName = codeGenType + "_" + appId;
         String sourceDirPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + sourceDirName;
-        // 6. 检查源目录是否存在
         File sourceDir = new File(sourceDirPath);
+        CodeSkill skill = codeSkillService.getByCodeGenTypeCached(codeGenType);
+        String buildStrategy = skill != null ? skill.getBuildStrategy() : "none";
+        if ("fullstack".equals(buildStrategy)) {
+            sourceDir = resolveFullstackProjectDir(appId, sourceDir);
+            sourceDirPath = sourceDir.getAbsolutePath();
+        }
+        // 6. 检查源目录是否存在
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "应用代码不存在，请先生成代码");
         }
-        // 7. Vue 项目的特殊处理 ：执行构建操作
-        CodeGenTypeEnum codeGenTypeEnum = CodeGenTypeEnum.getEnumByValue(codeGenType);
-        if (codeGenTypeEnum == CodeGenTypeEnum.VUE_PROJECT) {
-            // 构建项目
+        // 7. 项目构建
+        if ("vue".equals(buildStrategy)) {
             boolean result = vueProjectBuilder.buildProject(sourceDirPath);
             ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "构建项目失败,请重新尝试构建");
-            // 检查 Dist 目录是否存在
             File distDir = new File(sourceDir, "dist");
             ThrowUtils.throwIf(!distDir.exists(), ErrorCode.SYSTEM_ERROR, "Vue项目构建成功，但是未成功创建 dist 目录");
-            // 构建完成后，将构建项目的 dist 目录复制到部署目录
             sourceDir = distDir;
+        } else if ("fullstack".equals(buildStrategy)) {
+            // 重新构建前端（迭代后 dist 可能是旧的）
+            File frontendDir = new File(sourceDir, "frontend");
+            File frontendDistDir = new File(frontendDir, "dist");
+            if (frontendDir.exists()) {
+                log.info("重新构建全栈项目前端...");
+                boolean buildResult = vueProjectBuilder.buildProject(frontendDir.getAbsolutePath());
+                if (buildResult && frontendDistDir.exists()) {
+                    sourceDir = frontendDistDir;
+                } else {
+                    log.warn("前端构建失败，尝试使用 server 目录");
+                    File serverDir = new File(sourceDir, "server");
+                    if (serverDir.exists()) sourceDir = serverDir;
+                }
+            }
         }
-        // 8. 复制文件到部署目录
+        // 8. 复制文件到部署目录（先清空再复制，避免旧文件残留）
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
+        File deployDir = new File(deployDirPath);
         try {
-            FileUtil.copyContent(sourceDir, new File(deployDirPath), true);
+            if (deployDir.exists()) {
+                FileUtil.del(deployDir);
+            }
+            FileUtil.copyContent(sourceDir, deployDir, true);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "部署失败：" + e.getMessage());
+        }
+        // 8.1 如果没有 index.html，尝试将唯一的 HTML 文件重命名为 index.html
+        if (!new File(deployDir, "index.html").exists()) {
+            File[] htmlFiles = deployDir.listFiles((dir, name) -> name.endsWith(".html"));
+            if (htmlFiles != null && htmlFiles.length == 1) {
+                File indexFile = new File(deployDir, "index.html");
+                htmlFiles[0].renameTo(indexFile);
+                log.info("将 {} 重命名为 index.html", htmlFiles[0].getName());
+            }
+        }
+        // 8.2 修复 index.html 中的资源路径（绝对路径 → 相对路径）
+        File indexHtml = new File(deployDir, "index.html");
+        if (indexHtml.exists()) {
+            try {
+                String content = FileUtil.readUtf8String(indexHtml);
+                // 将 src="/assets/ 和 href="/assets/ 替换为相对路径
+                content = content.replace("src=\"/assets/", "src=\"./assets/")
+                                 .replace("href=\"/assets/", "href=\"./assets/")
+                                 .replace("src=\"/", "src=\"./")
+                                 .replace("href=\"/", "href=\"./");
+                FileUtil.writeUtf8String(content, indexHtml);
+                log.info("已修复 index.html 中的资源路径");
+            } catch (Exception e) {
+                log.warn("修复 index.html 路径失败: {}", e.getMessage());
+            }
         }
         // 9. 更新应用的 deployKey 和部署时间
         App updateApp = new App();
@@ -457,10 +520,29 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         boolean updateResult = this.updateById(updateApp);
         ThrowUtils.throwIf(!updateResult, ErrorCode.OPERATION_ERROR, "更新应用部署信息失败");
         // 10. 构建应用访问 URL
-        String appDeployUrl = String.format("%s:%s/%s/%s/", deployHost, deployPort, deployPath, deployKey);
+        String appDeployUrl = String.format("%s:%s/%s/%s/index.html", deployHost, deployPort, deployPath, deployKey);
         // 11. 异步生成截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployUrl);
         return appDeployUrl;
+    }
+
+    private File resolveFullstackProjectDir(Long appId, File defaultDir) {
+        if (defaultDir.exists() && new File(defaultDir, "frontend").exists() && new File(defaultDir, "server").exists()) {
+            return defaultDir;
+        }
+        String[] possibleDirNames = {
+                "fullstack_" + appId,
+                "vue_project_" + appId,
+                "react_ts_" + appId,
+                "nextjs_" + appId
+        };
+        for (String dirName : possibleDirNames) {
+            File dir = new File(AppConstant.CODE_OUTPUT_ROOT_DIR, dirName);
+            if (dir.exists() && new File(dir, "frontend").exists() && new File(dir, "server").exists()) {
+                return dir;
+            }
+        }
+        return defaultDir;
     }
 
     /**
@@ -483,8 +565,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         try {
             chatHistoryService.deleteByAppId(appId);
         } catch (Exception e) {
-            // 记录日志但不阻止应用删除
             log.error("删除应用关联对话历史失败: {}", e.getMessage());
+        }
+        // 清理全栈应用创建的数据库表
+        try {
+            appSchemaRecordService.dropAndRemoveByAppId(appId);
+        } catch (Exception e) {
+            log.error("清理应用数据库表失败: {}", e.getMessage());
         }
         // 删除应用
         return super.removeById(id);
@@ -494,13 +581,23 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     public void generateAppScreenshotAsync(Long appId, String appUrl) {
         // 使用虚拟线程异步执行
         Thread.startVirtualThread(() -> {
-            // 调用截图服务生成截图并上传
-            String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
-            // 更新应用封面字段
-            App updateApp = this.getById(appId);
-            updateApp.setCover(screenshotUrl);
-            boolean updated = this.updateById(updateApp);
-            ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+            try {
+                String screenshotUrl = screenshotService.generateAndUploadScreenshot(appUrl);
+                if (StrUtil.isBlank(screenshotUrl)) {
+                    log.warn("应用 {} 截图生成失败，保留当前封面", appId);
+                    return;
+                }
+                App updateApp = this.getById(appId);
+                if (updateApp == null) {
+                    log.warn("应用 {} 不存在，跳过封面截图更新", appId);
+                    return;
+                }
+                updateApp.setCover(screenshotUrl);
+                boolean updated = this.updateById(updateApp);
+                ThrowUtils.throwIf(!updated, ErrorCode.OPERATION_ERROR, "更新应用封面字段失败");
+            } catch (Throwable e) {
+                log.warn("应用 {} 异步截图失败，不影响部署主流程: {}", appId, e.getMessage(), e);
+            }
         });
     }
 
@@ -530,6 +627,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Override
     public Long createApp(AppAddRequest appAddRequest, User loginUser, String initPrompt) {
+        // 如果提供了模板标识，将模板内容注入到 prompt 中
+        String templateKey = appAddRequest.getTemplateKey();
+        if (StrUtil.isNotBlank(templateKey)) {
+            CodeTemplate template = codeTemplateService.getByKey(templateKey);
+            if (template != null) {
+                initPrompt = "请基于以下模板进行定制化修改，保留模板的核心结构和设计，根据用户需求进行调整。\n\n"
+                        + "【模板参考】\n" + template.getTemplateContent() + "\n\n"
+                        + "【用户需求】\n" + initPrompt;
+                codeTemplateService.incrementUseCount(template.getId());
+                log.info("使用模板 {} 生成应用，模板ID: {}", templateKey, template.getId());
+            }
+        }
+
         // 构造入库对象
         App app = appConverter.toApp(appAddRequest);
         app.setUserId(loginUser.getId());
@@ -540,6 +650,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         String appName = StrUtil.sub(initPrompt, 0, Math.min(initPrompt.length(), 12));
         app.setAppName(appName);
+        app.setIsDelete(0);
 
         // 先插入数据库获取appId
         boolean result = this.save(app);
@@ -557,11 +668,27 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 存储到全局上下文，供工具调用时使用
         GlobalContextStorage.storeContext(monitorContext);
 
-        // 调用 Ai 决策使用类型 （多例模式）
-        AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory
-                .createAiCodeGenTypeRoutingService();
-        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
-        app.setCodeGenType(codeGenTypeEnum.getValue());
+        // 确定代码生成类型
+        String requestedCodeGenType = appAddRequest.getCodeGenType();
+        if (StrUtil.isNotBlank(requestedCodeGenType) && !"auto".equals(requestedCodeGenType)) {
+            // 用户指定了具体类型，直接使用
+            app.setCodeGenType(requestedCodeGenType);
+            log.info("用户指定代码生成类型: {}", requestedCodeGenType);
+        } else {
+            // 自动模式：调用 AI 路由决策
+            String promptHash = hashPrompt(initPrompt);
+            CodeGenTypeEnum codeGenTypeEnum = routeCache.get(promptHash);
+            if (codeGenTypeEnum != null) {
+                log.info("命中路由决策缓存: promptHash={}, type={}", promptHash, codeGenTypeEnum.getValue());
+            } else {
+                AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService = aiCodeGenTypeRoutingServiceFactory
+                        .createAiCodeGenTypeRoutingService();
+                codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+                routeCache.put(promptHash, codeGenTypeEnum);
+                log.info("路由决策已缓存: promptHash={}, type={}", promptHash, codeGenTypeEnum.getValue());
+            }
+            app.setCodeGenType(codeGenTypeEnum.getValue());
+        }
 
         // 更新数据库中的codeGenType
         this.updateById(app);
@@ -654,5 +781,51 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             buildStatus.put("message", "项目不存在");
         }
         return buildStatus;
+    }
+
+    @Override
+    public Flux<String> getBuildEventStream(Long appId) {
+        return buildEventSinkManager.getOrCreateSink(appId);
+    }
+
+    @Override
+    public boolean hasActiveGenerationStream(Long appId, User loginUser) {
+        validateGenerationStreamAccess(appId, loginUser);
+        return generationStreamManager.hasActiveSession(appId);
+    }
+
+    @Override
+    public Flux<String> getGenerationEventStream(Long appId, User loginUser) {
+        validateGenerationStreamAccess(appId, loginUser);
+        return generationStreamManager.subscribe(appId);
+    }
+
+    private void validateGenerationStreamAccess(Long appId, User loginUser) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+        }
+    }
+
+    /**
+     * 对 prompt 做 SHA-256 hash，用作缓存 key
+     */
+    private String hashPrompt(String prompt) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(prompt.getBytes());
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (NoSuchAlgorithmException e) {
+            return String.valueOf(prompt.hashCode());
+        }
     }
 }

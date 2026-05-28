@@ -37,12 +37,12 @@ export function getLoginUser() {
 // ==================== 用户信息接口 ====================
 
 // 根据id获取用户（管理员）
-export function getUserById(id: number) {
+export function getUserById(id: string) {
   return request.get<ApiResponse<any>>('/user/get', { params: { id } })
 }
 
 // 根据id获取用户包装类（已脱敏）
-export function getUserVOById(id: number) {
+export function getUserVOById(id: string) {
   return request.get<ApiResponse<UserVO>>('/user/get/vo', { params: { id } })
 }
 
@@ -99,6 +99,6 @@ export function createUser(data: {
 }
 
 // 删除用户（管理员）
-export function deleteUser(id: number) {
+export function deleteUser(id: string) {
   return request.post<ApiResponse<boolean>>('/user/delete', { id })
 }

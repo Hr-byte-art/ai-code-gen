@@ -25,7 +25,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public BaseResponse<?> businessExceptionHandler(BusinessException e) {
-        log.error("BusinessException", e);
+        // 业务异常属于预期行为（如数据不存在、参数错误等），使用 WARN 级别且不打印堆栈
+        log.warn("BusinessException: code={}, message={}", e.getCode(), e.getMessage());
         // 尝试处理 SSE 请求
         if (handleSseError(e.getCode(), e.getMessage())) {
             return null;

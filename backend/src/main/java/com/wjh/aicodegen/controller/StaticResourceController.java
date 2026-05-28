@@ -26,47 +26,104 @@ import java.nio.file.Files;
 @Tag(name = "静态资源接口")
 public class StaticResourceController {
 
-//    // 应用生成根目录（用于浏览）
-//    private static final String PREVIEW_ROOT_DIR = System.getProperty("user.dir") + "/tmp/code_output";
+    // 应用部署根目录
+    private static final String DEPLOY_ROOT_DIR = AppConstant.CODE_DEPLOY_ROOT_DIR;
 
-    // 应用生成根目录（用于浏览）
-    private static final String PREVIEW_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
+    // 应用生成根目录（用于预览）
+    private static final String OUTPUT_ROOT_DIR = AppConstant.CODE_OUTPUT_ROOT_DIR;
 
     /**
-     * 提供静态资源访问，支持目录重定向
+     * 部署后的静态资源访问
      * 访问格式：http://localhost:8123/api/static/{deployKey}[/{fileName}]
      */
     @GetMapping("/{deployKey}/**")
-    @Operation(summary = "提供静态资源访问")
-    public ResponseEntity<Resource> serveStaticResource(@PathVariable String deployKey, HttpServletRequest request) {
+    @Operation(summary = "部署后的静态资源访问")
+    public ResponseEntity<Resource> serveDeployResource(@PathVariable String deployKey, HttpServletRequest request) {
+        return serveFile(DEPLOY_ROOT_DIR, deployKey, request);
+    }
+
+    /**
+     * 预览接口（无需部署，直接从 code_output 提供文件）
+     * 访问格式：http://localhost:8123/api/preview/{appId}[/{fileName}]
+     */
+    @GetMapping("/preview/{appId}/**")
+    @Operation(summary = "预览生成的代码（无需部署）")
+    public ResponseEntity<Resource> servePreviewResource(@PathVariable String appId, HttpServletRequest request) {
+        // 根据 appId 查找对应的目录
+        String dirName = findOutputDir(appId);
+        if (dirName == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return serveFile(OUTPUT_ROOT_DIR, dirName, request);
+    }
+
+    /**
+     * 查找 appId 对应的输出目录
+     */
+    private String findOutputDir(String appId) {
+        File outputDir = new File(OUTPUT_ROOT_DIR);
+        if (!outputDir.exists()) return null;
+        String[] candidates = {"landing_page_" + appId, "html_" + appId, "multi_file_" + appId,
+                "vue_project_" + appId, "react_ts_" + appId, "nextjs_" + appId, "fullstack_" + appId};
+        for (String dir : candidates) {
+            File candidateDir = new File(outputDir, dir);
+            if (candidateDir.exists()) {
+                // 对于 fullstack 类型，优先使用 frontend/dist 目录
+                if (dir.startsWith("fullstack_")) {
+                    File frontendDist = new File(candidateDir, "frontend/dist");
+                    if (frontendDist.exists()) {
+                        return dir + "/frontend/dist";
+                    }
+                }
+                return dir;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 通用文件服务方法
+     */
+    private ResponseEntity<Resource> serveFile(String rootDir, String dirName, HttpServletRequest request) {
         try {
-            // 获取资源路径
-            String resourcePath = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-            resourcePath = resourcePath.substring(("/static/" + deployKey).length());
-            // 如果是目录访问（不带斜杠），重定向到带斜杠的URL
+            // 从请求路径中提取文件路径
+            String fullPath = request.getRequestURI();
+            String contextPath = request.getContextPath();
+            String servletPath = request.getServletPath();
+
+            // 找到 dirName 在路径中的位置，提取之后的部分
+            int dirIndex = fullPath.indexOf("/" + dirName + "/");
+            if (dirIndex < 0) {
+                // 尝试不带斜杠的结尾
+                dirIndex = fullPath.indexOf("/" + dirName);
+                if (dirIndex < 0) {
+                    return ResponseEntity.notFound().build();
+                }
+                dirIndex += dirName.length() + 1;
+            } else {
+                dirIndex += dirName.length() + 1;
+            }
+
+            String resourcePath = fullPath.substring(dirIndex);
             if (resourcePath.isEmpty()) {
                 HttpHeaders headers = new HttpHeaders();
                 headers.add("Location", request.getRequestURI() + "/");
                 return new ResponseEntity<>(headers, HttpStatus.MOVED_PERMANENTLY);
             }
-            // 默认返回 index.html
             if ("/".equals(resourcePath)) {
-                resourcePath = "/index.html";
+                resourcePath = "index.html";
             }
-            // 构建文件路径并校验路径遍历
-            String filePath = PREVIEW_ROOT_DIR + "/" + deployKey + resourcePath;
+
+            String filePath = rootDir + "/" + dirName + "/" + resourcePath;
             File file = new File(filePath);
-            // 防止路径遍历攻击：规范化后必须在根目录内
             String canonicalPath = file.getCanonicalPath();
-            String canonicalRoot = new File(PREVIEW_ROOT_DIR).getCanonicalPath();
+            String canonicalRoot = new File(rootDir).getCanonicalPath();
             if (!canonicalPath.startsWith(canonicalRoot + File.separator) && !canonicalPath.equals(canonicalRoot)) {
                 return ResponseEntity.badRequest().build();
             }
-            // 检查文件是否存在
             if (!file.exists()) {
                 return ResponseEntity.notFound().build();
             }
-            // 返回文件资源
             Resource resource = new FileSystemResource(file);
             return ResponseEntity.ok()
                     .header("Content-Type", getContentTypeWithCharset(filePath))

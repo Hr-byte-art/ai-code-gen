@@ -16,6 +16,16 @@ public class AppAddRequest implements Serializable {
      */
     private String initPrompt;
 
+    /**
+     * 模板标识（可选）
+     */
+    private String templateKey;
+
+    /**
+     * 代码生成类型（可选，不指定则使用 auto 模式）
+     */
+    private String codeGenType;
+
     @Serial
     private static final long serialVersionUID = 1L;
 }

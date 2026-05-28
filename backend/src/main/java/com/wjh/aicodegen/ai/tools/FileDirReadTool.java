@@ -43,11 +43,17 @@ public class FileDirReadTool extends BaseTool{
     public String readDir(@P("目录的相对路径，为空则读取整个项目结构")  String relativeDirPath, @ToolMemoryId Long appId
     ) {
         try {
-            Path path = Paths.get(relativeDirPath == null ? "" : relativeDirPath);
-            if (!path.isAbsolute()) {
-                String projectDirName = "vue_project_" + appId;
-                Path projectRoot = Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, projectDirName);
-                path = projectRoot.resolve(relativeDirPath == null ? "" : relativeDirPath);
+            Path projectRoot = resolveProjectRoot(appId);
+            Path path;
+            if (relativeDirPath == null || relativeDirPath.isBlank()) {
+                path = projectRoot;
+            } else {
+                path = projectRoot.resolve(relativeDirPath);
+            }
+            // 路径遍历校验
+            path = path.normalize();
+            if (!path.startsWith(projectRoot.normalize())) {
+                return "错误：路径超出项目目录，拒绝访问 - " + relativeDirPath;
             }
             File targetDir = path.toFile();
             if (!targetDir.exists() || !targetDir.isDirectory()) {
@@ -116,6 +122,6 @@ public class FileDirReadTool extends BaseTool{
     @Override
     public String generateToolExecutedResult(JSONObject arguments) {
         String relativeDirPath = arguments.getStr("relativeDirPath");
-        return String.format("【工具调用】: %s : %s", getDisplayName(), relativeDirPath);
+        return String.format("✅ %s → `%s`", getDisplayName(), relativeDirPath != null ? relativeDirPath : ".");
     }
 }

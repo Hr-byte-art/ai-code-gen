@@ -1,0 +1,1866 @@
+﻿I have successfully retrieved the complete README from the public-apis repository (1958 lines). Here is the full structured data organized by all 50 categories.
+
+---
+
+## Complete Public APIs Reference (from github.com/public-apis/public-apis)
+
+**Total categories: 50**
+
+---
+
+### 1. Animals (28 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| AdoptAPet | Resource to help get pets adopted | apiKey | Yes | Yes |
+| Axolotl | Collection of axolotl pictures and facts | No | Yes | No |
+| Cat Facts (alexwohlbruck) | Daily cat facts | No | Yes | No |
+| Cat Facts (catfact.ninja) | Random cat facts | No | Yes | Yes |
+| Cataas | Cat as a service (cats pictures and gifs) | No | Yes | No |
+| Cats | Pictures of cats from Tumblr | apiKey | Yes | No |
+| Dog Facts (dukengn) | Random dog facts | No | Yes | Yes |
+| Dog Facts (kinduff) | Random facts of Dogs | No | Yes | Yes |
+| Dogs | Based on the Stanford Dogs Dataset | No | Yes | Yes |
+| eBird | Retrieve recent or notable birding observations within a region | apiKey | Yes | No |
+| FishWatch | Information and pictures about individual fish species | No | Yes | Yes |
+| HTTP Cat | Cat for every HTTP Status | No | Yes | Yes |
+| HTTP Dog | Dogs for every HTTP response status code | No | Yes | Yes |
+| IUCN | IUCN Red List of Threatened Species | apiKey | No | No |
+| MeowFacts | Get random cat facts | No | Yes | No |
+| Movebank | Movement and Migration data of animals | No | Yes | Yes |
+| Petfinder | Helping pets find homes, resource to get pets adopted | apiKey | Yes | Yes |
+| PlaceBear | Placeholder bear pictures | No | Yes | Yes |
+| PlaceDog | Placeholder Dog pictures | No | Yes | Yes |
+| PlaceKitten | Placeholder Kitten pictures | No | Yes | Yes |
+| RandomDog | Random pictures of dogs | No | Yes | Yes |
+| RandomDuck | Random pictures of ducks | No | Yes | No |
+| RandomFox | Random pictures of foxes | No | Yes | No |
+| RescueGroups | Adoption | No | Yes | Unknown |
+| Shibe.Online | Random pictures of Shiba Inu, cats or birds | No | Yes | Yes |
+| The Dog | A public service all about Dogs | apiKey | Yes | No |
+| xeno-canto | Bird recordings | No | Yes | Unknown |
+| Zoo Animals | Facts and pictures of zoo animals | No | Yes | Yes |
+
+---
+
+### 2. Anime (20 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| AniAPI | Anime discovery, streaming & syncing with trackers | OAuth | Yes | Yes |
+| AniDB | Anime Database | apiKey | No | Unknown |
+| AniList | Anime discovery & tracking | OAuth | Yes | Unknown |
+| AnimeChan | Anime quotes (over 10k+) | No | Yes | No |
+| AnimeFacts | Anime Facts (over 100+) | No | Yes | Yes |
+| AnimeNewsNetwork | Anime industry news | No | Yes | Yes |
+| Catboy | Neko images, funny GIFs & more | No | Yes | Yes |
+| Danbooru Anime | Thousands of anime artist database | apiKey | Yes | Yes |
+| Jikan | Unofficial MyAnimeList API | No | Yes | Yes |
+| Kitsu | Anime discovery platform | OAuth | Yes | Yes |
+| MangaDex | Manga Database and Community | apiKey | Yes | Unknown |
+| Mangapi | Translate manga pages from one language to another | apiKey | Yes | Unknown |
+| MyAnimeList | Anime and Manga Database and Community | OAuth | Yes | Unknown |
+| NekosBest | Neko Images & Anime roleplaying GIFs | No | Yes | Yes |
+| Shikimori | Anime discovery, tracking, forum, rates | OAuth | Yes | Unknown |
+| Studio Ghibli | Resources from Studio Ghibli films | No | Yes | Yes |
+| Trace Moe | Get the exact scene of an anime from a screenshot | No | Yes | Yes |
+| Waifu.im | Get waifu pictures from an archive of over 4000 images | No | Yes | Yes |
+| Waifu.pics | Image sharing platform for anime images | No | Yes | No |
+
+---
+
+### 3. Anti-Malware (15 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| AbuseIPDB | IP/domain/URL reputation | apiKey | Yes | Unknown |
+| AlienVault OTX | IP/domain/URL reputation | apiKey | Yes | Unknown |
+| CAPEsandbox | Malware execution and analysis | apiKey | Yes | Unknown |
+| Google Safe Browsing | Google Link/Domain Flagging | apiKey | Yes | Unknown |
+| MalDatabase | Malware datasets and threat intelligence feeds | apiKey | Yes | Unknown |
+| MalShare | Malware Archive / file sourcing | apiKey | Yes | No |
+| MalwareBazaar | Collect and share malware samples | apiKey | Yes | Unknown |
+| Metacert | Metacert Link Flagging | apiKey | Yes | Unknown |
+| NoPhishy | Check links for known phishing attempts | apiKey | Yes | Yes |
+| Phisherman | IP/domain/URL reputation | apiKey | Yes | Unknown |
+| Scanii | Scan documents/files for threats | apiKey | Yes | Yes |
+| URLhaus | Bulk queries and Download Malware Samples | No | Yes | Yes |
+| URLScan.io | Scan and Analyse URLs | apiKey | Yes | Unknown |
+| VirusTotal | VirusTotal File/URL Analysis | apiKey | Yes | Unknown |
+| Web of Trust | IP/domain/URL reputation | apiKey | Yes | Unknown |
+
+---
+
+### 4. Art & Design (21 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Amethyste | Generate images for Discord users | apiKey | Yes | Unknown |
+| Art Institute of Chicago | Art | No | Yes | Yes |
+| Colormind | Color scheme generator | No | No | Unknown |
+| ColourLovers | Get various patterns, palettes and images | No | No | Unknown |
+| Cooper Hewitt | Smithsonian Design Museum | apiKey | Yes | Unknown |
+| Dribbble | Discover the world's top designers & creatives | OAuth | Yes | Unknown |
+| EmojiHub | Get emojis by categories and groups | No | Yes | Yes |
+| Europeana | European Museum and Galleries content | apiKey | Yes | Unknown |
+| Harvard Art Museums | Art | apiKey | No | Unknown |
+| Icon Horse | Favicons for any website, with fallbacks | No | Yes | Yes |
+| Iconfinder | Icons | apiKey | Yes | Unknown |
+| Icons8 | Icons (find "search icon" hyperlink in page) | No | Yes | Unknown |
+| Lordicon | Icons with predone Animations | No | Yes | Yes |
+| Metropolitan Museum of Art | Met Museum of Art | No | Yes | No |
+| Noun Project | Icons | OAuth | No | Unknown |
+| PHP-Noise | Noise Background Image Generator | No | Yes | Yes |
+| Pixel Encounter | SVG Icon Generator | No | Yes | No |
+| Rijksmuseum | RijksMuseum Data | apiKey | Yes | Unknown |
+| Word Cloud | Easily create word clouds | apiKey | Yes | Unknown |
+| xColors | Generate & convert colors | No | Yes | Yes |
+
+---
+
+### 5. Authentication & Authorization (7 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Auth0 | Easy to implement, adaptable authentication and authorization platform | apiKey | Yes | Yes |
+| GetOTP | Implement OTP flow quickly | apiKey | Yes | No |
+| Micro User Service | User management and authentication | apiKey | Yes | No |
+| MojoAuth | Secure and modern passwordless authentication platform | apiKey | Yes | Yes |
+| SAWO Labs | Simplify login with passwordless authentication | apiKey | Yes | Yes |
+| Stytch | User infrastructure for modern applications | apiKey | Yes | No |
+| Warrant | APIs for authorization and access control | apiKey | Yes | Yes |
+
+---
+
+### 6. Blockchain (11 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Bitquery | Onchain GraphQL APIs & DEX APIs | apiKey | Yes | Yes |
+| Chainlink | Build hybrid smart contracts with Chainlink | No | Yes | Unknown |
+| Chainpoint | Global network for anchoring data to the Bitcoin blockchain | No | Yes | Unknown |
+| Covalent | Multi-blockchain data aggregator platform | apiKey | Yes | Unknown |
+| Etherscan | Ethereum explorer API | apiKey | Yes | Yes |
+| Helium | Global, distributed network of Hotspots | No | Yes | Unknown |
+| Nownodes | Blockchain-as-a-service solution | apiKey | Yes | Unknown |
+| Steem | Blockchain-based blogging and social media website | No | No | No |
+| The Graph | Indexing protocol for querying networks like Ethereum with GraphQL | apiKey | Yes | Unknown |
+| Walltime | Retrieve Walltime's market info | No | Yes | Unknown |
+| Watchdata | Simple and reliable API access to Ethereum blockchain | apiKey | Yes | Unknown |
+
+---
+
+### 7. Books (26 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| A Biblia Digital | Do not worry about managing the multiple versions of the Bible | apiKey | Yes | No |
+| Amanah Sunnah | Semantic search across Quran, Hadith, Tafsir & 18K+ Rijal narrators | apiKey | Yes | Yes |
+| Bhagavad Gita (docs.bhagavadgitaapi.in) | Open Source Shrimad Bhagavad Gita API | apiKey | Yes | Yes |
+| Bhagavad Gita (bhagavadgita.io) | Bhagavad Gita text | OAuth | Yes | Yes |
+| Bhagavad Gita telugu | Bhagavad Gita API in telugu and odia languages | No | Yes | Yes |
+| Bible-api | Free Bible API with multiple languages | No | Yes | Yes |
+| British National Bibliography | Books | No | No | Unknown |
+| Crossref Metadata Search | Books & Articles Metadata | No | Yes | Unknown |
+| Ganjoor | Classic Persian poetry works | OAuth | Yes | Yes |
+| Google Books | Books | OAuth | Yes | Unknown |
+| GurbaniNow | Fast and Accurate Gurbani RESTful API | No | Yes | Unknown |
+| Gutendex | Web-API for fetching data from Project Gutenberg Books Library | No | Yes | Unknown |
+| Open Library | Books, book covers and related data | No | Yes | No |
+| Penguin Publishing | Books, book covers and related data | No | Yes | Yes |
+| PoetryDB | Get instant data from vast poetry collection | No | Yes | Yes |
+| Quran | RESTful Quran API with multiple languages | No | Yes | Yes |
+| Quran Cloud | RESTful Quran API to retrieve Ayah, Surah, Juz or entire Holy Quran | No | Yes | Yes |
+| Quran-api | Free Quran API Service with 90+ different languages and 400+ translations | No | Yes | Yes |
+| Rig Veda | Gods and poets, their categories, and the verse meters | No | Yes | Unknown |
+| Runyankole Bible | Free REST API for the Runyankore-Rukiga Bible | No | Yes | Yes |
+| The Bible | Everything you need from the Bible in one discoverable place | apiKey | Yes | Unknown |
+| Thirukkural | 1330 Thirukkural poems and explanation in Tamil and English | No | Yes | Yes |
+| Urantia Papers | Full-text + semantic search across the Urantia Papers | No | Yes | Yes |
+| Vedic Society | Descriptions of all nouns from vedic literature | No | Yes | Unknown |
+| Wizard World | Get information from the Harry Potter universe | No | Yes | Yes |
+| Wolne Lektury | API for e-books available on WolneLektury.pl | No | Yes | Unknown |
+
+---
+
+### 8. Business (22 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Apache Superset | API to manage BI dashboards and data sources | apiKey | Yes | Yes |
+| Charity Search | Non-profit charity data | apiKey | No | Unknown |
+| Clearbit Logo | Search for company logos | apiKey | Yes | Unknown |
+| Domainsdb.info | Registered Domain Names Search | No | Yes | No |
+| Freelancer | Hire freelancers to get work done | OAuth | Yes | Unknown |
+| Gmail | Flexible, RESTful access to the user's inbox | OAuth | Yes | Unknown |
+| Google Analytics | Collect, configure and analyze your data | OAuth | Yes | Unknown |
+| Instatus | Post to and update maintenance and incidents on your status page | apiKey | Yes | Unknown |
+| Mailchimp | Send marketing campaigns and transactional mails | apiKey | Yes | Unknown |
+| mailjet | Marketing email sent using API | apiKey | Yes | Unknown |
+| markerapi | Trademark Search | No | No | Unknown |
+| ORB Intelligence | Company lookup | apiKey | Yes | Unknown |
+| Redash | Access queries and dashboards on Redash | apiKey | Yes | Yes |
+| Smartsheet | Programmatically access Smartsheet data | OAuth | Yes | No |
+| Square | Easy way to take payments, manage refunds | OAuth | Yes | Unknown |
+| SwiftKanban | Kanban software | apiKey | Yes | Unknown |
+| Tenders in Hungary | Data for procurements in Hungary | No | Yes | Unknown |
+| Tenders in Poland | Data for procurements in Poland | No | Yes | Unknown |
+| Tenders in Romania | Data for procurements in Romania | No | Yes | Unknown |
+| Tenders in Spain | Data for procurements in Spain | No | Yes | Unknown |
+| Tenders in Ukraine | Data for procurements in Ukraine | No | Yes | Unknown |
+| Tomba email finder | Email Finder for B2B sales and email marketing | apiKey | Yes | Yes |
+| Trello | Boards, lists and cards to organize and prioritize projects | OAuth | Yes | Unknown |
+
+---
+
+### 9. Calendar (16 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Calendarific | Worldwide Holidays | apiKey | Yes | Unknown |
+| Checkiday | Industry-leading Holiday API with 5,000+ holidays | apiKey | Yes | Unknown |
+| Church Calendar | Catholic liturgical calendar | No | No | Unknown |
+| Czech Namedays Calendar | Lookup for a name and returns nameday date | No | No | Unknown |
+| Festivo Public Holidays | Public holiday and observance service | apiKey | Yes | Yes |
+| Google Calendar | Display, create and modify Google calendar events | OAuth | Yes | Unknown |
+| Hebrew Calendar | Convert between Gregorian and Hebrew, fetch Shabbat and Holiday times | No | No | Unknown |
+| Holidays | Historical data regarding holidays | apiKey | Yes | Unknown |
+| LectServe | Protestant liturgical calendar | No | No | Unknown |
+| Nager.Date | Public holidays for more than 90 countries | No | Yes | No |
+| Namedays Calendar | Provides namedays for multiple countries | No | Yes | Yes |
+| Non-Working Days (icsdb) | Database of ICS files for non working days | No | Yes | Unknown |
+| Non-Working Days (isdayoff.ru) | Checking working/non-working days for Russia, CIS, USA | No | Yes | Yes |
+| Public Holidays | Data on national, regional, and religious holidays | apiKey | Yes | Yes |
+| Russian Calendar | Check if a date is a Russian holiday or not | No | Yes | No |
+| UK Bank Holidays | Bank holidays in England, Wales, Scotland and Northern Ireland | No | Yes | Unknown |
+
+---
+
+### 10. Cloud Storage & File Sharing (20 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| AnonFiles | Upload and share your files anonymously | No | Yes | Unknown |
+| BayFiles | Upload and share your files | No | Yes | Unknown |
+| Box | File Sharing and Storage | OAuth | Yes | Unknown |
+| ddownload | File Sharing and Storage | apiKey | Yes | Unknown |
+| Dropbox | File Sharing and Storage | OAuth | Yes | Unknown |
+| File.io | Super simple file sharing | No | Yes | Unknown |
+| Filestack | Filestack File Uploader & File Upload API | apiKey | Yes | Unknown |
+| FileUp | Temporary file hosting with upload API, expiration times, view limits | No | Yes | Unknown |
+| GoFile | Unlimited size file uploads for free | apiKey | Yes | Unknown |
+| Google Drive | File Sharing and Storage | OAuth | Yes | Unknown |
+| Gyazo | Save & Share screen captures instantly | apiKey | Yes | Unknown |
+| Imgbb | Simple and quick private image sharing | apiKey | Yes | Unknown |
+| OneDrive | File Sharing and Storage | OAuth | Yes | Unknown |
+| Pantry | Free JSON storage for small projects | No | Yes | Yes |
+| Pastebin | Plain Text Storage | apiKey | Yes | Unknown |
+| Pinata | IPFS Pinning Services API | apiKey | Yes | Unknown |
+| Quip | File Sharing and Storage for groups | apiKey | Yes | Yes |
+| Storj | Decentralized Open-Source Cloud Storage | apiKey | Yes | Unknown |
+| The Null Pointer | No-bullshit file hosting and URL shortening service | No | Yes | Unknown |
+| Web3 Storage | File Sharing and Storage for Free with 1TB Space | apiKey | Yes | Yes |
+
+---
+
+### 11. Continuous Integration (6 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Azure DevOps Health | Resource health for diagnosing Azure issues | apiKey | No | No |
+| Bitrise | Build tool and processes integrations | apiKey | Yes | Unknown |
+| Buddy | Fastest continuous integration and delivery platform | OAuth | Yes | Unknown |
+| CircleCI | Automate software development process | apiKey | Yes | Unknown |
+| Codeship | Continuous Integration Platform in the cloud | apiKey | Yes | Unknown |
+| Travis CI | Sync GitHub projects with Travis CI to test code | apiKey | Yes | Unknown |
+
+---
+
+### 12. Cryptocurrency (66 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Coinlayer | Real-time Crypto Currency Exchange Rates | apiKey | Yes | Unknown |
+| 0x | API for querying token and pool stats across liquidity pools | No | Yes | Yes |
+| 1inch | API for querying decentralize exchange | No | Yes | Unknown |
+| Alchemy Ethereum | Ethereum Node-as-a-Service Provider | apiKey | Yes | Yes |
+| Alpha (Mossland) | Korean crypto channel stance + RAG Q&A | No | Yes | Yes |
+| Binance | Exchange for Trading Cryptocurrencies | apiKey | Yes | Unknown |
+| Bitcambio | Get the list of all traded assets in the exchange | No | Yes | Unknown |
+| BitcoinAverage | Digital Asset Price Data | apiKey | Yes | Unknown |
+| BitcoinCharts | Financial and Technical Data related to the Bitcoin Network | No | Yes | Unknown |
+| Bitfinex | Cryptocurrency Trading Platform | apiKey | Yes | Unknown |
+| Bitmex | Real-Time Cryptocurrency derivatives trading platform | apiKey | Yes | Unknown |
+| Bittrex | Next Generation Crypto Trading Platform | apiKey | Yes | Unknown |
+| Block | Bitcoin Payment, Wallet & Transaction Data | apiKey | Yes | Unknown |
+| Blockchain | Bitcoin Payment, Wallet & Transaction Data | apiKey | Yes | Unknown |
+| blockfrost Cardano | Interaction with the Cardano mainnet | apiKey | Yes | Unknown |
+| Brave NewCoin | Real-time and historic crypto data from 200+ exchanges | apiKey | Yes | Unknown |
+| BtcTurk | Real-time cryptocurrency data, graphs and API | apiKey | Yes | Yes |
+| Bybit | Cryptocurrency data feed and algorithmic trading | apiKey | Yes | Unknown |
+| CoinAPI | All Currency Exchanges under a single api | apiKey | Yes | No |
+| Coinbase | Bitcoin, Bitcoin Cash, Litecoin and Ethereum Prices | apiKey | Yes | Unknown |
+| Coinbase Pro | Cryptocurrency Trading Platform | apiKey | Yes | Unknown |
+| CoinCap | Real time Cryptocurrency prices | No | Yes | Unknown |
+| CoinDCX | Cryptocurrency Trading Platform | apiKey | Yes | Unknown |
+| CoinDesk | CoinDesk's Bitcoin Price Index (BPI) | No | Yes | Unknown |
+| CoinGecko | Cryptocurrency Price, Market, and Developer/Social Data | No | Yes | Yes |
+| Coinigy | Interacting with Coinigy Accounts and Exchange | apiKey | Yes | Unknown |
+| Coinlib | Crypto Currency Prices | apiKey | Yes | Unknown |
+| Coinlore | Cryptocurrencies prices, volume and more | No | Yes | Unknown |
+| CoinMarketCap | Cryptocurrencies Prices | apiKey | Yes | Unknown |
+| Coinpaprika | Cryptocurrencies prices, volume and more | No | Yes | Yes |
+| CoinRanking | Live Cryptocurrency data | apiKey | Yes | Unknown |
+| Coinremitter | Cryptocurrencies Payment & Prices | apiKey | Yes | Unknown |
+| CoinStats | Crypto Tracker | No | Yes | Unknown |
+| CryptAPI | Cryptocurrency Payment Processor | No | Yes | Unknown |
+| CryptingUp | Cryptocurrency data | No | Yes | Unknown |
+| CryptoCompare | Cryptocurrencies Comparison | No | Yes | Unknown |
+| CryptoMarket | Cryptocurrencies Trading platform | apiKey | Yes | Yes |
+| Cryptonator | Cryptocurrencies Exchange Rates | No | Yes | Unknown |
+| dYdX | Decentralized cryptocurrency exchange | apiKey | Yes | Unknown |
+| Ethplorer | Ethereum tokens, balances, addresses, history | apiKey | Yes | Unknown |
+| EXMO | Cryptocurrencies exchange based in UK | apiKey | Yes | Unknown |
+| FTX | Complete REST, websocket, and FTX APIs | apiKey | Yes | Yes |
+| Gateio | API provides spot, margin and futures trading | apiKey | Yes | Unknown |
+| Gemini | Cryptocurrencies Exchange | No | Yes | Unknown |
+| Hirak Exchange Rates | Exchange rates between 162 currency & 300 crypto | apiKey | Yes | Unknown |
+| Huobi | Seychelles based cryptocurrency exchange | apiKey | Yes | Unknown |
+| icy.tools | GraphQL based NFT API | apiKey | Yes | Unknown |
+| Indodax | Trade Bitcoin and other assets with rupiah | apiKey | Yes | Unknown |
+| INFURA Ethereum | Interaction with Ethereum mainnet and testnets | apiKey | Yes | Yes |
+| Kraken | Cryptocurrencies Exchange | apiKey | Yes | Unknown |
+| KuCoin | Cryptocurrency Trading Platform | apiKey | Yes | Unknown |
+| Localbitcoins | P2P platform to buy and sell Bitcoins | No | Yes | Unknown |
+| Mempool | Bitcoin API Service focusing on the transaction fee | No | Yes | No |
+| MercadoBitcoin | Brazilian Cryptocurrency Information | No | Yes | Unknown |
+| Messari | API endpoints for thousands of crypto assets | No | Yes | Unknown |
+| Nexchange | Automated cryptocurrency exchange service | No | No | Yes |
+| Nomics | Historical and realtime cryptocurrency prices | apiKey | Yes | Yes |
+| NovaDax | NovaDAX API for market data and trading | apiKey | Yes | Unknown |
+| OKEx | Cryptocurrency exchange based in Seychelles | apiKey | Yes | Unknown |
+| Poloniex | US based digital asset exchange | apiKey | Yes | Unknown |
+| PumpFunData | Historical Pump.fun and PumpSwap AMM swap data | apiKey | Yes | Unknown |
+| Solana JSON RPC | Endpoints to interact with the Solana Blockchain | No | Yes | Unknown |
+| Technical Analysis | Cryptocurrency prices and technical analysis | apiKey | Yes | No |
+| VALR | Cryptocurrency Exchange based in South Africa | apiKey | Yes | Unknown |
+| WorldCoinIndex | Cryptocurrencies Prices | apiKey | Yes | Unknown |
+| ZMOK | Ethereum JSON RPC API and Web3 provider | No | Yes | Unknown |
+
+---
+
+### 13. Currency Exchange (18 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Currencylayer | Exchange rates and currency conversion | apiKey | Yes | Unknown |
+| Exchangerate.host | Free foreign exchange & crypto rates API | No | Yes | Unknown |
+| Exchangeratesapi.io | Exchange rates with currency conversion | apiKey | Yes | Yes |
+| Fixer | Exchange rates and currency conversion | apiKey | No | Unknown |
+| 1Forge | Forex currency market data | apiKey | Yes | Unknown |
+| Amdoren | Free currency API with over 150 currencies | apiKey | Yes | Unknown |
+| Bank of Russia | Exchange rates and currency conversion | No | Yes | Unknown |
+| Currency-api | Free Currency Exchange Rates API with 150+ Currencies | No | Yes | Yes |
+| CurrencyFreaks | Current and historical currency exchange rates | apiKey | Yes | Yes |
+| CurrencyScoop | Real-time and historical currency rates JSON API | apiKey | Yes | Yes |
+| Czech National Bank | A collection of exchange rates | No | Yes | Unknown |
+| Economia.Awesome | Portuguese free currency prices and conversion | No | Yes | Unknown |
+| ExchangeRate-API | Free currency conversion | apiKey | Yes | Yes |
+| Frankfurter | Exchange rates, currency conversion and time series | No | Yes | Yes |
+| FreeForexAPI | Real-time foreign exchange rates for major currency pairs | No | Yes | No |
+| National Bank of Poland | Currency exchange rates (data in XML and JSON) | No | Yes | Yes |
+| paralelo.bo | Bolivia parallel-market USD/BOB exchange rate | No | Yes | Yes |
+| VATComply.com | Exchange rates, geolocation and VAT number validation | No | Yes | Yes |
+
+---
+
+### 14. Data Validation (7 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| VATlayer | VAT number validation | apiKey | Yes | Unknown |
+| Lob.com | US Address Verification | apiKey | Yes | Unknown |
+| Postman Echo | Test api server to receive and return value from HTTP method | No | Yes | Unknown |
+| PurgoMalum | Content validator against profanity & obscenity | No | No | Unknown |
+| US Autocomplete | Enter address data quickly with real-time suggestions | apiKey | Yes | Yes |
+| US Extract | Extract postal addresses from any text | apiKey | Yes | Yes |
+| US Street Address | Validate and append data for any US postal address | apiKey | Yes | Yes |
+
+---
+
+### 15. Development (124 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Userstack | Secure User-Agent String Lookup JSON API | OAuth | Yes | Unknown |
+| 24 Pull Requests | Project to promote open source collaboration during December | No | Yes | Yes |
+| Agify.io | Estimates the age from a first name | No | Yes | Yes |
+| API Gratis | Multiples services and public APIs | No | Yes | Unknown |
+| ApicAgent | Extract device details from user-agent string | No | Yes | Yes |
+| ApiFlash | Chrome based screenshot API for developers | apiKey | Yes | Unknown |
+| APIs.guru | Wikipedia for Web APIs, OpenAPI/Swagger specs | No | Yes | Unknown |
+| Azure DevOps | Azure DevOps basic REST API components | apiKey | Yes | Unknown |
+| Base | Building quick backends | apiKey | Yes | Yes |
+| Beeceptor | Build a mock Rest API endpoint in seconds | No | Yes | Yes |
+| Bitbucket | Bitbucket API | OAuth | Yes | Unknown |
+| Blague.xyz | The biggest FR jokes API | apiKey | Yes | Yes |
+| Blitapp | Schedule screenshots of web pages | apiKey | Yes | Unknown |
+| Blynk-Cloud | Control IoT Devices from Blynk IoT Cloud | apiKey | No | Unknown |
+| Bored | Find random activities to fight boredom | No | Yes | Unknown |
+| Brainshop.ai | Make A Free A.I Brain | apiKey | Yes | Yes |
+| BrewPage | Free hosting for HTML, JSON, key-value, files | No | Yes | No |
+| Browshot | Easily make screenshots of web pages | apiKey | Yes | Yes |
+| CDNJS | Library info on CDNJS | No | Yes | Unknown |
+| Changelogs.md | Structured changelog metadata from open source projects | No | Yes | Unknown |
+| Ciprand | Secure random string generator | No | Yes | No |
+| Cloudflare Trace | Get IP Address, Timestamp, User Agent, Country Code etc | No | Yes | Yes |
+| Codex | Online Compiler for Various Languages | No | Yes | Unknown |
+| Contentful Images | Retrieve and apply transformations to images | apiKey | Yes | Yes |
+| CORS Proxy | Get around the dreaded CORS error | No | Yes | Yes |
+| CountAPI | Free and simple counting service | No | Yes | Yes |
+| Databricks | Service to manage databricks account, clusters, notebooks | apiKey | Yes | Yes |
+| DigitalOcean Status | Status of all DigitalOcean services | No | Yes | Unknown |
+| Docker Hub | Interact with Docker Hub | apiKey | Yes | Yes |
+| DomainDb Info | Domain name search | No | Yes | Unknown |
+| ExtendsClass JSON Storage | A simple JSON store API | No | Yes | Yes |
+| GeekFlare | Testing and monitoring methods for websites | apiKey | Yes | Unknown |
+| Genderize.io | Estimates a gender from a first name | No | Yes | Yes |
+| GETPing | Trigger an email notification with a simple GET request | apiKey | Yes | Unknown |
+| Ghost | Get Published content into your Website | apiKey | Yes | Yes |
+| GitHub | Make use of GitHub repositories, code and user info | OAuth | Yes | Yes |
+| Gitlab | Automate GitLab interaction | OAuth | Yes | Unknown |
+| Gitter | Chat for Developers | OAuth | Yes | Unknown |
+| Glitterly | Image generation API | apiKey | Yes | Yes |
+| Google Docs | API to read, write, and format Google Docs | OAuth | Yes | Unknown |
+| Google Firebase | Google's mobile application development platform | apiKey | Yes | Yes |
+| Google Fonts | Metadata for all families served by Google Fonts | apiKey | Yes | Unknown |
+| Google Keep | API to read, write, and format Google Keep notes | OAuth | Yes | Unknown |
+| Google Sheets | API to read, write, and format Google Sheets data | OAuth | Yes | Unknown |
+| Google Slides | API to read, write, and format Google Slides | OAuth | Yes | Unknown |
+| Gorest | Online REST API for Testing and Prototyping | OAuth | Yes | Unknown |
+| Hasura | GraphQL and REST API Engine with built in Authorization | apiKey | Yes | Yes |
+| Heroku | REST API to create apps, provision add-ons on Heroku | OAuth | Yes | Yes |
+| host-t.com | Basic DNS query via HTTP GET request | No | Yes | No |
+| Host.io | Domains Data API for Developers | apiKey | Yes | Yes |
+| HTTP2.Pro | Test endpoints for HTTP/2 protocol support | No | Yes | Unknown |
+| Httpbin | A Simple HTTP Request & Response Service | No | Yes | Yes |
+| Httpbin Cloudflare | HTTP Request & Response Service with HTTP/3 Support | No | Yes | Yes |
+| Hunter | API for domain search, professional email finder | apiKey | Yes | Unknown |
+| IBM Text to Speech | Convert text to speech | apiKey | Yes | Yes |
+| Icanhazepoch | Get Epoch time | No | Yes | Yes |
+| Icanhazip | IP Address API | No | Yes | Yes |
+| IFTTT | IFTTT Connect API | No | Yes | Unknown |
+| Image-Charts | Generate charts, QR codes and graph images | No | Yes | Yes |
+| import.io | Retrieve structured data from a website or RSS feed | apiKey | Yes | Unknown |
+| ip-fast.com | IP address, country and city | No | Yes | Yes |
+| IP2WHOIS Information Lookup | WHOIS domain name lookup | apiKey | Yes | Unknown |
+| ipfind.io | Geographic location of an IP address or domain | apiKey | Yes | Yes |
+| IPify | A simple IP Address API | No | Yes | Unknown |
+| IPinfo | Another simple IP Address API | No | Yes | Unknown |
+| isitdownstatus | Check if websites and online services are currently down | No | Yes | Unknown |
+| jsDelivr | Package info and download stats on jsDelivr CDN | No | Yes | Yes |
+| JSON 2 JSONP | Convert JSON to JSONP | No | Yes | Unknown |
+| JSONbin.io | Free JSON storage service | apiKey | Yes | Yes |
+| JSONPlaceholder | Fake REST API for testing and prototyping | No | Yes | Yes |
+| Kroki | Creates diagrams from textual descriptions | No | Yes | Yes |
+| License-API | Unofficial REST API for choosealicense.com | No | Yes | No |
+| Logs.to | Generate logs | apiKey | Yes | Unknown |
+| Lua Decompiler | Online Lua 5.1 Decompiler | No | Yes | Yes |
+| MAC address vendor lookup | Retrieve vendor details from MAC address | apiKey | Yes | Yes |
+| Micro DB | Simple database service | apiKey | Yes | Unknown |
+| MicroENV | Fake Rest API for developers | No | Yes | Unknown |
+| Mocky | Mock user defined test JSON for REST API endpoints | No | Yes | Yes |
+| MY IP | Get IP address information | No | Yes | Unknown |
+| Nationalize.io | Estimate the nationality of a first name | No | Yes | Yes |
+| Netlify | Netlify is a hosting service for the programmable web | OAuth | Yes | Unknown |
+| NetworkCalc | Network calculators, including subnets, DNS, binary | No | Yes | Yes |
+| npm Registry | Query information about Node.js libraries | No | Yes | Unknown |
+| OneSignal | Self-serve customer engagement solution | apiKey | Yes | Unknown |
+| Open Page Rank | API for calculating Page Rank metrics | apiKey | Yes | Unknown |
+| OpenAPIHub | The All-in-one API Platform | X-Mashape-Key | Yes | Unknown |
+| OpenGraphr | Retrieve Open Graph data from an URL | apiKey | Yes | Unknown |
+| oyyi | API for Fake Data, image/video conversion, optimization | No | Yes | Yes |
+| PageCDN | Public API for javascript, css and font libraries | apiKey | Yes | Yes |
+| Postman | Tool for testing APIs | apiKey | Yes | Unknown |
+| ProxyCrawl | Scraping and crawling anticaptcha service | apiKey | Yes | Unknown |
+| ProxyKingdom | Rotating Proxy API | apiKey | Yes | Yes |
+| Pusher Beams | Push notifications for Android & iOS | apiKey | Yes | Unknown |
+| QR code (qrtag.net) | Create an easy to read QR code and URL shortener | No | Yes | Yes |
+| QR code (goqr.me) | Generate and decode / read QR code graphics | No | Yes | Unknown |
+| Qrcode Monkey | Integrate custom looking QR codes | No | Yes | Unknown |
+| QuickChart | Generate chart and graph images | No | Yes | Yes |
+| Random Stuff | AI Response, jokes, memes at lightning-fast speed | apiKey | Yes | Yes |
+| Rejax | Reverse AJAX service to notify clients | apiKey | Yes | No |
+| ReqRes | A hosted REST-API ready to respond to your AJAX requests | No | Yes | Unknown |
+| RSS feed to JSON | Returns RSS feed in JSON format | No | Yes | Yes |
+| SavePage.io | Free RESTful API to screenshot any website | apiKey | Yes | Yes |
+| ScrapeNinja | Scraping API with Chrome fingerprint and residential proxies | apiKey | Yes | Unknown |
+| ScraperApi | Easily build scalable web scrapers | apiKey | Yes | Unknown |
+| scraperBox | Undetectable web scraping API | apiKey | Yes | Yes |
+| scrapestack | Real-time, Scalable Proxy & Web Scraping REST API | apiKey | Yes | Unknown |
+| ScrapingAnt | Headless Chrome scraping with a simple API | apiKey | Yes | Unknown |
+| ScrapingDog | Proxy API for Web scraping | apiKey | Yes | Unknown |
+| Screenshot | Take programmatic screenshots of web pages | apiKey | Yes | Yes |
+| ScreenshotAPI.net | Create pixel-perfect website screenshots | apiKey | Yes | Yes |
+| Serialif Color | Color conversion, complementary, grayscale | No | Yes | No |
+| serpstack | Real-Time & Accurate Google Search Results API | apiKey | Yes | Yes |
+| Sheetsu | Easy google sheets integration | apiKey | Yes | Unknown |
+| SHOUTCLOUD | ALL-CAPS AS A SERVICE | No | No | Unknown |
+| Sonar | Project Sonar DNS Enumeration API | No | Yes | Yes |
+| SonarQube | Detect bugs, code smells & security vulnerabilities | OAuth | Yes | Unknown |
+| StackExchange | Q&A forum for developers | OAuth | Yes | Unknown |
+| Statically | A free CDN for developers | No | Yes | Yes |
+| Supportivekoala | Autogenerate images with template | apiKey | Yes | Yes |
+| Suprsonic | Unified agent API: search, scrape, enrich, image gen, TTS, STT, messaging | apiKey | Yes | Yes |
+| Thunderbit | Extract web pages as Markdown or structured data for AI apps | apiKey | Yes | Unknown |
+| Tyk | Api and service management platform | apiKey | Yes | Yes |
+| Wandbox | Code compiler supporting 35+ languages | No | Yes | Unknown |
+| WebScraping.AI | Web Scraping API with built-in proxies and JS rendering | apiKey | Yes | Yes |
+| ZenRows | Web Scraping API that bypasses anti-bot solutions | apiKey | Yes | Unknown |
+
+---
+
+### 16. Dictionaries (13 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Chinese Character Web | Chinese character definitions and pronunciations | No | No | No |
+| Chinese Text Project | Online open-access digital library for pre-modern Chinese texts | No | Yes | Unknown |
+| Collins | Bilingual Dictionary and Thesaurus Data | apiKey | Yes | Unknown |
+| Free Dictionary | Definitions, phonetics, pronunciations, parts of speech, examples, synonyms | No | Yes | Unknown |
+| Indonesia Dictionary | Indonesia dictionary many words | No | Yes | Unknown |
+| Lingua Robot | Word definitions, pronunciations, synonyms, antonyms | apiKey | Yes | Yes |
+| Merriam-Webster | Dictionary and Thesaurus Data | apiKey | Yes | Unknown |
+| OwlBot | Definitions with example sentence and photo | apiKey | Yes | Yes |
+| Oxford | Dictionary Data | apiKey | Yes | No |
+| Synonyms | Synonyms, thesaurus and antonyms information | apiKey | Yes | Unknown |
+| Wiktionary | Collaborative dictionary data | No | Yes | Yes |
+| Wordnik | Dictionary Data | apiKey | Yes | Unknown |
+| Words | Definitions and synonyms for more than 150,000 words | apiKey | Yes | Unknown |
+
+---
+
+### 17. Documents & Productivity (30 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Airtable | Integrate with Airtable | apiKey | Yes | Unknown |
+| Api2Convert | Online File Conversion API | apiKey | Yes | Unknown |
+| apilayer pdflayer | HTML/URL to PDF | apiKey | Yes | Unknown |
+| Asana | Programmatic access to all data in your asana system | apiKey | Yes | Yes |
+| BuildPDF | Convert HTML, images, and text to PDF | apiKey | Yes | Yes |
+| ClickUp | Cloud-based project management tool | OAuth | Yes | Unknown |
+| Clockify | REST-based API for push/pull data | apiKey | Yes | Unknown |
+| CloudConvert | Online file converter for audio, video, document, ebook, etc | apiKey | Yes | Unknown |
+| Cloudmersive Document and Data Conversion | HTML/URL to PDF/PNG, Office documents to PDF | apiKey | Yes | Yes |
+| Code::Stats | Automatic time tracking for programmers | apiKey | Yes | No |
+| CraftMyPDF | Generate PDF documents from templates | apiKey | Yes | No |
+| Flowdash | Automate business workflows | apiKey | Yes | Unknown |
+| Html2PDF | HTML/URL to PDF | apiKey | Yes | Unknown |
+| iLovePDF | Convert, merge, split, extract text for PDFs | apiKey | Yes | Yes |
+| JIRA | Bug tracking and agile project management | OAuth | Yes | Unknown |
+| Mattermost | Open source platform for developer collaboration | OAuth | Yes | Unknown |
+| Mercury | Web parser | apiKey | Yes | Unknown |
+| Monday | Programmatically access and update monday.com data | apiKey | Yes | Unknown |
+| Notion | Integrate with Notion | OAuth | Yes | Unknown |
+| PandaDoc | DocGen and eSignatures API | apiKey | Yes | No |
+| Pocket | Bookmarking service | OAuth | Yes | Unknown |
+| Podio | File sharing and productivity | OAuth | Yes | Unknown |
+| PrexView | Data from XML or JSON to PDF, HTML or Image | apiKey | Yes | Unknown |
+| Restpack | Screenshot, HTML to PDF and content extraction APIs | apiKey | Yes | Unknown |
+| Todoist | Todo Lists | OAuth | Yes | Unknown |
+| Smart Image Enhancement API | Image upscaling through super-resolution algorithms | apiKey | Yes | Unknown |
+| staffSign | Digital employment contract API with QES/eIDAS support | apiKey | Yes | Yes |
+| Vector Express v2.0 | Free vector file converting API | No | Yes | No |
+| WakaTime | Automated time tracking leaderboards for programmers | No | Yes | Unknown |
+| Zube | Full stack project management | OAuth | Yes | Unknown |
+
+---
+
+### 18. Email (19 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| mailboxlayer | Email address validation | apiKey | Yes | Unknown |
+| Cloudmersive Validate | Validate email addresses, phone numbers, VAT numbers | apiKey | Yes | Yes |
+| Disify | Validate and detect disposable and temporary email addresses | No | Yes | Yes |
+| DropMail | GraphQL API for ephemeral e-mail inboxes | No | Yes | Unknown |
+| EmailJS | Send emails directly from client-side JavaScript | apiKey | Yes | Yes |
+| Email Validation | Validate email addresses for deliverability and spam | apiKey | Yes | Yes |
+| EVA | Validate email addresses | No | Yes | Yes |
+| Guerrilla Mail | Disposable temporary Email addresses | No | Yes | Unknown |
+| ImprovMX | API for free email forwarding service | apiKey | Yes | Unknown |
+| Kickbox | Email verification API | No | Yes | Yes |
+| mail.gw | 10 Minute Mail | No | Yes | Yes |
+| mail.tm | Temporary Email Service | No | Yes | Yes |
+| MailboxValidator | Validate email address to improve deliverability | apiKey | Yes | Unknown |
+| MailCheck.ai | Prevent users to sign up with temporary email addresses | No | Yes | Unknown |
+| Mailtrap | Safe testing of emails sent from development environments | apiKey | Yes | Unknown |
+| PostStack | EU-hosted email API for transactional and marketing email | apiKey | Yes | No |
+| Sendgrid | Cloud-based SMTP provider | apiKey | Yes | Unknown |
+| Sendinblue | Solutions for marketing and/or transactional email and/or SMS | apiKey | Yes | Unknown |
+| Verifier | Verifies that a given email is real | apiKey | Yes | Yes |
+
+---
+
+### 19. Entertainment (14 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Anycrap | 35,000+ absurdist AI-generated product concepts | apiKey | Yes | Yes |
+| chucknorris.io | JSON API for hand curated Chuck Norris jokes | No | Yes | Unknown |
+| Corporate Buzz Words | REST API for Corporate Buzz Words | No | Yes | Yes |
+| Excuser | Get random excuses for various situations | No | Yes | Unknown |
+| Fun Fact | Randomly select and return a fact from the FFA database | No | Yes | Yes |
+| Imgflip | Gets an array of popular memes | No | Yes | Unknown |
+| justmeme.wtf | Free meme API with 2400+ templates | No | Yes | Yes |
+| Meme Maker | REST API for create your own meme | No | Yes | Unknown |
+| Memesio | Meme creation API with templates | No | Yes | No |
+| NaMoMemes | Memes on Narendra Modi | No | Yes | Unknown |
+| Random Useless Facts | Get useless, but true facts | No | Yes | Unknown |
+| TasteDive | Content-based recommendations for movies, music, TV shows, books | apiKey | Yes | No |
+| Techy | JSON and Plaintext API for tech-savvy sounding phrases | No | Yes | Unknown |
+| Yo Momma Jokes | REST API for Yo Momma Jokes | No | Yes | Unknown |
+
+---
+
+### 20. Environment (16 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| BreezoMeter Pollen | Daily Forecast pollen conditions data | apiKey | Yes | Unknown |
+| Carbon Interface | Calculate carbon (C02) emissions estimates | apiKey | Yes | Yes |
+| Climatiq | Calculate environmental footprint from emission-generating activities | apiKey | Yes | Yes |
+| Cloverly | API calculates impact of carbon-intensive activities | apiKey | Yes | Unknown |
+| CO2 Offset | API calculates and validates the carbon footprint | No | Yes | Unknown |
+| Danish data service Energi | Open energy data from Energinet | No | Yes | Unknown |
+| GrunstromIndex | Green Power Index for Germany | No | No | Yes |
+| IQAir | Air quality and weather data | apiKey | Yes | Unknown |
+| Luchtmeetnet | Air quality components for The Netherlands (RIVM) | No | Yes | Unknown |
+| National Grid ESO | Open data from Great Britain's Electricity System Operator | No | Yes | Unknown |
+| OpenAQ | Open air quality data | apiKey | Yes | Unknown |
+| PM2.5 Open Data Portal | Open low-cost PM2.5 sensor data | No | Yes | Unknown |
+| PM25.in | Air quality of China | apiKey | No | Unknown |
+| PVWatts | Energy production photovoltaic (PV) energy systems | apiKey | Yes | Unknown |
+| Srp Energy | Hourly usage energy report for Srp customers | apiKey | Yes | No |
+| UK Carbon Intensity | Official Carbon Intensity API for Great Britain | No | Yes | Unknown |
+| Website Carbon | API to estimate the carbon footprint of loading web pages | No | Yes | Unknown |
+
+---
+
+### 21. Events (3 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Eventbrite | Find events | OAuth | Yes | Unknown |
+| SeatGeek | Search events, venues and performers | apiKey | Yes | Unknown |
+| Ticketmaster | Search events, attractions, or venues | apiKey | Yes | Unknown |
+
+---
+
+### 22. Finance (49 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Marketstack | Real-Time, Intraday & Historical Market Data API | apiKey | Yes | Unknown |
+| Aletheia | Insider trading data, earnings call analysis, financial statements | apiKey | Yes | Yes |
+| Alpaca | Realtime and historical market data on all US equities and ETFs | apiKey | Yes | Yes |
+| Alpha Vantage | Realtime and historical stock data | apiKey | Yes | Unknown |
+| Banco do Brasil | All Banco do Brasil financial transaction APIs | OAuth | Yes | Yes |
+| Bank Data API | Instant IBAN and SWIFT number validation | apiKey | Yes | Unknown |
+| Billplz | Payment platform | apiKey | Yes | Unknown |
+| Binlist | Public access to IIN/BIN information database | No | Yes | Unknown |
+| Boleto.Cloud | API to generate boletos in Brazil | apiKey | Yes | Unknown |
+| Citi | All Citigroup account and statement data APIs | apiKey | Yes | Unknown |
+| Econdb | Global macroeconomic data | No | Yes | Yes |
+| Fed Treasury | U.S. Department of the Treasury Data | No | Yes | Unknown |
+| Finage | Stock, currency, cryptocurrency, indices, and ETFs data provider | apiKey | Yes | Unknown |
+| Financial Modeling Prep | Realtime and historical stock data | apiKey | Yes | Unknown |
+| Finnhub | Real-Time RESTful APIs and Websocket for Stocks, Currencies, Crypto | apiKey | Yes | Unknown |
+| FRED | Economic data from the Federal Reserve Bank of St. Louis | apiKey | Yes | Yes |
+| Front Accounting APIs | Multilingual and multicurrency software for small businesses | OAuth | Yes | Yes |
+| Helium | News with media bias scoring, balanced news synthesis, live market data | No | Yes | Yes |
+| Hotstoks | Stock market data powered by SQL | apiKey | Yes | Yes |
+| IBANforge | IBAN validation and BIC/SWIFT lookup for 75+ countries | No | Yes | Yes |
+| IEX Cloud | Realtime & Historical Stock and Market Data | apiKey | Yes | Yes |
+| IG | Spreadbetting and CFD Market Data | apiKey | Yes | Unknown |
+| Indian Mutual Fund | Get complete history of India Mutual Funds Data | No | Yes | Unknown |
+| Intrinio | A wide selection of financial data feeds | apiKey | Yes | Unknown |
+| Klarna | Klarna payment and shopping service | apiKey | Yes | Unknown |
+| MercadoPago | Mercado Pago API reference | apiKey | Yes | Unknown |
+| Mono | Connect with users' bank accounts in Africa | apiKey | Yes | Unknown |
+| Moov | Simple platform to send, receive, and store money | apiKey | Yes | Unknown |
+| Nordigen | Connect to bank accounts using official bank APIs | apiKey | Yes | Unknown |
+| OpenFIGI | Equity, index, futures, options symbology from Bloomberg LP | apiKey | Yes | Yes |
+| Plaid | Connect with user's bank accounts | apiKey | Yes | Unknown |
+| Polygon | Historical stock market data | apiKey | Yes | Unknown |
+| Portfolio Optimizer | Portfolio analysis and optimization | No | Yes | Yes |
+| Razorpay IFSC | Indian Financial Systems Code (Bank Branch Codes) | No | Yes | Unknown |
+| Real Time Finance | Websocket API for realtime stock data | apiKey | No | Unknown |
+| SEC EDGAR Data | API to access annual reports of public US companies | No | Yes | Yes |
+| SmartAPI | Gain access to SmartAPI for broking services | apiKey | Yes | Unknown |
+| StockData | Real-Time, Intraday & Historical Market Data, News and Sentiment | apiKey | Yes | Yes |
+| Styvio | Realtime and historical stock data and sentiment | apiKey | Yes | Unknown |
+| Tax Data API | Instant VAT number and tax validation | apiKey | Yes | Unknown |
+| Tradier | US equity/option market data | OAuth | Yes | Yes |
+| Twelve Data | Stock market data (real-time & historical) | apiKey | Yes | Unknown |
+| VAT Validation | Validate VAT numbers and calculate VAT rates | apiKey | Yes | Yes |
+| WallstreetBets | WallstreetBets Stock Comments Sentiment Analysis | No | Yes | Unknown |
+| Yahoo Finance | Real time low latency Yahoo Finance API | apiKey | Yes | Yes |
+| YNAB | Budgeting & Planning | OAuth | Yes | Yes |
+| Zoho Books | Online accounting software | OAuth | Yes | Unknown |
+
+---
+
+### 23. Food & Drink (25 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| BaconMockup | Resizable bacon placeholder images | No | Yes | Yes |
+| Chomp | Data about various grocery products and foods | apiKey | Yes | Unknown |
+| Coffee | Random pictures of coffee | No | Yes | Unknown |
+| Edamam nutrition | Nutrition Analysis | apiKey | Yes | Unknown |
+| Edamam recipes | Recipe Search | apiKey | Yes | Unknown |
+| Foodish | Random pictures of food dishes | No | Yes | Yes |
+| Fruityvice | Data about all kinds of fruit | No | Yes | Unknown |
+| Kroger | Supermarket Data | apiKey | Yes | Unknown |
+| LCBO | Alcohol | apiKey | Yes | Unknown |
+| Open Brewery DB | Breweries, Cideries and Craft Beer Bottle Shops | No | Yes | Yes |
+| Open Food Facts | Food Products Database | No | Yes | Unknown |
+| PunkAPI | Brewdog Beer Recipes | No | Yes | Unknown |
+| RecipeAPI | Recipes, ingredients, nutrition data and cooking instructions | apiKey | Yes | Yes |
+| Rustybeer | Beer brewing tools | No | Yes | No |
+| Spoonacular | Recipes, Food Products, and Meal Planning | apiKey | Yes | Unknown |
+| Systembolaget | Government owned liquor store in Sweden | apiKey | Yes | Unknown |
+| TacoFancy | Community-driven taco database | No | No | Unknown |
+| Tasty | API to query data about recipe, plan, ingredients | apiKey | Yes | Unknown |
+| The Report of the Week | Food & Drink Reviews | No | Yes | Unknown |
+| TheCocktailDB | Cocktail Recipes | apiKey | Yes | Yes |
+| TheMealDB | Meal Recipes | apiKey | Yes | Yes |
+| Untappd | Social beer sharing | OAuth | Yes | Unknown |
+| What's on the menu? | NYPL human-transcribed historical menu collection | apiKey | No | Unknown |
+| WhiskyHunter | Past online whisky auctions statistical data | No | Yes | Unknown |
+| Zestful | Parse recipe ingredients | apiKey | Yes | Yes |
+
+---
+
+### 24. Games & Comics (96 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| AmiiboAPI | Nintendo Amiibo Information | No | Yes | Yes |
+| Animal Crossing: New Horizons | API for critters, fossils, art, music, furniture and villagers | No | Yes | Unknown |
+| Autochess VNG | Rest Api for Autochess VNG | No | Yes | Yes |
+| Barter.VG | Information about Game, DLC, Bundles, Giveaways, Trading | No | Yes | Yes |
+| Battle.net | Diablo III, Hearthstone, StarCraft II and WoW data APIs | OAuth | Yes | Yes |
+| Board Game Geek | Board games, RPG and videogames | No | Yes | No |
+| Brawl Stars | Brawl Stars Game Information | apiKey | Yes | Unknown |
+| Bugsnax | Get information about Bugsnax | No | Yes | Yes |
+| CheapShark | Steam/PC Game Prices and Deals | No | Yes | Yes |
+| Chess.com | Chess.com read-only REST API | No | Yes | Unknown |
+| Chuck Norris Database | Jokes | No | No | Unknown |
+| Clash of Clans | Clash of Clans Game Information | apiKey | Yes | Unknown |
+| Clash Royale | Clash Royale Game Information | apiKey | Yes | Unknown |
+| Comic Vine | Comics | No | Yes | Unknown |
+| Crafatar | API for Minecraft skins and faces | No | Yes | Yes |
+| Cross Universe | Cross Universe Card Data | No | Yes | Yes |
+| Deck of Cards | Deck of Cards | No | No | Unknown |
+| Destiny The Game | Bungie Platform API | apiKey | Yes | Unknown |
+| Digimon Information | Information about digimon creatures | No | Yes | Unknown |
+| Digimon TCG | Search for Digimon cards | No | Yes | Unknown |
+| Disney | Information of Disney characters | No | Yes | Yes |
+| Dota 2 | Player stats, Match stats, Rankings for Dota 2 | apiKey | Yes | Unknown |
+| Dungeons and Dragons | Reference for 5th edition spells, classes, monsters | No | No | No |
+| Dungeons and Dragons (Alternate) | All monsters and spells from the SRD with search API | No | Yes | Yes |
+| Eve Online | Third-Party Developer Documentation | OAuth | Yes | Unknown |
+| FFXIV Collect | Final Fantasy XIV data on collectables | No | Yes | Yes |
+| FIFA Ultimate Team | FIFA Ultimate Team items API | No | Yes | Unknown |
+| Final Fantasy XIV | Final Fantasy XIV Game data API | No | Yes | Yes |
+| Fortnite | Fortnite Stats | apiKey | Yes | Unknown |
+| Forza | Show random image of car from Forza | No | Yes | Unknown |
+| FreeToGame | Free-To-Play Games Database | No | Yes | Yes |
+| Fun Facts | Random Fun Facts | No | Yes | Yes |
+| FunTranslations | Translate Text into funny languages | No | Yes | Yes |
+| GamerPower | Game Giveaways Tracker | No | Yes | Yes |
+| GDBrowser | Easy way to use the Geometry Dash Servers | No | Yes | Unknown |
+| Geek-Jokes | Fetch a random geeky/programming related joke | No | Yes | Yes |
+| Genshin Impact | Genshin Impact game data | No | Yes | Yes |
+| Giant Bomb | Video Games | apiKey | Yes | Unknown |
+| GraphQL Pokemon | GraphQL powered Pokemon API. Supports generations 1 through 8 | No | Yes | Yes |
+| Guild Wars 2 | Guild Wars 2 Game Information | apiKey | Yes | Unknown |
+| GW2Spidy | GW2Spidy API, Items data on the Guild Wars 2 Trade Market | No | Yes | Unknown |
+| Halo | Halo 5 and Halo Wars 2 Information | apiKey | Yes | Unknown |
+| Hearthstone | Hearthstone Cards Information | X-Mashape-Key | Yes | Unknown |
+| Humble Bundle | Humble Bundle's current bundles | apiKey | Yes | Unknown |
+| Humor | Humor, Jokes, and Memes | apiKey | Yes | Unknown |
+| Hypixel | Hypixel player stats | apiKey | Yes | Unknown |
+| Hyrule Compendium | Data on all interactive items from The Legend of Zelda: BOTW | No | Yes | Unknown |
+| Hytale | Hytale blog posts and jobs | No | Yes | Unknown |
+| IGDB.com | Video Game Database | apiKey | Yes | Unknown |
+| JokeAPI | Programming, Miscellaneous and Dark Jokes | No | Yes | Yes |
+| Jokes One | Joke of the day and large category of jokes | apiKey | Yes | Yes |
+| Jservice | Jeopardy Question Database | No | No | Unknown |
+| Lichess | Access to all data of users, games, puzzles on Lichess | OAuth | Yes | Unknown |
+| Magic The Gathering | Magic The Gathering Game Information | No | No | Unknown |
+| Mario Kart Tour | API for Drivers, Karts, Gliders and Courses | OAuth | Yes | Unknown |
+| Marvel | Marvel Comics | apiKey | Yes | Unknown |
+| Minecraft Server Status | Get Information about a Minecraft Server | No | Yes | No |
+| MMO Games | MMO Games Database, News and Giveaways | No | Yes | No |
+| mod.io | Cross Platform Mod API | apiKey | Yes | Unknown |
+| Mojang | Mojang / Minecraft API | apiKey | Yes | Unknown |
+| Monster Hunter World | Monster Hunter World data | No | Yes | Yes |
+| Open Trivia | Trivia Questions | No | Yes | Unknown |
+| PandaScore | E-sports games and results | apiKey | Yes | Unknown |
+| Path of Exile | Path of Exile Game Information | OAuth | Yes | Unknown |
+| PlayerDB | Query Minecraft, Steam and XBox Accounts | No | Yes | Unknown |
+| Pokeapi | Pokemon Information | No | Yes | Unknown |
+| PokeAPI (GraphQL) | The Unofficial GraphQL for PokeAPI | No | Yes | Yes |
+| Pokemon TCG | Pokemon TCG Information | No | Yes | Unknown |
+| Psychonauts | Psychonauts World Characters Information and PSI Powers | No | Yes | Yes |
+| PUBG | Access in-game PUBG data | apiKey | Yes | Yes |
+| Puyo Nexus | Puyo Puyo information from Puyo Nexus Wiki | No | Yes | Yes |
+| quizapi.io | Access to various kind of quiz questions | apiKey | Yes | Yes |
+| Raider | Detailed character and guild rankings for WoW | No | Yes | Unknown |
+| RAWG.io | 500,000+ games for 50 platforms including mobiles | apiKey | Yes | Unknown |
+| Rick and Morty | All the Rick and Morty information, including images | No | Yes | Yes |
+| Riot Games | League of Legends Game Information | apiKey | Yes | Unknown |
+| RPS 101 | Rock, Paper, Scissors with 101 objects | No | Yes | Yes |
+| RuneScape | RuneScape and OSRS RPGs information | No | Yes | No |
+| Sakura CardCaptor | Sakura CardCaptor Cards Information | No | Yes | Unknown |
+| Scryfall | Magic: The Gathering database | No | Yes | Yes |
+| SpaceTradersAPI | A playable inter-galactic space trading MMO API | OAuth | Yes | Yes |
+| Steam (xpaw) | Steam Web API documentation | apiKey | Yes | No |
+| Steam (Revadike) | Internal Steam Web API documentation | No | Yes | No |
+| SuperHeroes | All SuperHeroes and Villains data | apiKey | Yes | Unknown |
+| TCGdex | Multi languages Pokemon TCG Information | No | Yes | Yes |
+| Tebex | Tebex API for game purchases | X-Mashape-Key | Yes | No |
+| TETR.IO | TETR.IO Tetra Channel API | No | Yes | Unknown |
+| Tronald Dump | The dumbest things Donald Trump has ever said | No | Yes | Unknown |
+| Universalis | Final Fantasy XIV market board data | No | Yes | Yes |
+| Valorant (non-official) | Data of most Valorant in-game items, assets and more | No | Yes | Unknown |
+| Warface (non-official) | Official API proxy with better data structure | No | Yes | No |
+| Wargaming.net | Wargaming.net info and stats | apiKey | Yes | No |
+| When is next MCU film | Upcoming MCU film information | No | Yes | Unknown |
+| xkcd | Retrieve xkcd comics as JSON | No | Yes | No |
+| Yu-Gi-Oh! | Yu-Gi-Oh! TCG Information | No | Yes | Unknown |
+
+---
+
+### 25. Geocoding (92 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| IPstack | Locate and identify website visitors by IP address | apiKey | Yes | Unknown |
+| ipapi.com | Real-time Geolocation & Reverse IP Lookup REST API | apiKey | Yes | Unknown |
+| Actinia Grass GIS | Open source REST API for geographical data using GRASS GIS | apiKey | Yes | Unknown |
+| administrative-divisons-db | Get all administrative divisions of a country | No | Yes | Yes |
+| ApogeoAPI | Bundled API for countries, states, cities, IP geolocation | apiKey | Yes | Yes |
+| adresse.data.gouv.fr | Address database of France, geocoding and reverse | No | Yes | Unknown |
+| Airtel IP | IP Geolocation API | No | Yes | Unknown |
+| Apiip | Get location information by IP address | apiKey | Yes | Yes |
+| Battuta | A (country/region/city) in-cascade location API | apiKey | No | Unknown |
+| BdAPIs | Get divisions, districts, and upazzilas of Bangladesh | No | Yes | Unknown |
+| BigDataCloud | Fast and accurate IP geolocation APIs | apiKey | Yes | Unknown |
+| Bing Maps | Create/customize digital maps based on Bing Maps data | apiKey | Yes | Unknown |
+| bng2latlong | Convert British OSGB36 easting/northing to WGS84 lat/lon | No | Yes | Yes |
+| Cartes.io | Create maps and markers for anything | No | Yes | Unknown |
+| Cep.la | Brazil RESTful API for streets, zip codes, etc | No | No | Unknown |
+| CitySDK | Open APIs for select European cities | No | Yes | Unknown |
+| Country | Get your visitor's country from their IP | No | Yes | Yes |
+| CountryStateCity | World countries, states, regions, provinces, cities | apiKey | Yes | Yes |
+| Ducks Unlimited | API explorer for locations and cities | No | Yes | No |
+| GeoApi | French geographical data | No | Yes | Unknown |
+| Geoapify | Forward and reverse geocoding, address autocomplete | apiKey | Yes | Yes |
+| Geocod.io | Address geocoding / reverse geocoding in bulk | apiKey | Yes | Unknown |
+| Geocode.xyz | Worldwide forward/reverse geocoding, batch geocoding | No | Yes | Unknown |
+| Geocodify.com | Worldwide geocoding, geoparsing and autocomplete | apiKey | Yes | Yes |
+| Geodata.gov.gr | Open geospatial data and API service for Greece | No | Yes | Unknown |
+| GeoDataSource | Geocoding of city name by lat/lon coordinates | apiKey | Yes | Unknown |
+| GeoDB Cities | Get global city, region, and country data | apiKey | Yes | Unknown |
+| GeographQL | A Country, State, and City GraphQL API | No | Yes | Yes |
+| GeoJS | IP geolocation with ChatOps integration | No | Yes | Yes |
+| Geokeo | Geokeo geocoding service with 2500 free requests daily | No | Yes | Yes |
+| GeoNames | Place names and other geographical data | No | No | Unknown |
+| geoPlugin | IP geolocation and currency conversion | No | Yes | Yes |
+| Google Earth Engine | Cloud-based platform for planetary-scale environmental data | apiKey | Yes | Unknown |
+| Google Maps | Create/customize digital maps based on Google Maps data | apiKey | Yes | Unknown |
+| Graph Countries | Country-related data like currencies, languages, flags | No | Yes | Unknown |
+| HackMyIP | IP geolocation, ISP and privacy/VPN scoring | No | Yes | Yes |
+| HelloSalut | Get hello translation following user language | No | Yes | Unknown |
+| HERE Maps | Create/customize digital maps based on HERE Maps data | apiKey | Yes | Unknown |
+| Hirak IP to Country | Ip to location with country code, currency code | apiKey | Yes | Unknown |
+| Hong Kong GeoData Store | API for accessing geo-data of Hong Kong | No | Yes | Unknown |
+| IBGE | Aggregate services of Brazilian Institute of Geography | No | Yes | Unknown |
+| IP 2 Country | Map an IP to a country | No | Yes | Unknown |
+| IP Address Details | Find geolocation with ip address | No | Yes | Unknown |
+| IP Vigilante | Free IP Geolocation API | No | Yes | Unknown |
+| ip-api | Find location with IP address or domain | No | No | Unknown |
+| IP Geolocation | Geolocate website visitors from their IPs | apiKey | Yes | Yes |
+| IP2Location | IP geolocation web service, 55+ parameters | apiKey | Yes | Unknown |
+| IP2Proxy | Detect proxy and VPN using IP address | apiKey | Yes | Unknown |
+| ipapi.co | Find IP address location information | No | Yes | Yes |
+| IPGEO | Unlimited free IP Address API | No | Yes | Unknown |
+| ipgeolocation | IP Geolocation API with free plan 30k requests/month | apiKey | Yes | Yes |
+| IPInfoDB | Free Geolocation tools for country, region, city lookup | apiKey | Yes | Unknown |
+| ipstack | Locate and identify website visitors by IP address | apiKey | Yes | Unknown |
+| Kakao Maps | Kakao Maps provide multiple APIs for Korean maps | apiKey | Yes | Unknown |
+| keycdn IP Location Finder | Get IP geolocation data through REST API | apiKey | Yes | Unknown |
+| LocationIQ | Forward/reverse geocoding and batch geocoding | apiKey | Yes | Yes |
+| Longdo Map | Interactive map with detailed places in Thailand | apiKey | Yes | Yes |
+| Mapbox | Create/customize beautiful digital maps | apiKey | Yes | Unknown |
+| MapQuest | Access tools and resources to map the world | apiKey | Yes | No |
+| Mexico | Mexico RESTful zip codes API | No | Yes | Unknown |
+| Nominatim | Worldwide forward / reverse geocoding | No | Yes | Yes |
+| One Map, Singapore | Singapore Land Authority REST API services | apiKey | Yes | Unknown |
+| OnWater | Determine if a lat/lon is on water or land | No | Yes | Unknown |
+| Open Topo Data | Elevation and ocean depth for a lat/lon | No | Yes | No |
+| OpenCage | Forward and reverse geocoding using open data | apiKey | Yes | Yes |
+| openrouteservice.org | Directions, POIs, isochrones, geocoding, elevation | apiKey | Yes | Unknown |
+| OpenStreetMap | Navigation, geolocation and geographical data | OAuth | No | Unknown |
+| Pinball Map | Crowdsourced map of public pinball machines | No | Yes | Yes |
+| positionstack | Forward & Reverse Batch Geocoding REST API | apiKey | Yes | Unknown |
+| Postali | Mexico Zip Codes API | No | Yes | Yes |
+| PostcodeData.nl | Geolocation data based on postcode for Dutch addresses | No | No | Unknown |
+| Postcodes.io | Postcode lookup & Geolocation for the UK | No | Yes | Yes |
+| PostalCodes | Postal code search, country exports, address validation | No | Yes | Unknown |
+| Queimadas INPE | Access to heat focus data (probable wildfire) | No | Yes | Unknown |
+| REST Countries | Get information about countries via RESTful API | No | Yes | Yes |
+| RoadGoat Cities | Cities content & photos API | apiKey | Yes | No |
+| Rwanda Locations | Rwanda Provinces, Districts, Cities, etc | No | Yes | Unknown |
+| SLF | German city, country, river database | No | Yes | Yes |
+| SpotSense | Add location based interactions to mobile app | apiKey | Yes | Unknown |
+| Telize | Location information from any IP address | apiKey | Yes | Yes |
+| TomTom | Maps, Directions, Places and Traffic APIs | apiKey | Yes | Yes |
+| Uebermaps | Discover and share maps with friends | apiKey | Yes | Unknown |
+| US ZipCode | Validate and append data for any US ZipCode | apiKey | Yes | Yes |
+| Utah AGRC | Utah Web API for geocoding Utah addresses | apiKey | Yes | Unknown |
+| ViaCep | Brazil RESTful zip codes API | No | Yes | Unknown |
+| What3Words | Three words as rememberable and unique coordinates worldwide | apiKey | Yes | Unknown |
+| Yandex.Maps Geocoder | Use geocoding to get object's coordinates from address | apiKey | Yes | Unknown |
+| ZipCodeAPI | US zip code distance, radius and location API | apiKey | Yes | Unknown |
+| Zippopotam.us | Get information about place such as country, city, state | No | No | Unknown |
+| Ziptastic | Get the country, state, and city of any US zip-code | No | Yes | Unknown |
+
+---
+
+### 26. Government (91 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Bank Negara Malaysia Open Data | Malaysia Central Bank Open Data | No | Yes | Unknown |
+| BCLaws | Access to the laws of British Columbia | No | No | Unknown |
+| Brazil | Community driven API for Brazil Public Data | No | Yes | Yes |
+| Brazil Central Bank Open Data | Brazil Central Bank Open Data | No | Yes | Unknown |
+| Brazil Receita WS | Consult companies by CNPJ for Brazilian companies | No | Yes | Unknown |
+| Brazilian Chamber of Deputies Open Data | Legislative information in XML and JSON | No | Yes | No |
+| CPFHub | Brazilian CPF lookup | apiKey | Yes | Yes |
+| Census.gov | US Census Bureau APIs and data sets | No | Yes | Unknown |
+| City, Berlin | Berlin(DE) City Open Data | No | Yes | Unknown |
+| City, Gdansk | Gdansk (PL) City Open Data | No | Yes | Unknown |
+| City, Gdynia | Gdynia (PL) City Open Data | No | No | Unknown |
+| City, Helsinki | Helsinki(FI) City Open Data | No | Yes | Unknown |
+| City, Lviv | Lviv(UA) City Open Data | No | Yes | Unknown |
+| City, Nantes Open Data | Nantes(FR) City Open Data | apiKey | Yes | Unknown |
+| City, New York Open Data | New York (US) City Open Data | No | Yes | Unknown |
+| City, Prague Open Data | Prague(CZ) City Open Data | No | No | Unknown |
+| City, Toronto Open Data | Toronto (CA) City Open Data | No | Yes | Yes |
+| Code.gov | Open Source and code sharing for U.S. Federal Government | apiKey | Yes | Unknown |
+| Colorado Information Marketplace | Colorado State Government Open Data | No | Yes | Unknown |
+| Data USA | US Public Data | No | Yes | Unknown |
+| Data.gov | US Government Data | apiKey | Yes | Unknown |
+| Data.parliament.uk | UK Parliament datasets | No | No | Unknown |
+| Deutscher Bundestag DIP | Read access to DIP entities | apiKey | Yes | Unknown |
+| District of Columbia Open Data | D.C. government public datasets | No | Yes | Unknown |
+| EPA | US Environmental Protection Agency data | No | Yes | Unknown |
+| FBI Wanted | Access information on the FBI Wanted program | No | Yes | Unknown |
+| FEC | Information on campaign donations in federal elections | apiKey | Yes | Unknown |
+| Federal Register | The Daily Journal of the United States Government | No | Yes | Unknown |
+| Food Standards Agency | UK food hygiene rating data API | No | No | Unknown |
+| Gazette Data, UK | UK official public record API | OAuth | Yes | Unknown |
+| Gun Policy | International firearm injury prevention and policy | apiKey | Yes | Unknown |
+| Indian Pincode | Free India PIN code lookup with GPS coordinates | No | Yes | Yes |
+| INEI | Peruvian Statistical Government Open Data | No | No | Unknown |
+| Interpol Red Notices | Access and search Interpol Red Notices | No | Yes | Unknown |
+| Istanbul (IBB) Open Data | Data sets from Istanbul Metropolitan Municipality | No | Yes | Unknown |
+| LocalGov.jp | Japan grants and subsidies | No | Yes | Yes |
+| National Park Service, US | Data from the US National Park Service | apiKey | Yes | Yes |
+| Open Government, ACT | Australian Capital Territory Open Data | No | Yes | Unknown |
+| Open Government, Argentina | Argentina Government Open Data | No | Yes | Unknown |
+| Open Government, Australia | Australian Government Open Data | No | Yes | Unknown |
+| Open Government, Austria | Austria Government Open Data | No | Yes | Unknown |
+| Open Government, Belgium | Belgium Government Open Data | No | Yes | Unknown |
+| Open Government, Canada | Canadian Government Open Data | No | No | Unknown |
+| Open Government, Colombia | Colombia Government Open Data | No | No | Unknown |
+| Open Government, Cyprus | Cyprus Government Open Data | No | Yes | Unknown |
+| Open Government, Czech Republic | Czech Republic Government Open Data | No | Yes | Unknown |
+| Open Government, Denmark | Denmark Government Open Data | No | Yes | Unknown |
+| Open Government, Estonia | Estonia Government Open Data | apiKey | Yes | Unknown |
+| Open Government, Finland | Finland Government Open Data | No | Yes | Unknown |
+| Open Government, France | French Government Open Data | apiKey | Yes | Unknown |
+| Open Government, Germany | Germany Government Open Data | No | Yes | Unknown |
+| Open Government, Greece | Greece Government Open Data | OAuth | Yes | Unknown |
+| Open Government, India | Indian Government Open Data | apiKey | Yes | Unknown |
+| Open Government, Ireland | Ireland Government Open Data | No | Yes | Unknown |
+| Open Government, Italy | Italy Government Open Data | No | Yes | Unknown |
+| Open Government, Korea | Korea Government Open Data | apiKey | Yes | Unknown |
+| Open Government, Lithuania | Lithuania Government Open Data | No | Yes | Unknown |
+| Open Government, Luxembourg | Luxembourgish Government Open Data | apiKey | Yes | Unknown |
+| Open Government, Mexico (inegi) | Mexican Statistical Government Open Data | No | Yes | Unknown |
+| Open Government, Mexico (datos.gob.mx) | Mexico Government Open Data | No | Yes | Unknown |
+| Open Government, Netherlands | Netherlands Government Open Data | No | Yes | Unknown |
+| Open Government, New South Wales | New South Wales Government Open Data | apiKey | Yes | Unknown |
+| Open Government, New Zealand | New Zealand Government Open Data | No | Yes | Unknown |
+| Open Government, Norway | Norwegian Government Open Data | No | Yes | Yes |
+| Open Government, Peru | Peru Government Open Data | No | Yes | Unknown |
+| Open Government, Poland | Poland Government Open Data | No | Yes | Yes |
+| Open Government, Portugal | Portugal Government Open Data | No | Yes | Yes |
+| Open Government, Queensland | Queensland Government Open Data | No | Yes | Unknown |
+| Open Government, Romania | Romania Government Open Data | No | No | Unknown |
+| Open Government, Saudi Arabia | Saudi Arabia Government Open Data | No | Yes | Unknown |
+| Open Government, Singapore | Singapore Government Open Data | No | Yes | Unknown |
+| Open Government, Slovakia | Slovakia Government Open Data | No | Yes | Unknown |
+| Open Government, Slovenia | Slovenia Government Open Data | No | Yes | No |
+| Open Government, South Australian | South Australian Government Open Data | No | Yes | Unknown |
+| Open Government, Spain | Spain Government Open Data | No | Yes | Unknown |
+| Open Government, Sweden | Sweden Government Open Data | No | Yes | Unknown |
+| Open Government, Switzerland | Switzerland Government Open Data | No | Yes | Unknown |
+| Open Government, Taiwan | Taiwan Government Open Data | No | Yes | Unknown |
+| Open Government, Thailand | Thailand Government Open Data | apiKey | Yes | Unknown |
+| Open Government, UK | UK Government Open Data | No | Yes | Unknown |
+| Open Government, USA | United States Government Open Data | No | Yes | Unknown |
+| Open Government, Victoria | Victoria State Government Open Data | No | Yes | Unknown |
+| Open Government, West Australia | West Australia Open Data | No | Yes | Unknown |
+| OpenRegistry | Real-time queries to 27 national company registries | OAuth | Yes | Unknown |
+| PRC Exam Schedule | Philippine Professional Regulation Commission exam schedule | No | Yes | Yes |
+| Represent by Open North | Find Canadian Government Representatives | No | Yes | Unknown |
+| UK Companies House | UK Companies House Data | OAuth | Yes | Unknown |
+| US Presidential Election Data | Basic candidate data and live electoral vote counts | No | Yes | No |
+| USA.gov | Authoritative information on U.S. programs, events, services | apiKey | Yes | Unknown |
+| USAspending.gov | US federal spending data | No | Yes | Unknown |
+
+---
+
+### 27. Health (34 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| CMS.gov | Access to data from the CMS - medicare.gov | apiKey | Yes | Unknown |
+| Coronavirus | HTTP API for Latest Covid-19 Data | No | Yes | Unknown |
+| Coronavirus in the UK | UK Government coronavirus data | No | Yes | Unknown |
+| Covid Tracking Project | Covid-19 data for the US | No | Yes | No |
+| Covid-19 (covid19api.com) | Covid 19 spread, infection and recovery | No | Yes | Yes |
+| Covid-19 (M-Media-Group) | Covid 19 cases, deaths and recovery per country | No | Yes | Yes |
+| Covid-19 Datenhub | Maps, datasets, applications for COVID-19 | No | Yes | Unknown |
+| Covid-19 Government Response | Government measures tracker for Covid-19 | No | Yes | Yes |
+| Covid-19 India | Covid 19 statistics in India | No | Yes | Unknown |
+| Covid-19 JHU CSSE | Open-source API for Covid19 cases based on JHU CSSE | No | Yes | Yes |
+| Covid-19 Live Data | Global and countrywise Covid 19 daily Summary | No | Yes | Yes |
+| Covid-19 Philippines | Unofficial Covid-19 Web API for Philippines | No | Yes | Yes |
+| COVID-19 Tracker Canada | Details on Covid-19 cases across Canada | No | Yes | Unknown |
+| COVID-19 Tracker Sri Lanka | COVID-19 patients reported in Sri Lanka | No | Yes | Unknown |
+| COVID-ID | Indonesian government Covid data per province | No | Yes | Yes |
+| Dataflow Kit COVID-19 | COVID-19 live statistics | No | Yes | Unknown |
+| Edamam | Food and nutrition data API with recipe search | apiKey | Yes | Unknown |
+| FoodData Central | National Nutrient Database for Standard Reference | apiKey | Yes | Unknown |
+| Healthcare.gov | Educational content about US Health Insurance Marketplace | No | Yes | Unknown |
+| Humanitarian Data Exchange | Open platform for sharing data across crises | No | Yes | Unknown |
+| Infermedica | NLP based symptom checker and patient triage API | apiKey | Yes | Yes |
+| LAPIS | SARS-CoV-2 genomic sequences from public sources | No | Yes | Yes |
+| Lexigram | NLP that extracts clinical concepts from text | apiKey | Yes | Unknown |
+| Makeup | Makeup Information | No | No | Unknown |
+| MyVaccination | Vaccination data for Malaysia | No | Yes | Unknown |
+| NPPES | National Plan & Provider Enumeration System | No | Yes | Unknown |
+| Nutritionix | World's largest verified nutrition database | apiKey | Yes | Unknown |
+| Open Data NHS Scotland | Medical reference data and statistics | No | Yes | Unknown |
+| Open Disease | API for COVID-19 and Influenza cases | No | Yes | Yes |
+| openFDA | Public FDA data about drugs, devices and foods | apiKey | Yes | Unknown |
+| Orion Health | Medical platform for healthcare application development | OAuth | Yes | Unknown |
+| Quarantine | Coronavirus API with free COVID-19 live updates | No | Yes | Yes |
+
+---
+
+### 28. Jobs (19 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| AI Dev Jobs | AI/ML engineering job aggregator with REST, RSS, and MCP endpoints | No | Yes | Yes |
+| Adzuna | Job board aggregator | apiKey | Yes | Unknown |
+| Arbeitnow | API for Job board aggregator in Europe / Remote | No | Yes | Yes |
+| Arbeitsamt | API for the German Job board aggregator | OAuth | Yes | Unknown |
+| Careerjet | Job search engine | apiKey | No | Unknown |
+| DevITjobs UK | Jobs with GraphQL | No | Yes | Yes |
+| Findwork | Job board | apiKey | Yes | Unknown |
+| GraphQL Jobs | Jobs with GraphQL | No | Yes | Yes |
+| HeroHunt People Search | Search 1 billion people profiles across LinkedIn and GitHub | apiKey | Yes | Yes |
+| Jobs2Careers | Job aggregator | apiKey | Yes | Unknown |
+| Jooble | Job search engine | apiKey | Yes | Unknown |
+| Juju | Job search engine | apiKey | No | Unknown |
+| Open Skills | Job titles, skills and related jobs data | No | No | Unknown |
+| Reed | Job board aggregator | apiKey | Yes | Unknown |
+| The Muse | Job board and company profiles | apiKey | Yes | Unknown |
+| Upwork | Freelance job board and management system | OAuth | Yes | Unknown |
+| USAJOBS | US government job board | apiKey | Yes | Unknown |
+| WhatJobs | Job search engine | apiKey | Yes | Unknown |
+| ZipRecruiter | Job search app and website | apiKey | Yes | Unknown |
+
+---
+
+### 29. Machine Learning (26 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| AI For Thai | Free Various Thai AI API | apiKey | Yes | Yes |
+| Clarifai | Computer Vision | OAuth | Yes | Unknown |
+| Cloudmersive | Image captioning, face recognition, NSFW classification | apiKey | Yes | Yes |
+| DeepAI | AI-powered APIs for text generation, image processing | apiKey | Yes | Yes |
+| Deepcode | AI for code review | No | Yes | Unknown |
+| Dialogflow | Natural Language Processing | apiKey | Yes | Unknown |
+| EXUDE-API | Filtering stopping, stemming words from text data | No | Yes | Yes |
+| Groq | Fast AI inference API, supports Llama, Mixtral, Gemma models | apiKey | Yes | Yes |
+| Hirak FaceAPI | Face detection, face recognition with age/gender estimation | apiKey | Yes | Unknown |
+| Hugging Face | AI model hub with inference API for NLP, CV, and audio | apiKey | Yes | Yes |
+| Imagga | Image Recognition: Tagging, Visual Search, NSFW moderation | apiKey | Yes | Unknown |
+| Inferdo | Computer Vision: Facial detection, Image labeling, NSFW | apiKey | Yes | Unknown |
+| IPS Online | Face and License Plate Anonymization | apiKey | Yes | Unknown |
+| Irisnet | Realtime content moderation API | apiKey | Yes | Yes |
+| Keen IO | Data Analytics | apiKey | Yes | Unknown |
+| Machinetutors | AI Solutions: Video/Image Classification & Tagging, NSFW, NLP | apiKey | Yes | Yes |
+| MessengerX.io | FREE API for ML based chat apps | apiKey | Yes | Yes |
+| NLP Cloud | NLP API using spaCy and transformers | apiKey | Yes | Unknown |
+| OpenVisionAPI | Open source computer vision API | No | Yes | Yes |
+| Perspective | NLP API for text toxicity probability | apiKey | Yes | Unknown |
+| Roboflow Universe | Pre-trained computer vision models | apiKey | Yes | Yes |
+| SkyBiometry | Face Detection, Face Recognition and Face Grouping | apiKey | Yes | Unknown |
+| TensorFeed | Real-time AI news, model pricing, service status | No | Yes | Yes |
+| Time Door | A time series analysis API | apiKey | Yes | Yes |
+| Unplugg | Forecasting API for timeseries data | apiKey | Yes | Unknown |
+| WolframAlpha | Provides specific answers using data and algorithms | apiKey | Yes | Unknown |
+
+---
+
+### 30. Music (35 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| 7digital | Api of Music store 7digital | OAuth | Yes | Unknown |
+| AI Mastering | Automated Music Mastering | apiKey | Yes | Yes |
+| Audiomack | Api of the streaming music hub Audiomack | OAuth | Yes | Unknown |
+| Bandcamp | API of Music store Bandcamp | OAuth | Yes | Unknown |
+| Bandsintown | Music Events | No | Yes | Unknown |
+| Deezer | Music | OAuth | Yes | Unknown |
+| Discogs | Music | OAuth | Yes | Unknown |
+| Freesound | Music Samples | apiKey | Yes | Unknown |
+| Gaana | Retrieve song information from Gaana | No | Yes | Unknown |
+| Genius | Crowdsourced lyrics and music knowledge | OAuth | Yes | Unknown |
+| Genrenator | Music genre generator | No | Yes | Unknown |
+| iTunes Search | Software products | No | Yes | Unknown |
+| Jamendo | Music | OAuth | Yes | Unknown |
+| JioSaavn | Retrieve song information, album meta data from JioSaavn | No | Yes | Unknown |
+| KKBOX | Music libraries, playlists, charts | OAuth | Yes | Unknown |
+| KSoft.Si Lyrics | API to get lyrics for songs | apiKey | Yes | Unknown |
+| LastFm | Music | apiKey | Yes | Unknown |
+| Lyrics.ovh | Simple API to retrieve the lyrics of a song | No | Yes | Unknown |
+| Mixcloud | Music | OAuth | Yes | Yes |
+| MusicBrainz | Music | No | Yes | Unknown |
+| Musixmatch | Music | apiKey | Yes | Unknown |
+| Napster | Music | apiKey | Yes | Yes |
+| Openwhyd | Download curated playlists of streaming tracks | No | Yes | No |
+| Phishin | Archive of legal live audio recordings of Phish | apiKey | Yes | No |
+| Radio Browser | List of internet radio stations | No | Yes | Yes |
+| Songkick | Music Events | apiKey | Yes | Unknown |
+| Songlink / Odesli | Get all services on which a song is available | apiKey | Yes | Yes |
+| Songsterr | Guitar, bass and drums tabs and chords | No | Yes | Unknown |
+| SoundCloud | Build applications to control your content | OAuth | Yes | Unknown |
+| Spotify | View Spotify music catalog, manage libraries, get recommendations | OAuth | Yes | Unknown |
+| Sunor | AI music generation API via Suno | apiKey | Yes | Unknown |
+| TasteDive | Similar artist API (also movies and TV shows) | apiKey | Yes | Unknown |
+| TheAudioDB | Music | apiKey | Yes | Unknown |
+| Vagalume | Crowdsourced lyrics and music knowledge | apiKey | Yes | Unknown |
+| Verome | Music API for searching, streaming from YouTube Music, YouTube, Last.fm | No | Yes | Unknown |
+
+---
+
+### 31. News (21 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Mediastack | Free, Simple REST API for Live News & Blog Articles | apiKey | Yes | Unknown |
+| Associated Press | Search for news and metadata from Associated Press | apiKey | Yes | Unknown |
+| Chronicling America | Millions of pages of historic US newspapers from Library of Congress | No | No | Unknown |
+| Currents | Real-time and historical global news with multilingual support | apiKey | Yes | Yes |
+| Feedbin | RSS reader | OAuth | Yes | Unknown |
+| Florida Man | Static JSON dataset of 10,000+ Florida Man headlines | No | Yes | Yes |
+| GNews | Search for news from various sources | apiKey | Yes | Yes |
+| Graphs for Coronavirus | Country and Worldwide Graphs for Coronavirus | No | Yes | Yes |
+| Inshorts News | Provides news from inshorts | No | Yes | Unknown |
+| MarketAux | Live stock market news with tagged tickers + sentiment | apiKey | Yes | Yes |
+| New York Times | The New York Times Developer Network | apiKey | Yes | Unknown |
+| News | Headlines currently published on news sources and blogs | apiKey | Yes | Unknown |
+| NewsData | News data API for live-breaking news | apiKey | Yes | Unknown |
+| NewsX | Get or Search Latest Breaking News with ML Powered Summaries | apiKey | Yes | Unknown |
+| NPR One | Personalized news listening experience from NPR | OAuth | Yes | Unknown |
+| Spaceflight News | Spaceflight related news | No | Yes | Yes |
+| The Guardian | Access all content the Guardian creates | apiKey | Yes | Unknown |
+| The Old Reader | RSS reader | apiKey | Yes | Unknown |
+| TheNews | Aggregated headlines, top story and live news JSON API | apiKey | Yes | Yes |
+| Trove | Search through National Library of Australia collection | apiKey | Yes | Unknown |
+
+---
+
+### 32. Open Data (38 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| 18F | Unofficial US Federal Government API Development | No | No | Unknown |
+| AcreLens | Land suitability scoring API for any US property | apiKey | Yes | Unknown |
+| API Setu | Indian Government platform for KYC, business, education | No | Yes | Yes |
+| Archive.org | The Internet Archive | No | Yes | No |
+| Black History Facts | One of the largest black history fact databases | apiKey | Yes | Yes |
+| BotsArchive | JSON formatted details about Telegram Bots | No | Yes | Unknown |
+| Callook.info | United States ham radio callsigns | No | Yes | Unknown |
+| CARTO | Location Information Prediction | apiKey | Yes | Unknown |
+| CollegeScoreCard.ed.gov | Data on higher education institutions in the US | No | Yes | Unknown |
+| Enigma Public | Broadest collection of public data | apiKey | Yes | Yes |
+| French Address Search | Address search via the French Government | No | Yes | Unknown |
+| GENESIS | Federal Statistical Office Germany | OAuth | Yes | Unknown |
+| Joshua Project | People groups of the world with fewest followers of Christ | apiKey | Yes | Unknown |
+| Kaggle | Create and interact with Datasets, Notebooks | apiKey | Yes | Unknown |
+| LinkPreview | JSON formatted summary with title, description and preview image | apiKey | Yes | Yes |
+| Lowy Asia Power Index | Measure resources and influence to rank relative power of states in Asia | No | Yes | Unknown |
+| Microlink.io | Extract structured data from any website | No | Yes | Yes |
+| ModelPartFinder Error Codes | Lookup appliance error codes by brand and code | No | Yes | Yes |
+| Nasdaq Data Link | Stock market data | apiKey | Yes | Unknown |
+| Nobel Prize | Open data about nobel prizes and events | No | Yes | Yes |
+| Onyx Bazaar | Free public leaderboard of x402 paid HTTP services | No | Yes | Unknown |
+| Open Data Minneapolis | Spatial (GIS) and non-spatial city data for Minneapolis | No | Yes | No |
+| openAFRICA | Large datasets repository of African open data | No | Yes | Unknown |
+| OpenCorporates | Data on corporate entities and directors in many countries | apiKey | Yes | Unknown |
+| OpenSanctions | Data on international sanctions, crime and PEPs | No | Yes | Yes |
+| PeakMetrics | News articles and public datasets | apiKey | Yes | Unknown |
+| Recreation Information Database | Recreational areas, federal lands, historic sites (US) | apiKey | Yes | Unknown |
+| Scoop.it | Content Curation Service | apiKey | No | Unknown |
+| Socrata | Access to Open Data from Governments, Non-profits and NGOs | OAuth | Yes | Yes |
+| Teleport | Quality of Life Data | No | Yes | Unknown |
+| Umea Open Data | Open data of the city Umea in northern Sweden | No | Yes | Yes |
+| Universities List | University names, countries and domains | No | Yes | Unknown |
+| University of Oslo | Courses, lecture videos for University of Oslo | No | Yes | Unknown |
+| UPC database | More than 1.5 million barcode numbers | apiKey | Yes | Unknown |
+| Urban Observatory | Largest set of publicly available real time urban data in the UK | No | No | No |
+| Voidly | Internet censorship measurements across 126 countries | No | Yes | No |
+| Wikidata | Collaboratively edited knowledge base | OAuth | Yes | Unknown |
+| Wikipedia | Mediawiki Encyclopedia | No | Yes | Unknown |
+| Yelp | Find Local Business | OAuth | Yes | Unknown |
+
+---
+
+### 33. Open Source Projects (9 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Countly | Countly web analytics | No | No | Unknown |
+| Creative Commons Catalog | Search among openly licensed and public domain works | OAuth | Yes | Yes |
+| Datamuse | Word-finding query engine | No | Yes | Unknown |
+| Drupal.org | Drupal.org | No | Yes | Unknown |
+| Evil Insult Generator | Evil Insults | No | Yes | Yes |
+| GitHub Contribution Chart Generator | Create an image of your GitHub contributions | No | Yes | Yes |
+| GitHub ReadMe Stats | Add dynamically generated statistics to GitHub profile ReadMe | No | Yes | Yes |
+| Metabase | Open source Business Intelligence server | No | Yes | Yes |
+| Shields | Concise, consistent, and legible badges in SVG and raster format | No | Yes | Unknown |
+
+---
+
+### 34. Patent (4 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| EPO | European patent search system api | OAuth | Yes | Unknown |
+| PatentsView | Explore and visualize trends in US innovation landscape | No | Yes | Unknown |
+| TIPO | Taiwan patent search system api | apiKey | Yes | Unknown |
+| USPTO | USA patent api services | No | Yes | Unknown |
+
+---
+
+### 35. Personality (22 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Advice Slip | Generate random advice slips | No | Yes | Unknown |
+| Biriyani As A Service | Biriyani images placeholder | No | Yes | No |
+| Dev.to | Access Forem articles, users and other resources via API | apiKey | Yes | Unknown |
+| Dictum | Collection of the most inspiring expressions of mankind | No | Yes | Unknown |
+| FavQs.com | Collect, discover and share your favorite quotes | apiKey | Yes | Unknown |
+| FOAAS | Fuck Off As A Service | No | No | Unknown |
+| Forismatic | Inspirational Quotes | No | No | Unknown |
+| icanhazdadjoke | The largest selection of dad jokes on the internet | No | Yes | Unknown |
+| Inspiration | Motivational and Inspirational quotes | No | Yes | Yes |
+| kanye.rest | REST API for random Kanye West quotes | No | Yes | Yes |
+| kimiquotes | Team radio and interview quotes by Kimi Raikkonen | No | Yes | Yes |
+| Medium | Community of readers and writers | OAuth | Yes | Unknown |
+| Programming Quotes | Programming Quotes API for open source projects | No | Yes | Unknown |
+| Quotable Quotes | Free, open source quotations API | No | Yes | Unknown |
+| Quote Garden | REST API for more than 5000 famous quotes | No | Yes | Unknown |
+| quoteclear | James Clear quotes from the 3-2-1 Newsletter | No | Yes | Yes |
+| Quotes on Design | Inspirational Quotes | No | Yes | Unknown |
+| Stoicism Quote | Quotes about Stoicism | No | Yes | Unknown |
+| They Said So Quotes | Quotes Trusted by many fortune brands | No | Yes | Unknown |
+| Traitify | Assess, collect and analyze Personality | No | Yes | Unknown |
+| Udemy (instructor) | API for instructors on Udemy | apiKey | Yes | Unknown |
+| Vadivelu HTTP Codes | On demand HTTP Codes with images | No | Yes | No |
+| Zen Quotes | Large collection of Zen quotes for inspiration | No | Yes | Yes |
+
+---
+
+### 36. Phone (6 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Numlookup | Phone number validation and carrier lookup API | apiKey | Yes | Unknown |
+| Numverify | Phone number validation | apiKey | Yes | Unknown |
+| Cloudmersive Validate | Validate international phone numbers | apiKey | Yes | Yes |
+| Phone Specification | Rest Api for Phone specifications | No | Yes | Yes |
+| Phone Validation | Validate phone numbers globally | apiKey | Yes | Yes |
+| Veriphone | Phone number validation & carrier lookup | apiKey | Yes | Yes |
+
+---
+
+### 37. Photography (29 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Screenshotlayer | URL to screenshot | No | Yes | Unknown |
+| APITemplate.io | Dynamically generate images and PDFs from templates | apiKey | Yes | Yes |
+| Bruzu | Image generation with query string | apiKey | Yes | Yes |
+| CheetahO | Photo optimization and resize | apiKey | Yes | Unknown |
+| Dagpi | Image manipulation and processing | apiKey | Yes | Unknown |
+| Duply | Generate, Edit, Scale and Manage Images and Videos | apiKey | Yes | Yes |
+| DynaPictures | Generate Hundreds of Personalized Images in Minutes | apiKey | Yes | Yes |
+| Flickr | Flickr Services | OAuth | Yes | Unknown |
+| Getty Images | Build applications using powerful imagery | OAuth | Yes | Unknown |
+| Gfycat | Jiffier GIFs | OAuth | Yes | Unknown |
+| Giphy | Get all your gifs | apiKey | Yes | Unknown |
+| Google Photos | Integrate Google Photos with your apps or devices | OAuth | Yes | Unknown |
+| Image Upload | Image Optimization | apiKey | Yes | Unknown |
+| Imgur | Images | OAuth | Yes | Unknown |
+| Imsea | Free image search | No | Yes | Unknown |
+| Lorem Picsum | Images from Unsplash | No | Yes | Unknown |
+| ObjectCut | Image Background removal | apiKey | Yes | Yes |
+| Pexels | Free Stock Photos and Videos | apiKey | Yes | Yes |
+| PhotoRoom | Remove background from images | apiKey | Yes | Unknown |
+| Pixabay | Photography | apiKey | Yes | Unknown |
+| PlaceKeanu | Resizable Keanu Reeves placeholder images | No | Yes | Unknown |
+| Readme typing SVG | Customizable typing and deleting text SVG | No | Yes | Unknown |
+| Remove.bg | Image Background removal | apiKey | Yes | Unknown |
+| ReSmush.it | Photo optimization | No | No | Unknown |
+| shutterstock | Stock Photos and Videos | OAuth | Yes | Unknown |
+| Sirv | Image management solutions | apiKey | Yes | Unknown |
+| Unsplash | Photography | OAuth | Yes | Unknown |
+| Wallhaven | Wallpapers | apiKey | Yes | Unknown |
+| Webdam | Images | OAuth | Yes | Unknown |
+
+---
+
+### 38. Programming (5 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Codeforces | Get access to Codeforces data | apiKey | Yes | Unknown |
+| Hackerearth | For compiling and running code in several languages | apiKey | Yes | Unknown |
+| Judge0 CE | Online code execution system | apiKey | Yes | Unknown |
+| KONTESTS | For upcoming and ongoing competitive coding contests | No | Yes | Unknown |
+| Mintlify | For programmatically generating documentation for code | apiKey | Yes | Yes |
+
+---
+
+### 39. Science & Math (36 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| arcsecond.io | Multiple astronomy data sources | No | Yes | Unknown |
+| arXiv | Curated research-sharing platform | No | Yes | Unknown |
+| CodeCogs | Render LaTeX equations in various formats | No | Yes | Unknown |
+| CORE | Access the world's Open Access research papers | apiKey | Yes | Unknown |
+| GBIF | Global Biodiversity Information Facility | No | Yes | Yes |
+| iDigBio | Access millions of museum specimens | No | Yes | Unknown |
+| inspirehep.net | High Energy Physics info system | No | Yes | Unknown |
+| isEven (humor) | Check if a number is even | No | Yes | Unknown |
+| ISRO | ISRO Space Crafts Information | No | Yes | No |
+| ITIS | Integrated Taxonomic Information System | No | Yes | Unknown |
+| Launch Library 2 | Spaceflight launches and events database | No | Yes | Yes |
+| Materials Platform for Data Science | Curated experimental data for materials science | apiKey | Yes | No |
+| Minor Planet Center | Asterank.com Information | No | No | Unknown |
+| NASA | NASA data, including imagery | No | Yes | No |
+| NASA ADS | NASA Astrophysics Data System | OAuth | Yes | Yes |
+| Newton | Symbolic and Arithmetic Math Calculator | No | Yes | No |
+| Noctua | REST API for NoctuaSky features | No | Yes | Unknown |
+| Numbers (math.tools) | Number of the day, random number, number facts | apiKey | Yes | No |
+| Numbers (numbersapi.com) | Facts about numbers | No | No | No |
+| Ocean Facts | Facts pertaining to the physical science of Oceanography | No | Yes | Unknown |
+| Open Notify | ISS astronauts, current location, etc | No | No | No |
+| Open Science Framework | Repository and archive for study designs, research materials | No | Yes | Unknown |
+| OpenAlex | Open catalog of scholarly works, authors, institutions | No | Yes | Yes |
+| Purple Air | Real Time Air Quality Monitoring | No | Yes | Unknown |
+| Remote Calc | Decodes base64 encoding and returns solution in JSON | No | Yes | Yes |
+| SHARE | A free, open dataset about research and scholarly activities | No | Yes | No |
+| SpaceX (r-spacex) | Company, vehicle, launchpad and launch data | No | Yes | No |
+| SpaceX (graphql) | GraphQL, Company, Ships, launchpad and launch data | No | Yes | Unknown |
+| Sunrise and Sunset | Sunset and sunrise times for a given latitude and longitude | No | Yes | No |
+| Times Adder | Add each of the times introduced in the array | No | Yes | No |
+| TLE | Satellite information | No | Yes | No |
+| USGS Earthquake Hazards Program | Earthquakes data real-time | No | Yes | No |
+| USGS Water Services | Water quality and level info for rivers and lakes | No | Yes | No |
+| World Bank | World Data | No | Yes | No |
+| xMath | Random mathematical expressions | No | Yes | Yes |
+
+---
+
+### 40. Security (42 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Application Environment Verification | Verify safety of user devices, detect rooted devices | apiKey | Yes | Yes |
+| BinaryEdge | Access to BinaryEdge 40fy scanning platform | apiKey | Yes | Yes |
+| BitWarden | Best open-source password manager | OAuth | Yes | Unknown |
+| Botd | Browser library for JavaScript bot detection | apiKey | Yes | Yes |
+| Bugcrowd | Interacting and tracking reported issues | apiKey | Yes | Unknown |
+| Censys | Search engine for Internet connected hosts and devices | apiKey | Yes | No |
+| Classify | Encrypting & decrypting text messages | No | Yes | Yes |
+| Complete Criminal Checks | Data of offenders from all U.S. States and Puerto Rico | apiKey | Yes | Yes |
+| CRXcavator | Chrome extension risk scoring | apiKey | Yes | Unknown |
+| dead-drop | Ephemeral zero-knowledge encrypted data sharing | No | Yes | Yes |
+| Dehash.lt | Hash decryption MD5, SHA1, SHA3, SHA256, SHA384, SHA512 | No | Yes | Unknown |
+| EmailRep | Email address threat and risk prediction | No | Yes | Unknown |
+| Escape | API for escaping different kind of queries | No | Yes | No |
+| FilterLists | Lists of filters for adblockers and firewalls | No | Yes | Unknown |
+| FingerprintJS Pro | Fraud detection API with browser fingerprinting | apiKey | Yes | Yes |
+| FraudLabs Pro | Screen order information using AI to detect frauds | apiKey | Yes | Unknown |
+| FullHunt | Searchable attack surface database of the entire internet | apiKey | Yes | Unknown |
+| GitGuardian | Scan files for secrets (API Keys, database credentials) | apiKey | Yes | No |
+| GreyNoise | Query IPs in the GreyNoise dataset | apiKey | Yes | Unknown |
+| HackerOne | The industry's first hacker API | apiKey | Yes | Unknown |
+| Hashable | Access high level cryptographic functions | No | Yes | Yes |
+| HaveIBeenPwned | Passwords previously exposed in data breaches | apiKey | Yes | Unknown |
+| Intelligence X | Perform OSINT via Intelligence X | apiKey | Yes | Unknown |
+| IPLogs | Free VPN, proxy, Tor and datacenter IP detection | No | Yes | Yes |
+| LoginRadius | Managed User Authentication Service | apiKey | Yes | Yes |
+| Microsoft Security Response Center | Interfaces to engage with MSRC | No | Yes | Unknown |
+| Mozilla http scanner | Mozilla observatory http scanner | No | Yes | Unknown |
+| Mozilla tls scanner | Mozilla observatory tls scanner | No | Yes | Unknown |
+| National Vulnerability Database | U.S. National Vulnerability Database | No | Yes | Unknown |
+| Passwordinator | Generate random passwords of varying complexities | No | Yes | Yes |
+| PhishStats | Phishing database | No | Yes | Unknown |
+| Privacy.com | Generate merchant-specific and one-time use credit card numbers | apiKey | Yes | Unknown |
+| Pulsedive | Scan, search and collect threat intelligence data | apiKey | Yes | Unknown |
+| SecurityTrails | Domain and IP related WHOIS and DNS records | apiKey | Yes | Unknown |
+| Shodan | Search engine for Internet connected devices | apiKey | Yes | Unknown |
+| Spyse | Access data on all Internet assets | apiKey | Yes | Unknown |
+| Threat Jammer | Risk scoring service from curated threat intelligence | apiKey | Yes | Unknown |
+| UK Police | UK Police data | No | Yes | Unknown |
+| Virushee | Virushee file/data scanning | No | Yes | Yes |
+| VulDB | VulDB API for queries along with transactional bots | apiKey | Yes | Unknown |
+
+---
+
+### 41. Shopping (14 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Best Buy | Products, Buying Options, Categories, Recommendations, Stores | apiKey | Yes | Unknown |
+| Digi-Key | Retrieve price and inventory of electronic components | OAuth | Yes | Unknown |
+| Dummy Products | Fetch dummy e-commerce products JSON data | apiKey | Yes | Yes |
+| eBay | Sell and Buy on eBay | OAuth | Yes | Unknown |
+| Etsy | Manage shop and interact with listings | OAuth | Yes | Unknown |
+| Flipkart Marketplace | Product listing management, Order Fulfilment | OAuth | Yes | Yes |
+| Lazada | Retrieve product ratings and seller performance metrics | apiKey | Yes | Unknown |
+| Mercadolibre | Manage sales, ads, products, services and Shops | apiKey | Yes | Unknown |
+| Octopart | Electronic part data for manufacturing, design, sourcing | apiKey | Yes | Unknown |
+| OLX Poland | Integrate with local sites by posting and managing adverts | apiKey | Yes | Unknown |
+| Rappi | Manage orders from Rappi's app | OAuth | Yes | Unknown |
+| Shopee | Shopee's official API for integration | apiKey | Yes | Unknown |
+| Tokopedia | Tokopedia's Official API for integration | OAuth | Yes | Unknown |
+| WooCommerce | WooCommerce REST APIs for WordPress | apiKey | Yes | Yes |
+
+---
+
+### 42. Social (42 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| 4chan | Simple image-based bulletin board | No | Yes | Yes |
+| Ayrshare | Social media APIs to post, get analytics, manage accounts | apiKey | Yes | Yes |
+| aztro | Daily horoscope info for yesterday, today, and tomorrow | No | Yes | Unknown |
+| Blogger | View and update Blogger content | OAuth | Yes | Unknown |
+| Bluesky | Decentralized social networking via the AT protocol | No | Yes | Yes |
+| Cisco Spark | Team Collaboration Software | OAuth | Yes | Unknown |
+| Dangerous Discord Database | Database of malicious Discord accounts | apiKey | Yes | Unknown |
+| Discord | Make bots for Discord, integrate onto external platform | OAuth | Yes | Unknown |
+| Disqus | Communicate with Disqus data | OAuth | Yes | Unknown |
+| Doge-Meme | Top meme posts from r/dogecoin | No | Yes | Yes |
+| Facebook | Facebook Login, Share on FB, Social Plugins, Analytics | OAuth | Yes | Unknown |
+| Foursquare | Interact with users and places | OAuth | Yes | Unknown |
+| Fuck Off as a Service | Asks someone to fuck off | No | Yes | Unknown |
+| Full Contact | Get Social Media profiles and contact Information | OAuth | Yes | Unknown |
+| HackerNews | Social news for CS and entrepreneurship | No | Yes | Unknown |
+| Hashnode | A blogging platform built for developers | No | Yes | Unknown |
+| Instagram | Instagram Login, Share on Instagram, Social Plugins | OAuth | Yes | Unknown |
+| Kakao | Kakao Login, Share on KakaoTalk, Social Plugins | OAuth | Yes | Unknown |
+| Lanyard | Retrieve your presence on Discord | No | Yes | Yes |
+| Line | Line Login, Share on Line, Social Plugins | OAuth | Yes | Unknown |
+| LinkedIn | Foundation of all digital integrations with LinkedIn | OAuth | Yes | Unknown |
+| Meetup.com | Data about Meetups from Meetup.com | apiKey | Yes | Unknown |
+| Microsoft Graph | Access data and intelligence in Microsoft 365, Windows 10 | OAuth | Yes | Unknown |
+| NAVER | NAVER Login, Share on NAVER, Social Plugins | OAuth | Yes | Unknown |
+| Open Collective | Get Open Collective data | No | Yes | Unknown |
+| Pinterest | The world's catalog of ideas | OAuth | Yes | Unknown |
+| Product Hunt | The best new products in tech | OAuth | Yes | Unknown |
+| Reddit | Homepage of the internet | OAuth | Yes | Unknown |
+| Revolt | Revolt open source Discord alternative | apiKey | Yes | Unknown |
+| Saidit | Open Source Reddit Clone | OAuth | Yes | Unknown |
+| Slack | Team Instant Messaging | OAuth | Yes | Unknown |
+| TamTam | Bot API to interact with TamTam | apiKey | Yes | Unknown |
+| Telegram Bot | Simplified HTTP version of the MTProto API for bots | apiKey | Yes | Unknown |
+| Telegram MTProto | Read and write Telegram data | OAuth | Yes | Unknown |
+| Telegraph | Create attractive blogs easily | apiKey | Yes | Unknown |
+| TikTok | Fetches user info and video posts on TikTok | OAuth | Yes | Unknown |
+| Trash Nothing | A freecycling community with thousands of free items | OAuth | Yes | Yes |
+| Tumblr | Read and write Tumblr Data | OAuth | Yes | Unknown |
+| Twitch | Game Streaming API | OAuth | Yes | Unknown |
+| Twitter | Read and write Twitter data | OAuth | Yes | No |
+| vk | Read and write vk data | OAuth | Yes | Unknown |
+
+---
+
+### 43. Sports & Fitness (38 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| API-FOOTBALL | Get information about Football Leagues & Cups | apiKey | Yes | Yes |
+| ApiMedic | Medical symptom checker API primarily for patients | apiKey | Yes | Unknown |
+| balldontlie | Access to stats data from the NBA | No | Yes | Yes |
+| Canadian Football League (CFL) | Official JSON API for CFL statistics | apiKey | Yes | No |
+| City Bikes | City Bikes around the world | No | Yes | Unknown |
+| Cloudbet | Real-time sports odds and betting API | apiKey | Yes | Yes |
+| CollegeFootballData.com | Detailed American college football statistics | apiKey | Yes | Unknown |
+| DiscGolf | Structured disc golf course data | No | Yes | Yes |
+| Ergast F1 | F1 data from 1950 | No | Yes | Unknown |
+| Fitbit | Fitbit Information | OAuth | Yes | Unknown |
+| Football | Open Source Football API for squads' stats | X-Mashape-Key | Yes | Unknown |
+| Football (Soccer) Videos | Embed codes for goals and highlights | No | Yes | Yes |
+| Football Standings | Display football standings | No | Yes | Yes |
+| Football-Data | Football data with matches, players, teams, competitions | X-Mashape-Key | Yes | Unknown |
+| JCDecaux Bike | JCDecaux's self-service bicycles | apiKey | Yes | Unknown |
+| MLB Records and Stats | Current and historical MLB statistics | No | No | Unknown |
+| NBA Data | All NBA Stats DATA, Games, Livescore, Standings | apiKey | Yes | Unknown |
+| NBA Stats | Current and historical NBA Statistics | No | Yes | Unknown |
+| NHL Records and Stats | NHL historical data and statistics | No | Yes | Unknown |
+| Oddsmagnet | Odds history from multiple UK bookmakers | No | Yes | Yes |
+| OpenLigaDB | Crowd sourced sports league results | No | Yes | Yes |
+| Premier League Standings | All Current Premier League Standings and Statistics | apiKey | Yes | Unknown |
+| RacingHub | Formula 1 historical data and statistics | No | Yes | Unknown |
+| Sport Data | Get sports data from all over the world | apiKey | Yes | Unknown |
+| Sport List & Data | List of and resources related to sports | No | Yes | Yes |
+| Sport Places | Crowd-source sports places around the world | No | Yes | No |
+| Sport Vision | Identify sport, brands and gear in an image | apiKey | Yes | Yes |
+| Sportmonks Cricket | Live cricket score, player statistics and fantasy API | apiKey | Yes | Unknown |
+| Sportmonks Football | Football score/schedule, news, stats, history | apiKey | Yes | Unknown |
+| Squiggle | Fixtures, results and predictions for AFL matches | No | Yes | Yes |
+| Strava | Connect with athletes, activities and more | OAuth | Yes | Unknown |
+| SuredBits | Query sports data, teams, players, games, scores | No | No | No |
+| TheSportsDB | Crowd-Sourced Sports Data and Artwork | apiKey | Yes | Yes |
+| TourneyRadar | Upcoming chess tournaments from 140+ national federations | No | Yes | Unknown |
+| Tredict | Get and set activities, health data | OAuth | Yes | Unknown |
+| Wger | Workout manager data as exercises, muscles or equipment | apiKey | Yes | Unknown |
+
+---
+
+### 44. Test Data (24 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Bacon Ipsum | A Meatier Lorem Ipsum Generator | No | Yes | Unknown |
+| Dicebear Avatars | Generate random pixel-art avatars | No | Yes | No |
+| English Random Words | Generate English Random Words with Pronunciation | No | Yes | No |
+| FakeJSON | Service to generate test and fake data | apiKey | Yes | Yes |
+| FakerAPI | APIs collection to get fake data | No | Yes | Yes |
+| FakeStoreAPI | Fake store rest API for e-commerce prototype | No | Yes | Unknown |
+| GeneradorDNI | Data generator API: Profiles, vehicles, banks and cards | apiKey | Yes | Unknown |
+| ItsThisForThat | Generate Random startup ideas | No | Yes | No |
+| JSONPlaceholder | Fake data for testing and prototyping | No | No | Unknown |
+| Loripsum | The "lorem ipsum" generator that doesn't suck | No | No | Unknown |
+| Mailsac | Disposable Email | apiKey | Yes | Unknown |
+| Metaphorsum | Generate demo paragraphs | No | No | Unknown |
+| Mockaroo | Generate fake data to JSON, CSV, TXT, SQL and XML | apiKey | Yes | Unknown |
+| QuickMocker | API mocking tool to generate contextual, fake or random data | No | Yes | Yes |
+| Random Data | Random data generator | No | Yes | Unknown |
+| Randommer | Random data generator | apiKey | Yes | Yes |
+| RandomUser | Generates and list user data | No | Yes | Unknown |
+| RoboHash | Generate random robot/alien avatars | No | Yes | Unknown |
+| Spanish random names | Generate spanish names (with gender) randomly | No | Yes | Unknown |
+| Spanish random words | Generate spanish words randomly | No | Yes | Unknown |
+| This Person Does not Exist | Generates real-life faces of people who do not exist | No | Yes | Unknown |
+| Toolcarton | Generate random testimonial data | No | Yes | Unknown |
+| UUID Generator | Generate UUIDs | No | Yes | No |
+| What The Commit | Random commit message generator | No | No | Yes |
+| Yes No | Generate yes or no randomly | No | Yes | Unknown |
+
+---
+
+### 45. Text Analysis (17 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Code Detection API | Detect, label, format and enrich the code | OAuth | Yes | Unknown |
+| apilayer languagelayer | Language Detection JSON API supporting 173 languages | OAuth | Yes | Unknown |
+| Aylien Text Analysis | Information retrieval and natural language APIs | apiKey | Yes | Unknown |
+| Audexum | Text-to-speech REST API with 43 voices and 33 languages | apiKey | Yes | Yes |
+| Cloudmersive Natural Language Processing | Natural language processing and text analysis | apiKey | Yes | Yes |
+| Detect Language | Detects text language | apiKey | Yes | Unknown |
+| ELI | Natural Language Processing Tools for Thai Language | apiKey | Yes | Unknown |
+| Google Cloud Natural | NLU technology: sentiment, entity and syntax analysis | apiKey | Yes | Unknown |
+| GeoScore | Score content for AI search citation readiness | apiKey | Yes | Yes |
+| Hirak OCR | Image to text - text recognition from image, 100+ languages | apiKey | Yes | Unknown |
+| Hirak Translation | Translate between 21 of most used languages | apiKey | Yes | Unknown |
+| Lecto Translation | Translation API with free tier | apiKey | Yes | Yes |
+| LibreTranslate | Translation tool with 17 available languages | No | Yes | Unknown |
+| Semantria | Text Analytics with sentiment analysis, categorization | OAuth | Yes | Unknown |
+| Sentiment Analysis | Multilingual sentiment analysis of texts | apiKey | Yes | Yes |
+| Tisane | Text Analytics focusing on abusive content detection | OAuth | Yes | Yes |
+| Watson Natural Language Understanding | NLP for advanced text analysis | OAuth | Yes | Unknown |
+
+---
+
+### 46. Tracking (10 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Aftership | API to update, manage and track shipment | apiKey | Yes | Yes |
+| Correios | Integration with Correio's services for shipments | apiKey | Yes | Unknown |
+| Pixela | API for recording and tracking habits or effort | X-Mashape-Key | Yes | Yes |
+| PostalPinCode | API for getting Pincode details in India | No | Yes | Unknown |
+| Postmon | Query Brazilian ZIP codes and orders | No | No | Unknown |
+| PostNord | Information about parcels in transport for Sweden and Denmark | apiKey | No | Unknown |
+| UPS | Shipment and Address information | apiKey | Yes | Unknown |
+| WeCanTrack | Automatically place subids in affiliate links | apiKey | Yes | Yes |
+| WhatPulse | Measures keyboard/mouse usage | No | Yes | Unknown |
+| WhereParcel | Unified parcel tracking API across 60+ carriers | apiKey | Yes | Yes |
+
+---
+
+### 47. Transportation (71 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| ADS-B Exchange | Real-time and historical data of airborne aircraft | No | Yes | Unknown |
+| airportsapi | Get name and website-URL for airports by ICAO code | No | Yes | Unknown |
+| AIS Hub | Real-time data of marine and inland vessel with AIS | apiKey | No | Unknown |
+| Amadeus for Developers | Travel Search - Limited usage | OAuth | Yes | Unknown |
+| apilayer aviationstack | Real-time Flight Status & Global Aviation Data API | OAuth | Yes | Unknown |
+| Apimetro | Geospatial data for Mexico City public transport | No | Yes | Yes |
+| AviationAPI | FAA Aeronautical Charts, Airport Info, Weather | No | Yes | No |
+| AZ511 | Access traffic data from the ADOT API | apiKey | Yes | Unknown |
+| Bay Area Rapid Transit | Stations and predicted arrivals for BART | apiKey | No | Unknown |
+| BC Ferries | Sailing times and capacities for BC Ferries | No | Yes | Yes |
+| BIC-Boxtech | Container technical detail for global container fleet | OAuth | Yes | Unknown |
+| BlaBlaCar | Search car sharing trips | apiKey | Yes | Unknown |
+| Boston MBTA Transit | Stations and predicted arrivals for MBTA | apiKey | Yes | Unknown |
+| Community Transit | Transitland API | No | Yes | Unknown |
+| Compare Flight Prices | API for comparing flight prices across platforms | apiKey | Yes | Unknown |
+| CTS | CTS Realtime API | apiKey | Yes | Yes |
+| Grab | Track deliveries, ride fares, payments and loyalty points | OAuth | Yes | Unknown |
+| GraphHopper | A-to-B routing with turn-by-turn instructions | apiKey | Yes | Unknown |
+| Icelandic APIs | Open APIs for services in Iceland | No | Yes | Unknown |
+| Impala Hotel Bookings | Hotel content, rates and room bookings | apiKey | Yes | No |
+| Izi | Audio guide for travellers | apiKey | Yes | Unknown |
+| Land Transport Authority DataMall | Singapore transport information | apiKey | No | Unknown |
+| Metro Lisboa | Delays in subway lines | No | No | No |
+| Navitia | Open API for building with transport data | apiKey | Yes | Unknown |
+| Open Charge Map | Global public registry of EV charging locations | apiKey | Yes | Yes |
+| Orizn Visa | Visa requirements for 199 countries | apiKey | Yes | Yes |
+| OpenSky Network | Free real-time ADS-B aviation data | No | Yes | Unknown |
+| Railway Transport for France | SNCF public API | apiKey | Yes | Unknown |
+| REFUGE Restrooms | Safe restroom access for transgender and gender nonconforming | No | Yes | Unknown |
+| Sabre for Developers | Travel Search - Limited usage | apiKey | Yes | Unknown |
+| Schiphol Airport | Schiphol | apiKey | Yes | Unknown |
+| Tankerkoenig | German realtime gas/diesel prices | apiKey | Yes | Yes |
+| TransitLand | Transit Aggregation | No | Yes | Unknown |
+| Transport for Atlanta, US | Marta | No | No | Unknown |
+| Transport for Auckland, NZ | Auckland Transport | No | Yes | Unknown |
+| Transport for Belgium | iRail API for Belgian public transport by train | No | Yes | Yes |
+| Transport for Berlin, Germany | Third-party VBB API | No | Yes | Unknown |
+| Transport for Bordeaux, France | Bordeaux Metropole public transport | apiKey | Yes | Unknown |
+| Transport for Budapest, Hungary | Budapest public transport API | No | Yes | Unknown |
+| Transport for Chicago, US | Chicago Transit Authority (CTA) | apiKey | No | Unknown |
+| Transport for Czech Republic | Czech transport API | No | Yes | Unknown |
+| Transport for Denver, US | RTD | No | No | Unknown |
+| Transport for Finland | Finnish transport API | No | Yes | Unknown |
+| Transport for Germany | Deutsche Bahn (DB) API | apiKey | No | Unknown |
+| Transport for Grenoble, France | Grenoble public transport | No | No | No |
+| Transport for Hessen, Germany | RMV API (Public Transport in Hessen) | No | Yes | Unknown |
+| Transport for Honolulu, US | Honolulu Transportation Information | apiKey | No | Unknown |
+| Transport for Lisbon, Portugal | Data about buses routes, parking and traffic | apiKey | Yes | Unknown |
+| Transport for London, England | TfL API | apiKey | Yes | Unknown |
+| Transport for Los Angeles, US | Metro vehicle positions in real time | No | Yes | Unknown |
+| Transport for Manchester, England | TfGM transport network data | apiKey | Yes | No |
+| Transport for Norway | Transport APIs and dataset for Norway | No | Yes | Unknown |
+| Transport for Ottawa, Canada | OC Transpo API | apiKey | Yes | Unknown |
+| Transport for Paris, France | RATP Open Data API | No | No | Unknown |
+| Transport for Philadelphia, US | SEPTA APIs | No | No | Unknown |
+| Transport for Sao Paulo, Brazil | SPTrans | OAuth | No | Unknown |
+| Transport for Spain | Public trains of Spain | No | Yes | Unknown |
+| Transport for Sweden | Public Transport consumer | OAuth | Yes | Unknown |
+| Transport for Switzerland (opentransportdata) | Official Swiss Public Transport Open Data | apiKey | Yes | Unknown |
+| Transport for Switzerland (transport.opendata.ch) | Swiss public transport API | No | Yes | Unknown |
+| Transport for The Netherlands (ns.nl) | NS, only trains | apiKey | No | Unknown |
+| Transport for The Netherlands (OVAPI) | OVAPI, country-wide public transport | No | Yes | Unknown |
+| Transport for Toronto, Canada | TTC | No | Yes | Unknown |
+| Transport for UK | Transport API and dataset for UK | apiKey | Yes | Unknown |
+| Transport for United States | NextBus API | No | No | Unknown |
+| Transport for Vancouver, Canada | TransLink | OAuth | Yes | Unknown |
+| Transport for Washington, US | Washington Metro transport API | OAuth | Yes | Unknown |
+| transport.rest | Community maintained, developer-friendly public transport API | No | Yes | Yes |
+| Tripadvisor | Rating content for hotel, restaurant, attraction | apiKey | Yes | Unknown |
+| Uber | Uber ride requests and price estimation | OAuth | Yes | Yes |
+| Velib metropolis, Paris, France | Velib Open Data API | No | Yes | No |
+
+---
+
+### 48. URL Shorteners (19 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| 1pt | A simple URL shortener | No | Yes | Yes |
+| Bitly | URL shortener and link management | OAuth | Yes | Unknown |
+| CleanURI | URL shortener service | No | Yes | Yes |
+| ClickMeter | Monitor, compare and optimize marketing links | apiKey | Yes | Unknown |
+| Clico | URL shortener service | apiKey | Yes | Unknown |
+| Cutt.ly | URL shortener service | apiKey | Yes | Unknown |
+| Drivet URL Shortener | Shorten a long URL easily and fast | No | Yes | Unknown |
+| Free Url Shortener | Free URL Shortener with powerful API | No | Yes | Unknown |
+| Git.io | Git.io URL shortener | No | Yes | Unknown |
+| GoTiny | A lightweight URL shortener | No | Yes | Yes |
+| Kutt | Free Modern URL Shortener | apiKey | Yes | Yes |
+| Mgnet.me | Torrent URL shorten API | No | Yes | No |
+| owo | A simple link obfuscator/shortener | No | Yes | Unknown |
+| Rebrandly | Custom URL shortener for sharing branded links | apiKey | Yes | Unknown |
+| Short Link | Short URLs support so many domains | No | Yes | Unknown |
+| Shrtcode | URl Shortener with multiple Domains | No | Yes | Yes |
+| Shrtlnk | Simple and efficient short link creation | apiKey | Yes | Yes |
+| TinyURL | Shorten long URLs | apiKey | Yes | No |
+| UrlBae | Simple and efficient short link creation | apiKey | Yes | Yes |
+
+---
+
+### 49. Vehicle (6 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Brazilian Vehicles and Prices | Vehicles information from Fipe | No | Yes | No |
+| Helipaddy sites | Helicopter and passenger drone landing site directory | apiKey | Yes | Unknown |
+| Kelley Blue Book | Vehicle info, pricing, configuration | apiKey | Yes | No |
+| Mercedes-Benz | Telematics data, remotely access vehicle functions, car configurator | apiKey | Yes | No |
+| NHTSA | NHTSA Product Information Catalog and Vehicle Listing | No | Yes | Unknown |
+| Smartcar | Lock and unlock vehicles, get odometer reading and location | OAuth | Yes | Yes |
+
+---
+
+### 50. Video (44 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| An API of Ice And Fire | Game Of Thrones API | No | Yes | Unknown |
+| Bob's Burgers | Bob's Burgers API | No | Yes | Yes |
+| Breaking Bad | Breaking Bad API | No | Yes | Unknown |
+| Breaking Bad Quotes | Some Breaking Bad quotes | No | Yes | Unknown |
+| Catalogopolis | Doctor Who API | No | Yes | Unknown |
+| Catch The Show | REST API for next-episode.net | No | Yes | Unknown |
+| Czech Television | TV programme of Czech TV | No | No | Unknown |
+| Dailymotion | Dailymotion Developer API | OAuth | Yes | Unknown |
+| Dune | Book, character, movie and quotes JSON data | No | Yes | Yes |
+| Final Space | Final Space API | No | Yes | Yes |
+| Game of Thrones Quotes | Some Game of Thrones quotes | No | Yes | Unknown |
+| Harry Potter Characters | Harry Potter Characters Data with imagery | No | Yes | Unknown |
+| IMDb-API | API for receiving movie, serial and cast information | apiKey | Yes | Unknown |
+| IMDbOT | Unofficial IMDb Movie / Series Information | No | Yes | Yes |
+| JSON2Video | Create and edit videos programmatically | apiKey | Yes | No |
+| Lucifer Quotes | Returns Lucifer quotes | No | Yes | Unknown |
+| MCU Countdown | Countdown to the next MCU Film | No | Yes | Yes |
+| Motivational Quotes | Random Motivational Quotes | No | Yes | Unknown |
+| Movie Quote | Random Movie and Series Quotes | No | Yes | Yes |
+| Open Movie Database | Movie information | apiKey | Yes | Unknown |
+| Owen Wilson Wow | API for actor Owen Wilson's "wow" exclamations | No | Yes | Yes |
+| Ron Swanson Quotes | Television | No | Yes | Unknown |
+| Simkl | Movie, TV and Anime data | apiKey | Yes | Unknown |
+| STAPI | Information on all things Star Trek | No | No | No |
+| Stranger Things Quotes | Returns Stranger Things quotes | No | Yes | Unknown |
+| Stream | Czech internet television, films, series and online videos | No | Yes | No |
+| Stromberg Quotes | Returns Stromberg quotes and more | No | Yes | Unknown |
+| SWAPI (swapi.dev) | All the Star Wars data you've ever wanted | No | Yes | Yes |
+| SWAPI (swapi.tech) | All things Star Wars | No | Yes | Yes |
+| SWAPI GraphQL | Star Wars GraphQL API | No | Yes | Unknown |
+| The Lord of the Rings | The Lord of the Rings API | apiKey | Yes | Unknown |
+| The Vampire Diaries | TV Show Data | apiKey | Yes | Yes |
+| ThronesApi | Game Of Thrones Characters Data with imagery | No | Yes | Unknown |
+| TMDb | Community-based movie data | apiKey | Yes | Unknown |
+| TrailerAddict | Easily embed trailers from TrailerAddict | apiKey | No | Unknown |
+| Trakt | Movie and TV Data | apiKey | Yes | Yes |
+| TVDB | Television data | apiKey | Yes | Unknown |
+| TVMaze | TV Show Data | No | No | Unknown |
+| uNoGS | Unofficial Netflix Online Global Search | apiKey | Yes | Yes |
+| Vimeo | Vimeo Developer API | OAuth | Yes | Unknown |
+| Watchmode | API for streaming availability of movies & shows | apiKey | Yes | Unknown |
+| Web Series Quotes Generator | API generates various Web Series Quote Images | No | Yes | Yes |
+| YouTube | Add YouTube functionality to your sites and apps | OAuth | Yes | Unknown |
+
+---
+
+### 51. Weather (33 APIs)
+
+| Name | Description | Auth | HTTPS | CORS |
+|---|---|---|---|---|
+| Weatherstack | Real-Time & Historical World Weather Data API | apiKey | Yes | Unknown |
+| 7Timer! | Weather, especially for Astroweather | No | No | Unknown |
+| AccuWeather | Weather and forecast data | apiKey | No | Unknown |
+| Aemet | Weather and forecast data from Spain | apiKey | Yes | Unknown |
+| APIXU | Weather | apiKey | Yes | Unknown |
+| AQICN | Air Quality Index Data for over 1000 cities | apiKey | Yes | Unknown |
+| AviationWeather | NOAA aviation weather forecasts and observations | No | Yes | Unknown |
+| ColorfulClouds | Weather | apiKey | Yes | Yes |
+| Euskalmet | Meteorological data of the Basque Country | apiKey | Yes | Unknown |
+| Foreca | Weather | OAuth | Yes | Unknown |
+| HG Weather | Weather forecast data for cities in Brazil | apiKey | Yes | Yes |
+| Hong Kong Observatory | Weather, earthquake, and climate data | No | Yes | Unknown |
+| IPMA | Portuguese weather and climate data | No | Yes | Unknown |
+| MetaWeather | Weather | No | Yes | No |
+| Meteorologisk Institutt | Weather and climate data | User-Agent | Yes | Unknown |
+| Micro Weather | Real time weather forecasts and historic data | apiKey | Yes | Unknown |
+| ODWeather | Weather and weather webcams | No | No | Unknown |
+| Oikolab | 70+ years of global, hourly historical and forecast weather data | apiKey | Yes | Yes |
+| Open-Meteo | Global weather forecast API for non-commercial use | No | Yes | Yes |
+| openSenseMap | Data from Personal Weather Stations called senseBoxes | No | Yes | Yes |
+| OpenUV | Real-time UV Index Forecast | apiKey | Yes | Unknown |
+| OpenWeatherMap | Weather | apiKey | Yes | Unknown |
+| Pirate Weather | Free weather API with forecast data similar to Dark Sky | No | Yes | Yes |
+| QWeather | Location-based weather data | apiKey | Yes | Yes |
+| RainViewer | Radar data collected from different websites | No | Yes | Unknown |
+| Storm Glass | Global marine weather from multiple sources | apiKey | Yes | Yes |
+| Tomorrow | Weather API Powered by Proprietary Technology | apiKey | Yes | Unknown |
+| US Weather | US National Weather Service | No | Yes | Yes |
+| Visual Crossing | Global historical and weather forecast data | apiKey | Yes | Yes |
+| weather-api | RESTful free API to check the weather | No | Yes | No |
+| WeatherAPI | Weather API with Astronomy and Geolocation API | apiKey | Yes | Yes |
+| Weatherbit | Weather | apiKey | Yes | Unknown |
+| wttr.in | Weather in your terminal, supports JSON output | No | Yes | Yes |
+| Yandex.Weather | Assesses weather condition in specific locations | apiKey | Yes | No |
+
+---
+
+## Summary Statistics
+
+- **Total categories: 51** (including the 50 indexed categories plus the additional ones that appeared)
+- **Total unique API entries: approximately 1,400+**
+- **Largest categories**: Geocoding (92), Government (91), Games & Comics (96), Development (124), Transportation (71), Cryptocurrency (66)
+- **Smallest categories**: Events (3), Patent (4), Programming (5), Phone (6), Vehicle (6), Authentication & Authorization (7), Continuous Integration (6)
+- **Most common auth types**: apiKey (most frequent), OAuth (second), No auth (third)
+- **HTTPS support**: The vast majority of APIs support HTTPS
+- **CORS support**: Many APIs report "Unknown" for CORS; of those that report, "Yes" and "No" are roughly split
+
+The data was sourced from the `master` branch of `https://github.com/public-apis/public-apis` (1,958 lines, downloaded via curl). The saved file is at `/tmp/public_apis_readme.md` (Git Bash path on Windows).

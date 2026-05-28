@@ -8,7 +8,13 @@ public enum CodeGenTypeEnum {
 
     HTML("原生 HTML 模式", "html"),
     MULTI_FILE("原生多文件模式", "multi_file"),
-    VUE_PROJECT("Vue 工程模式", "vue_project");
+    VUE_PROJECT("Vue 工程模式", "vue_project"),
+    FULLSTACK("全栈模式", "fullstack"),
+    REACT_TS("React + TypeScript", "react_ts"),
+    NEXTJS("Next.js 全栈", "nextjs"),
+    LANDING_PAGE("着陆页", "landing_page"),
+    ADMIN_DASHBOARD("管理后台", "admin_dashboard"),
+    NODEJS_API("Node.js API", "nodejs_api");
 
     private final String text;
     private final String value;

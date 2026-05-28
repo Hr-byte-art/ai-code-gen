@@ -80,7 +80,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // 获取应用详情
-  async function fetchAppDetail(id: number) {
+  async function fetchAppDetail(id: string) {
     loading.value = true
     try {
       const res = await getAppById(id)
@@ -95,10 +95,12 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // 创建应用
-  async function createApp(initPrompt: string) {
+  async function createApp(initPrompt: string, templateKey?: string) {
     loading.value = true
     try {
-      const res = await createAppApi({ initPrompt })
+      const params: any = { initPrompt }
+      if (templateKey) { params.templateKey = templateKey }
+      const res = await createAppApi(params)
       message.success('应用创建成功')
       return res.data
     } catch (error) {
@@ -110,7 +112,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // 更新应用
-  async function updateApp(id: number, appName: string) {
+  async function updateApp(id: string, appName: string) {
     loading.value = true
     try {
       const res = await updateAppApi({ id, appName })
@@ -129,7 +131,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // 删除应用
-  async function deleteApp(id: number) {
+  async function deleteApp(id: string) {
     loading.value = true
     try {
       await deleteAppApi(id)
@@ -147,7 +149,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // 部署应用
-  async function deployApp(appId: number) {
+  async function deployApp(appId: string) {
     loading.value = true
     try {
       const res = await deployAppApi(appId)
@@ -162,7 +164,7 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // 获取构建状态
-  async function fetchBuildStatus(appId: number) {
+  async function fetchBuildStatus(appId: string) {
     try {
       const res = await getAppBuildStatus(appId)
       return res.data

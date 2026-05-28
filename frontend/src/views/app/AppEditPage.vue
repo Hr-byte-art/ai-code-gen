@@ -40,7 +40,7 @@
           </div>
           <div class="info-row">
             <span>生成类型</span>
-            <a-tag color="blue">{{ appForm.codeGenType || '默认' }}</a-tag>
+            <a-tag color="blue">{{ codeGenTypeLabel }}</a-tag>
           </div>
           <div class="info-row">
             <span>部署状态</span>
@@ -96,47 +96,63 @@ import {
 } from '@ant-design/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { getAppById, updateApp, deployApp } from '@/api/app'
+import { getAppById, updateApp, deployApp, getAppBuildStatus } from '@/api/app'
 
 const route = useRoute()
 const router = useRouter()
-const appId = Number(route.params.id)
+const appId = route.params.id as string
 const saving = ref(false)
 const deploying = ref(false)
 
 const appForm = reactive<any>({
   appName: '', initPrompt: '', codeGenType: '', deployKey: '', deployedTime: '', priority: 0
 })
+const buildStatus = ref<Record<string, any>>({})
 
-const deployUrl = computed(() => appForm.deployKey ? `/api/static/${appForm.deployKey}/` : '')
+const codeGenTypeLabel = computed(() => {
+  const labels: Record<string, string> = { html: 'HTML', multi_file: '多文件', vue_project: 'Vue', fullstack: '全栈' }
+  return labels[appForm.codeGenType] || appForm.codeGenType || '默认'
+})
+const deployUrl = computed(() => appForm.deployKey ? `/api/code_deploy/${appForm.deployKey}/index.html` : '')
 
 const currentPhase = computed(() => {
   if (appForm.deployedTime) return 4
-  if (appForm.deployKey) return 3
-  if (appForm.initPrompt) return 2
-  return 1
+  if (appForm.deployKey || buildStatus.value?.distExists || buildStatus.value?.projectExists) return 3
+  return 2
 })
 
 const phaseLabel = computed(() => {
   const labels: Record<number, string> = {
-    1: '等待应用信息生成',
-    2: '代码已生成，可以继续迭代或部署',
-    3: '已有部署地址，请确认预览效果',
+    2: '等待生成代码，请先进入生成工作台',
+    3: '代码已生成，可以预览或部署',
     4: '已部署上线，可以继续迭代后重新部署',
   }
   return labels[currentPhase.value] || ''
 })
 
+const getPhaseState = (phase: number) => {
+  if (currentPhase.value > phase) return 'done'
+  if (currentPhase.value === phase) return 'active'
+  return ''
+}
+
 const phaseSteps = computed(() => [
-  { key: 'created', index: '01', title: '需求建档', desc: '应用记录已创建', state: currentPhase.value >= 1 ? 'done' : '' },
-  { key: 'generated', index: '02', title: '生成代码', desc: '可以进入对话继续改', state: currentPhase.value >= 2 ? 'done' : '' },
-  { key: 'preview', index: '03', title: '预览确认', desc: '确认页面和交互', state: currentPhase.value >= 3 ? 'done' : 'active' },
-  { key: 'deploy', index: '04', title: '部署交付', desc: '获得可访问地址', state: currentPhase.value >= 4 ? 'done' : '' },
+  { key: 'created', index: '01', title: '需求建档', desc: '应用记录已创建', state: getPhaseState(1) },
+  { key: 'generated', index: '02', title: '生成代码', desc: '等待生成流开始', state: getPhaseState(2) },
+  { key: 'preview', index: '03', title: '预览确认', desc: '确认页面和交互', state: getPhaseState(3) },
+  { key: 'deploy', index: '04', title: '部署交付', desc: '获得可访问地址', state: getPhaseState(4) },
 ])
 
 const fetchAppInfo = async () => {
-  try { const res = await getAppById(appId); Object.assign(appForm, res.data) }
-  catch (e) { message.error('获取应用信息失败') }
+  try {
+    const res = await getAppById(appId)
+    Object.assign(appForm, res.data)
+    const statusRes = await getAppBuildStatus(appId)
+    buildStatus.value = statusRes.data || {}
+  } catch (e) {
+    message.error('应用不存在或已被删除')
+    router.push('/app')
+  }
 }
 
 const goBack = () => router.back()
@@ -153,9 +169,39 @@ const handleSave = async () => {
 }
 const handleDeploy = async () => {
   deploying.value = true
-  try { await deployApp(appId); message.success('部署请求已提交'); setTimeout(fetchAppInfo, 3000) }
+  try {
+    await deployApp(appId)
+    message.success('部署请求已提交')
+    subscribeBuildEvents()
+  }
   catch (e) { message.error('部署失败') }
   finally { deploying.value = false }
+}
+
+const buildEventSource = ref<EventSource | null>(null)
+
+const subscribeBuildEvents = () => {
+  if (buildEventSource.value) { buildEventSource.value.close() }
+  const es = new EventSource(`/api/app/build/events/${appId}`, { withCredentials: true })
+  es.onmessage = (e) => {
+    try {
+      const event = JSON.parse(e.data)
+      if (event.type === 'build_success') {
+        message.success('构建完成')
+        fetchAppInfo()
+        es.close()
+      } else if (event.type === 'build_fail') {
+        message.error('构建失败: ' + (event.message || '未知错误'))
+        es.close()
+      } else if (event.type === 'deploy_success') {
+        message.success('部署成功')
+        fetchAppInfo()
+        es.close()
+      }
+    } catch {}
+  }
+  es.onerror = () => { es.close() }
+  buildEventSource.value = es
 }
 
 onMounted(() => fetchAppInfo())

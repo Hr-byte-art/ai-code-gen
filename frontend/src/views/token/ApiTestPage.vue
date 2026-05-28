@@ -11,7 +11,7 @@
         <div class="card">
           <div class="card-head"><h3 class="card-title">请求配置</h3></div>
           <a-form :model="form" layout="vertical">
-            <a-form-item label="应用 ID"><a-input-number v-model:value="form.appId" :min="1" style="width:100%" placeholder="输入应用 ID" /></a-form-item>
+            <a-form-item label="应用 ID"><a-input v-model:value="form.appId" style="width:100%" placeholder="输入应用 ID" /></a-form-item>
             <a-form-item label="消息内容"><a-textarea v-model:value="form.message" :rows="5" placeholder="输入要发送的消息..." /></a-form-item>
             <a-form-item><a-button type="primary" block size="large" :loading="loading" @click="send" class="send-btn"><SendOutlined /> 发送请求</a-button></a-form-item>
           </a-form>
@@ -43,7 +43,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 
 const router = useRouter()
 const loading = ref(false)
-const form = reactive({ appId: undefined as number | undefined, message: '' })
+const form = reactive({ appId: undefined as string | undefined, message: '' })
 const result = ref<any>(null)
 
 const send = async () => {

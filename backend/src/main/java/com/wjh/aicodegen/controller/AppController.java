@@ -14,11 +14,16 @@ import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.model.dto.app.*;
 import com.wjh.aicodegen.model.entity.App;
+import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.model.entity.User;
+import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
+import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
+import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.reteLimit.annotation.RateLimit;
 import com.wjh.aicodegen.reteLimit.enums.RateLimitType;
 import com.wjh.aicodegen.service.AppService;
+import com.wjh.aicodegen.service.CodeSkillService;
 import com.wjh.aicodegen.service.ProjectDownloadService;
 import com.wjh.aicodegen.service.UserService;
 import com.wjh.aicodegen.utils.CacheUtils;
@@ -70,6 +75,64 @@ public class AppController {
 
     @Resource
     private AppConverter appConverter;
+
+    @Resource
+    private CodeSkillService codeSkillService;
+
+    @Resource
+    private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
+
+    private ServerSentEvent<String> toGenerationSse(String chunk) {
+        Map<String, String> wrapper = Map.of("d", chunk);
+        return ServerSentEvent.<String>builder()
+                .data(JSONUtil.toJsonStr(wrapper))
+                .build();
+    }
+
+
+    /**
+     * 获取路由推荐
+     * AI 预判用户需求应该使用哪种生成模式
+     */
+    @PostMapping("/routing/recommend")
+    @Operation(summary = "获取路由推荐", description = "AI 预判用户需求应该使用哪种生成模式")
+    public BaseResponse<RoutingRecommendation> getRoutingRecommendation(@RequestBody AppAddRequest appAddRequest, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
+        ThrowUtils.throwIf(appAddRequest == null || StrUtil.isBlank(appAddRequest.getInitPrompt()), ErrorCode.PARAMS_ERROR);
+
+        String initPrompt = appAddRequest.getInitPrompt();
+        AiCodeGenTypeRoutingService routingService = aiCodeGenTypeRoutingServiceFactory.createAiCodeGenTypeRoutingService();
+        CodeGenTypeEnum recommended = routingService.routeCodeGenType(initPrompt);
+
+        CodeSkill skill = codeSkillService.getByCodeGenType(recommended.getValue());
+        if (skill == null) {
+            skill = codeSkillService.getByCodeGenType("html");
+        }
+
+        boolean isFullstack = "fullstack".equals(skill.getBuildStrategy());
+
+        // 构建推荐结果
+        RoutingRecommendation rec = RoutingRecommendation.builder()
+                .recommendedType(recommended.getValue())
+                .recommendedName(skill.getName())
+                .reason(isFullstack ? "您的需求涉及数据存储、用户系统或后端 API，建议使用全栈模式" : "您的需求主要是前端展示，建议使用前端模式")
+                .fullstack(isFullstack)
+                .pointCost(skill.getPointCost())
+                .build();
+
+        // 如果推荐全栈，提供纯前端备选方案
+        if (isFullstack) {
+            CodeSkill frontendSkill = codeSkillService.getByCodeGenType("vue_project");
+            if (frontendSkill != null) {
+                rec.setAlternativeType("vue_project");
+                rec.setAlternativeName(frontendSkill.getName());
+                rec.setAlternativePointCost(frontendSkill.getPointCost());
+            }
+        }
+
+        return ResultUtils.success(rec);
+    }
 
 
     /**
@@ -372,17 +435,11 @@ public class AppController {
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR);
-        // 调用服务生成代码（流式）
-        Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
         // 转换为 ServerSentEvent 格式
-        return contentFlux
-                .map(chunk -> {
-                    // 将内容包装成JSON对象
-                    Map<String, String> wrapper = Map.of("d", chunk);
-                    String jsonData = JSONUtil.toJsonStr(wrapper);
-                    return ServerSentEvent.<String>builder()
-                            .data(jsonData)
-                            .build();
+        return Flux.defer(() -> {
+                    // 调用服务生成代码（流式）
+                    Flux<String> contentFlux = appService.chatToGenCode(appId, message, loginUser);
+                    return contentFlux.map(this::toGenerationSse);
                 })
                 .doOnError(error -> {
                     // SSE流错误处理
@@ -390,19 +447,22 @@ public class AppController {
                 })
                 .onErrorResume(error -> {
                     // 如果是连接断开错误，优雅结束流
-                    if (error instanceof java.io.IOException && 
-                        error.getMessage() != null && 
-                        error.getMessage().contains("已建立的连接")) {
+                    if (error instanceof java.io.IOException &&
+                            error.getMessage() != null &&
+                            error.getMessage().contains("已建立的连接")) {
                         log.info(" SSE连接已断开，应用ID: {}, 优雅结束流", appId);
-                        return Flux.empty(); // 优雅结束，不发送错误事件
-                    } else {
-                        // 其他错误，记录详细日志，仅向客户端返回通用提示
-                        log.error("SSE 流处理异常，应用ID: {}", appId, error);
-                        return Flux.just(ServerSentEvent.<String>builder()
-                                .event("error")
-                                .data("{\"error\":true,\"message\":\"生成过程中出现异常，请稍后重试\"}")
-                                .build());
+                        return Flux.empty();
                     }
+                    String errorMessage = error instanceof BusinessException
+                            ? error.getMessage()
+                            : "生成过程中出现异常，请稍后重试";
+                    if (!(error instanceof BusinessException)) {
+                        log.error("SSE 流处理异常，应用ID: {}", appId, error);
+                    }
+                    return Flux.just(ServerSentEvent.<String>builder()
+                            .event("bizError")
+                            .data(JSONUtil.toJsonStr(Map.of("message", errorMessage)))
+                            .build());
                 })
                 .concatWith(Mono.just(
                         // 发送结束事件
@@ -411,6 +471,33 @@ public class AppController {
                                 .data("")
                                 .build()
                 ));
+    }
+
+    /**
+     * 查询应用是否存在运行中的代码生成流
+     */
+    @Operation(summary = "查询应用是否存在运行中的代码生成流")
+    @GetMapping("/chat/gen/active")
+    public BaseResponse<Boolean> hasActiveGenerationStream(@RequestParam Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(appService.hasActiveGenerationStream(appId, loginUser));
+    }
+
+    /**
+     * 订阅运行中的代码生成流
+     */
+    @Operation(summary = "订阅运行中的代码生成流")
+    @GetMapping(value = "/chat/gen/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public Flux<ServerSentEvent<String>> subscribeGenerationStream(@RequestParam Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        User loginUser = userService.getLoginUser(request);
+        return appService.getGenerationEventStream(appId, loginUser)
+                .map(this::toGenerationSse)
+                .concatWith(Mono.just(ServerSentEvent.<String>builder()
+                        .event("done")
+                        .data("")
+                        .build()));
     }
 
     /**
@@ -507,6 +594,12 @@ public class AppController {
     public BaseResponse<Map<String, Object>> getBuildStatus(@PathVariable Long appId, HttpServletRequest request) {
         Map<String, Object> buildStatus = appService.getBuildStatus(appId, request);
         return ResultUtils.success(buildStatus);
+    }
+
+    @Operation(summary = "构建事件SSE流", description = "订阅应用构建状态的实时事件")
+    @GetMapping(value = "/build/events/{appId}", produces = "text/event-stream")
+    public Flux<String> getBuildEvents(@PathVariable Long appId) {
+        return appService.getBuildEventStream(appId);
     }
 
 }

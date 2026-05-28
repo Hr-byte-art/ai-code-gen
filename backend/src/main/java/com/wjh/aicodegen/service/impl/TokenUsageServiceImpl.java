@@ -4,6 +4,7 @@ import com.mybatisflex.core.paginate.Page;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.mapper.TokenUsageMapper;
+import com.wjh.aicodegen.model.dto.token.GenerationStatsDTO;
 import com.wjh.aicodegen.model.dto.token.ModelTokenRankingDTO;
 import com.wjh.aicodegen.model.dto.token.ModelTokenSummaryDTO;
 import com.wjh.aicodegen.model.dto.token.SystemTokenSummaryDTO;
@@ -743,5 +744,77 @@ public class TokenUsageServiceImpl extends ServiceImpl<TokenUsageMapper, TokenUs
                         case "CHAT_INTERACTION" -> "聊天交互";
                         default -> purpose;
                 };
+        }
+
+        @Override
+        public GenerationStatsDTO getUserGenerationStats(Long userId) {
+                try {
+                        // 统计代码生成次数和 Token 消耗
+                        List<TokenUsage> codeGenRecords = list(QueryWrapper.create()
+                                        .where("userId = ?", userId)
+                                        .and("aiCallPurpose = ?", "CODE_GENERATION"));
+
+                        long totalGenerations = codeGenRecords.stream()
+                                        .map(TokenUsage::getAppId)
+                                        .distinct()
+                                        .count();
+                        long totalTokens = codeGenRecords.stream()
+                                        .mapToLong(t -> t.getTotalTokenCount() != null ? t.getTotalTokenCount() : 0)
+                                        .sum();
+
+                        // 按应用类型统计
+                        List<App> userApps = appService.list(QueryWrapper.create()
+                                        .where("userId = ?", userId));
+
+                        long htmlCount = userApps.stream()
+                                        .filter(a -> "html".equals(a.getCodeGenType())).count();
+                        long multiFileCount = userApps.stream()
+                                        .filter(a -> "multi_file".equals(a.getCodeGenType())).count();
+                        long vueCount = userApps.stream()
+                                        .filter(a -> "vue_project".equals(a.getCodeGenType())).count();
+                        long deployCount = userApps.stream()
+                                        .filter(a -> a.getDeployedTime() != null).count();
+
+                        // 最近生成记录（取最近 5 条）
+                        List<GenerationStatsDTO.RecentGeneration> recentRecords = codeGenRecords.stream()
+                                        .sorted(Comparator.comparing(TokenUsage::getCreateTime,
+                                                        Comparator.nullsLast(Comparator.reverseOrder())))
+                                        .limit(5)
+                                        .map(t -> {
+                                                App app = userApps.stream()
+                                                                .filter(a -> a.getId().equals(t.getAppId()))
+                                                                .findFirst().orElse(null);
+                                                return GenerationStatsDTO.RecentGeneration.builder()
+                                                                .appId(t.getAppId())
+                                                                .appName(app != null ? app.getAppName() : "未知应用")
+                                                                .codeGenType(app != null ? app.getCodeGenType() : "")
+                                                                .tokenUsed(t.getTotalTokenCount() != null
+                                                                                ? t.getTotalTokenCount().longValue()
+                                                                                : 0L)
+                                                                .createTime(t.getCreateTime() != null
+                                                                                ? t.getCreateTime().toString()
+                                                                                : "")
+                                                                .build();
+                                        })
+                                        .collect(Collectors.toList());
+
+                        return GenerationStatsDTO.builder()
+                                        .totalGenerations(totalGenerations)
+                                        .totalTokens(totalTokens)
+                                        .htmlCount(htmlCount)
+                                        .multiFileCount(multiFileCount)
+                                        .vueCount(vueCount)
+                                        .deployCount(deployCount)
+                                        .recentRecords(recentRecords)
+                                        .build();
+
+                } catch (Exception e) {
+                        log.error("获取用户生成统计失败: userId={}, error={}", userId, e.getMessage(), e);
+                        return GenerationStatsDTO.builder()
+                                        .totalGenerations(0L).totalTokens(0L)
+                                        .htmlCount(0L).multiFileCount(0L).vueCount(0L).deployCount(0L)
+                                        .recentRecords(Collections.emptyList())
+                                        .build();
+                }
         }
 }

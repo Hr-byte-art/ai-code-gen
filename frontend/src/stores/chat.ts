@@ -17,7 +17,7 @@ export const useChatStore = defineStore('chat', () => {
   })
 
   // 获取对话历史
-  async function fetchChatHistory(appId: number, isLoadMore = false) {
+  async function fetchChatHistory(appId: string, isLoadMore = false) {
     if (loading.value) return
 
     loading.value = true
@@ -60,7 +60,7 @@ export const useChatStore = defineStore('chat', () => {
   }
 
   // 加载更多历史消息
-  async function loadMore(appId: number) {
+  async function loadMore(appId: string) {
     if (!pagination.value.hasMore) return
     return await fetchChatHistory(appId, true)
   }

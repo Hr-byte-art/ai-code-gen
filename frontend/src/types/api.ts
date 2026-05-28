@@ -25,7 +25,7 @@ export interface PageRequest {
 // ==================== 用户相关类型 ====================
 
 export interface LoginUser {
-  id: number
+  id: string
   userAccount: string
   userName: string
   userAvatar: string
@@ -41,7 +41,7 @@ export interface LoginUser {
 }
 
 export interface UserVO {
-  id: number
+  id: string
   userAccount: string
   userName: string
   userAvatar: string
@@ -52,7 +52,7 @@ export interface UserVO {
   vipCode: string
   vipNumber: number
   shareCode: string
-  inviteUser: number
+  inviteUser: string
   integral: number
 }
 
@@ -69,7 +69,7 @@ export interface UserRegisterRequest {
 }
 
 export interface UserUpdateRequest {
-  id: number
+  id: string
   userName?: string
   userAvatar?: string
   userProfile?: string
@@ -83,7 +83,7 @@ export interface ChangePasswordRequest {
 }
 
 export interface UserQueryRequest extends PageRequest {
-  id?: number
+  id?: string
   userName?: string
   userAccount?: string
   userProfile?: string
@@ -93,7 +93,7 @@ export interface UserQueryRequest extends PageRequest {
 // ==================== 应用相关类型 ====================
 
 export interface AppVO {
-  id: number
+  id: string
   appName: string
   cover: string
   initPrompt: string
@@ -101,7 +101,7 @@ export interface AppVO {
   deployKey: string
   deployedTime: string
   priority: number
-  userId: number
+  userId: string
   createTime: string
   updateTime: string
   user: UserVO
@@ -109,39 +109,52 @@ export interface AppVO {
 
 export interface AppAddRequest {
   initPrompt: string
+  templateKey?: string
+  codeGenType?: string
+}
+
+export interface RoutingRecommendation {
+  recommendedType: string
+  recommendedName: string
+  reason: string
+  fullstack: boolean
+  pointCost: number
+  alternativeType: string
+  alternativeName: string
+  alternativePointCost: number
 }
 
 export interface AppUpdateRequest {
-  id: number
+  id: string
   appName: string
 }
 
 export interface AppAdminUpdateRequest {
-  id: number
+  id: string
   appName?: string
   cover?: string
   priority?: number
 }
 
 export interface AppDeployRequest {
-  appId: number
+  appId: string
 }
 
 export interface AppQueryRequest extends PageRequest {
-  id?: number
+  id?: string
   appName?: string
   cover?: string
   initPrompt?: string
   codeGenType?: string
   deployKey?: string
   priority?: number
-  userId?: number
+  userId?: string
 }
 
 // ==================== Token相关类型 ====================
 
 export interface UserTokenSummaryDTO {
-  userId: number
+  userId: string
   userName: string
   userAvatar: string
   totalInputTokens: number
@@ -154,10 +167,10 @@ export interface UserTokenSummaryDTO {
 }
 
 export interface TokenDetailDTO {
-  id: number
-  userId: number
+  id: string
+  userId: string
   userName: string
-  appId: number
+  appId: string
   appName: string
   modelName: string
   aiCallPurpose: string
@@ -227,36 +240,36 @@ export interface ModelTokenRankingDTO {
 // ==================== 对话历史类型 ====================
 
 export interface ChatHistory {
-  id: number
+  id: string
   message: string
   messageType: string
-  appId: number
-  userId: number
+  appId: string
+  userId: string
   createTime: string
   updateTime: string
   isDelete: number
 }
 
 export interface ChatHistoryQueryRequest extends PageRequest {
-  id?: number
+  id?: string
   message?: string
   messageType?: string
-  appId?: number
-  userId?: number
+  appId?: string
+  userId?: string
   lastCreateTime?: string
 }
 
 // ==================== 会员相关类型 ====================
 
 export interface VipCode {
-  id: number
+  id: string
   vipCode: string
   effectiveDay: number
   expDate: string
   idDelete: number
   createTime: string
   updateTime: string
-  createUser: number
+  createUser: string
   useNum: number
   maxUseNum: number
 }
@@ -266,17 +279,79 @@ export interface VipCodeAddRequest {
   effectiveDay: number
   expDate: string
   maxUseNum: number
-  creatorId: number
+  creatorId: string
 }
 
 export interface VipCodeUpdateRequest {
-  id: number
+  id: string
   expDate: string
   maxUseNum: number
+}
+
+// ==================== 配额相关类型 ====================
+
+export interface UserQuotaVO {
+  dailyGenUsed: number
+  dailyGenLimit: number
+  monthlyGenUsed: number
+  monthlyGenLimit: number
+  dailyTokenUsed: number
+  dailyTokenLimit: number
+  monthlyTokenUsed: number
+  monthlyTokenLimit: number
+}
+
+export interface RecentGeneration {
+  appId: string
+  appName: string
+  codeGenType: string
+  tokenUsed: number
+  createTime: string
+}
+
+export interface GenerationStatsDTO {
+  totalGenerations: number
+  totalTokens: number
+  htmlCount: number
+  multiFileCount: number
+  vueCount: number
+  deployCount: number
+  recentRecords: RecentGeneration[]
+}
+
+export interface CodeTemplate {
+  id: string
+  templateName: string
+  templateKey: string
+  description: string
+  codeGenType: string
+  templateContent: string
+  previewUrl: string
+  useCount: number
+  status: number
+  createTime: string
+  updateTime: string
+}
+
+export interface CodeSkill {
+  id: string
+  name: string
+  skillKey: string
+  description: string
+  systemPrompt: string
+  codeGenType: string
+  pointCost: number
+  toolNames: string | null
+  buildStrategy: string
+  modelStrategy: string
+  isActive: number
+  sortOrder: number
+  createTime: string
+  updateTime: string
 }
 
 // ==================== 通用请求类型 ====================
 
 export interface DeleteRequest {
-  id: number
+  id: string
 }
