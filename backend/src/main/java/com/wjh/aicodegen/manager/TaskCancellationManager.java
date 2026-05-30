@@ -67,10 +67,14 @@ public class TaskCancellationManager {
 
     private void cancelExistingTask(Object existingTask, Long appId) {
         if (existingTask != null) {
-            if (existingTask instanceof Disposable disposable && !disposable.isDisposed()) {
-                log.info("应用 {} 已有任务在运行，取消旧任务 (Disposable)", appId);
-                disposable.dispose();
-            } else if (existingTask instanceof Subscription subscription) {
+            if (existingTask instanceof Disposable) {
+                Disposable disposable = (Disposable) existingTask;
+                if (!disposable.isDisposed()) {
+                    log.info("应用 {} 已有任务在运行，取消旧任务 (Disposable)", appId);
+                    disposable.dispose();
+                }
+            } else if (existingTask instanceof Subscription) {
+                Subscription subscription = (Subscription) existingTask;
                 log.info("应用 {} 已有任务在运行，取消旧任务 (Subscription)", appId);
                 subscription.cancel();
             }
@@ -90,11 +94,15 @@ public class TaskCancellationManager {
 
         Object task = runningTasks.remove(appId);
         if (task != null) {
-            if (task instanceof Disposable disposable && !disposable.isDisposed()) {
-                disposable.dispose();
-                log.info("成功取消应用 {} 的代码生成任务", appId);
-                return true;
-            } else if (task instanceof Subscription subscription) {
+            if (task instanceof Disposable) {
+                Disposable disposable = (Disposable) task;
+                if (!disposable.isDisposed()) {
+                    disposable.dispose();
+                    log.info("成功取消应用 {} 的代码生成任务", appId);
+                    return true;
+                }
+            } else if (task instanceof Subscription) {
+                Subscription subscription = (Subscription) task;
                 subscription.cancel();
                 log.info("成功取消应用 {} 的代码生成任务 (Subscription)", appId);
                 return true;
@@ -124,7 +132,8 @@ public class TaskCancellationManager {
             return false;
         }
         Object task = runningTasks.get(appId);
-        if (task instanceof Disposable disposable) {
+        if (task instanceof Disposable) {
+            Disposable disposable = (Disposable) task;
             return !disposable.isDisposed();
         } else if (task instanceof Subscription) {
             return true;
@@ -148,7 +157,8 @@ public class TaskCancellationManager {
     public int getRunningTaskCount() {
         return (int) runningTasks.values().stream()
                 .filter(task -> {
-                    if (task instanceof Disposable disposable) {
+                    if (task instanceof Disposable) {
+                        Disposable disposable = (Disposable) task;
                         return !disposable.isDisposed();
                     } else if (task instanceof Subscription) {
                         return true;

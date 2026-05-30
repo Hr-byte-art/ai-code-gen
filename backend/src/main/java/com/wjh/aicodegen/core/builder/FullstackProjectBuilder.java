@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.wjh.aicodegen.core.deploy.NodeProcessManager;
 import jakarta.annotation.Resource;
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +27,9 @@ public class FullstackProjectBuilder {
 
     @Resource
     private SqlExecutor sqlExecutor;
+
+    @Resource
+    private NodeProcessManager nodeProcessManager;
 
     @Value("${spring.datasource.username:root}")
     private String dbUsername;
@@ -114,6 +118,17 @@ public class FullstackProjectBuilder {
         }
 
         log.info("全栈项目构建完成: {}", projectPath);
+
+        // 6. 启动 Express 服务
+        if (Files.exists(serverPath)) {
+            int port = nodeProcessManager.startServer(appId, serverPath.toString());
+            if (port > 0) {
+                log.info("Express 服务已启动: appId={}, port={}", appId, port);
+            } else {
+                log.error("Express 服务启动失败: appId={}", appId);
+            }
+        }
+
         return true;
     }
 
@@ -145,17 +160,17 @@ public class FullstackProjectBuilder {
                 }
             }
 
-            String envContent = String.format("""
-                    DB_HOST=%s
-                    DB_PORT=%s
-                    DB_NAME=%s
-                    DB_USER=%s
-                    DB_PASS=%s
-                    DB_TABLE_PREFIX=%s
-                    """, host, port, dbName, dbUsername, dbPassword, tablePrefix);
+            String envContent = String.format(
+                    "DB_HOST=%s\n" +
+                    "DB_PORT=%s\n" +
+                    "DB_NAME=%s\n" +
+                    "DB_USER=%s\n" +
+                    "DB_PASS=%s\n" +
+                    "DB_TABLE_PREFIX=%s\n",
+                    host, port, dbName, dbUsername, dbPassword, tablePrefix);
 
             Path envPath = Paths.get(projectPath, ".env");
-            Files.writeString(envPath, envContent);
+            Files.write(envPath, envContent.getBytes());
             log.info(".env 文件已写入: {}", envPath);
         } catch (IOException e) {
             log.error("写入 .env 文件失败: {}", e.getMessage());

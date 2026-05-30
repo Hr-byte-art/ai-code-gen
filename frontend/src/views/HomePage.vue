@@ -24,7 +24,6 @@
               <span class="panel-eyebrow">新应用</span>
               <h2 class="panel-title">描述你要交付的东西</h2>
             </div>
-            <span class="panel-shortcut">Ctrl Enter</span>
           </div>
           <a-textarea
             v-model:value="prompt"
@@ -34,26 +33,73 @@
             @keydown.enter.ctrl="handleGenerate"
           />
           <div class="prompt-footer">
-            <div class="prompt-hint">先创建资产，再进入工作台继续细化。</div>
-            <a-button type="primary" :loading="generating || routingLoading" @click="handleGenerate">
-              <RocketOutlined /> {{ routingLoading ? 'AI 分析中...' : '创建应用' }}
+            <div class="prompt-hint">Enter 换行，Ctrl + Enter 开始生成</div>
+            <a-button type="primary" size="large" :loading="generating || routingLoading" @click="handleGenerate">
+              <RocketOutlined /> {{ routingLoading ? 'AI 分析中...' : '开始生成' }}
             </a-button>
           </div>
-          <div class="templates" v-if="skills.length > 0">
-            <button v-for="s in skills" :key="s.skillKey" class="tpl-btn" @click="useSkill(s)">
-              {{ s.name }}
-            </button>
-          </div>
-          <div class="templates" v-else-if="apiTemplates.length > 0">
-            <button v-for="t in apiTemplates" :key="t.templateKey" class="tpl-btn" :class="{ active: selectedTemplateKey === t.templateKey }" @click="useApiTemplate(t.templateKey)">
-              {{ t.templateName }}
-            </button>
-          </div>
-          <div class="templates" v-else>
-            <button v-for="t in templates" :key="t.name" class="tpl-btn" @click="useTemplate(t.name)">
-              <component :is="t.icon" class="tpl-icon" />
-              {{ t.label }}
-            </button>
+
+          <div class="choice-area">
+            <div class="choice-group">
+              <div class="choice-head">
+                <span>应用场景</span>
+                <small>可选，帮你快速写入需求</small>
+              </div>
+              <div class="choice-list" v-if="apiTemplates.length > 0">
+                <button
+                  v-for="t in apiTemplates"
+                  :key="t.templateKey"
+                  class="choice-btn scenario"
+                  :class="{ active: selectedTemplateKey === t.templateKey }"
+                  @click="useApiTemplate(t.templateKey)"
+                >
+                  {{ t.templateName }}
+                </button>
+              </div>
+              <div class="choice-list" v-else>
+                <button v-for="t in scenarioTemplates" :key="t.name" class="choice-btn scenario" @click="useTemplate(t.name)">
+                  <component :is="t.icon" class="tpl-icon" />
+                  {{ t.label }}
+                </button>
+              </div>
+            </div>
+
+            <div class="choice-group">
+              <div class="choice-head">
+                <span>生成模式</span>
+                <small>默认自动判断，不懂技术也能直接开始</small>
+              </div>
+              <div class="choice-list">
+                <button class="choice-btn mode" :class="{ active: !selectedCodeGenType }" @click="useAutoMode">
+                  <span>自动推荐</span>
+                  <small>AI 判断</small>
+                </button>
+                <template v-if="skills.length > 0">
+                  <button
+                    v-for="s in skills"
+                    :key="s.skillKey"
+                    class="choice-btn mode"
+                    :class="{ active: selectedCodeGenType === s.codeGenType }"
+                    @click="useSkill(s)"
+                  >
+                    <span>{{ s.name }}</span>
+                    <small>{{ formatSkillCost(s) }}</small>
+                  </button>
+                </template>
+                <template v-else>
+                  <button
+                    v-for="m in fallbackModes"
+                    :key="m.codeGenType"
+                    class="choice-btn mode"
+                    :class="{ active: selectedCodeGenType === m.codeGenType }"
+                    @click="useFallbackMode(m.codeGenType)"
+                  >
+                    <span>{{ m.label }}</span>
+                    <small>{{ m.desc }}</small>
+                  </button>
+                </template>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -67,12 +113,14 @@
         <p class="routing-reason">{{ routingRecommendation?.reason }}</p>
         <div class="routing-options">
           <button class="routing-btn primary" @click="confirmFullstack">
-            <strong>用全栈生成</strong>
-            <span>{{ routingRecommendation?.recommendedName }} · {{ routingRecommendation?.pointCost }} 积分</span>
+            <span class="routing-badge">推荐方案</span>
+            <strong>生成全栈应用</strong>
+            <span>包含后端 API、数据能力和前端页面 · {{ routingRecommendation?.pointCost }} 积分</span>
           </button>
           <button class="routing-btn secondary" @click="chooseFrontend">
-            <strong>只生成前端</strong>
-            <span>{{ routingRecommendation?.alternativeName }} · {{ routingRecommendation?.alternativePointCost }} 积分</span>
+            <span class="routing-badge muted">轻量方案</span>
+            <strong>只生成前端页面</strong>
+            <span>适合展示型页面，不包含后端数据能力 · {{ routingRecommendation?.alternativePointCost }} 积分</span>
           </button>
         </div>
       </div>
@@ -103,7 +151,7 @@
             <span class="section-kicker">公开样本</span>
             <h2 class="section-title">看看别人把需求沉淀成了什么</h2>
           </div>
-          <a-button @click="$router.push('/app')">进入我的资产</a-button>
+          <a-button @click="$router.push('/app')">查看我的应用</a-button>
         </div>
         <a-spin :spinning="loading">
           <div class="app-grid" v-if="appList.length > 0">
@@ -124,7 +172,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  RocketOutlined, ShoppingOutlined, ReadOutlined, CheckSquareOutlined, MessageOutlined, CloudServerOutlined
+  RocketOutlined, ShoppingOutlined, ReadOutlined, CheckSquareOutlined, MessageOutlined
 } from '@ant-design/icons-vue'
 import AppCard from '@/components/AppCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -150,12 +198,18 @@ const routingRecommendation = ref<RoutingRecommendation | null>(null)
 const showRoutingModal = ref(false)
 const routingLoading = ref(false)
 
-const templates = [
-  { name: '电商展示与下单', label: '电商站', icon: ShoppingOutlined },
-  { name: '内容博客与分类归档', label: '内容站', icon: ReadOutlined },
-  { name: '团队任务看板', label: '任务板', icon: CheckSquareOutlined },
-  { name: '客服对话页面', label: '对话页', icon: MessageOutlined },
-  { name: '全栈应用，带后端API和数据库', label: '全栈', icon: CloudServerOutlined },
+const scenarioTemplates = [
+  { name: '电商展示与下单', label: '电商展示', icon: ShoppingOutlined },
+  { name: '内容博客与分类归档', label: '内容博客', icon: ReadOutlined },
+  { name: '团队任务看板', label: '任务看板', icon: CheckSquareOutlined },
+  { name: '客服对话页面', label: '客服对话', icon: MessageOutlined },
+]
+
+const fallbackModes = [
+  { codeGenType: 'html', label: '单页 HTML', desc: '轻量页面' },
+  { codeGenType: 'multi_file', label: '多文件项目', desc: '结构更清楚' },
+  { codeGenType: 'vue_project', label: 'Vue 工程', desc: '适合迭代' },
+  { codeGenType: 'fullstack', label: '全栈应用', desc: '含后端能力' },
 ]
 
 const workflow = [
@@ -226,17 +280,27 @@ const chooseFrontend = () => {
   doCreateApp(routingRecommendation.value?.alternativeType || 'vue_project')
 }
 
-const useTemplate = (t: string) => { prompt.value = `请帮我生成一个${t}应用`; selectedTemplateKey.value = null; selectedCodeGenType.value = null }
+const useAutoMode = () => {
+  selectedCodeGenType.value = null
+  selectedTemplateKey.value = null
+}
+const useTemplate = (t: string) => { prompt.value = `请帮我生成一个${t}应用`; selectedTemplateKey.value = null }
 const useApiTemplate = (key: string) => {
   selectedTemplateKey.value = key
+  selectedCodeGenType.value = null
   const tpl = apiTemplates.value.find(t => t.templateKey === key)
   if (tpl) { prompt.value = `请帮我生成一个${tpl.templateName}` }
 }
 const useSkill = (skill: CodeSkill) => {
-  prompt.value = `请帮我生成一个${skill.name}`
+  prompt.value = prompt.value.trim() || `请帮我生成一个${skill.name}`
   selectedCodeGenType.value = skill.codeGenType
   selectedTemplateKey.value = null
 }
+const useFallbackMode = (codeGenType: string) => {
+  selectedCodeGenType.value = codeGenType
+  selectedTemplateKey.value = null
+}
+const formatSkillCost = (skill: CodeSkill) => skill.pointCost ? `${skill.pointCost} 积分` : '生成模式'
 const goToApp = (id: string) => router.push(`/app/chat/${id}`)
 const handlePageChange = (page: number) => { currentPage.value = page; fetchAppList() }
 
@@ -394,32 +458,107 @@ onMounted(() => { fetchAppList(); fetchTemplates(); fetchSkills() })
   color: var(--t-light);
 }
 
-.templates {
+.choice-area {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-light);
+}
+
+.choice-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.choice-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.choice-head span {
+  color: var(--t-primary);
+  font-size: 13px;
+  font-weight: 820;
+}
+
+.choice-head small {
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.choice-list {
   display: flex;
   gap: 8px;
-  margin-top: 16px;
   flex-wrap: wrap;
 }
 
-.tpl-btn {
+.choice-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
-  border-radius: var(--r-full);
-  background: transparent;
   border: 1px solid var(--border-light);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 650;
-  color: var(--t-secondary);
-  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
 }
 
-.tpl-btn:hover {
+.choice-btn:hover {
   border-color: var(--c-primary-200);
   color: var(--c-primary);
   background: var(--c-primary-50);
+  transform: translateY(-1px);
+}
+
+.choice-btn.active {
+  border-color: var(--c-primary);
+  color: var(--c-primary);
+  background: var(--c-primary-50);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-primary) 18%, transparent);
+}
+
+.choice-btn.scenario {
+  padding: 7px 12px;
+  border-radius: var(--r-full);
+  background: transparent;
+  font-size: 12px;
+  font-weight: 680;
+  color: var(--t-secondary);
+}
+
+.choice-btn.scenario.active {
+  color: var(--c-primary);
+  background: var(--c-primary-50);
+}
+
+.choice-btn.mode {
+  min-width: 112px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  color: var(--t-secondary);
+}
+
+.choice-btn.mode span {
+  font-size: 12px;
+  font-weight: 820;
+}
+
+.choice-btn.mode small {
+  color: var(--t-light);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.choice-btn.mode.active small {
+  color: color-mix(in srgb, var(--c-primary) 72%, var(--t-muted));
 }
 
 .tpl-icon {
@@ -540,6 +679,8 @@ onMounted(() => { fetchAppList(); fetchTemplates(); fetchSkills() })
   .prompt-panel { padding: 16px; }
   .prompt-footer { align-items: stretch; flex-direction: column; }
   .prompt-footer :deep(.ant-btn) { width: 100%; }
+  .choice-head { align-items: flex-start; flex-direction: column; gap: 3px; }
+  .choice-btn.mode { flex: 1 1 calc(50% - 4px); min-width: 0; }
   .section-head { align-items: flex-start; flex-direction: column; }
   .workflow-list { grid-template-columns: 1fr; }
   .workflow-item { min-height: auto; border-right: none; border-bottom: 1px solid var(--border-light); }
@@ -554,16 +695,39 @@ onMounted(() => { fetchAppList(); fetchTemplates(); fetchSkills() })
 .routing-reason { margin: 0 0 20px; font-size: 13px; color: var(--t-muted); line-height: 1.6; }
 .routing-options { display: flex; flex-direction: column; gap: 10px; }
 .routing-btn {
-  display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 14px; border-radius: var(--r-lg); border: 1px solid var(--border-light);
-  cursor: pointer; transition: all var(--t-fast); background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 16px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: all var(--t-fast);
+  background: var(--bg-card);
+  text-align: left;
 }
-.routing-btn strong { font-size: 14px; font-weight: 800; }
-.routing-btn span { font-size: 12px; color: var(--t-muted); }
+.routing-badge {
+  display: inline-flex;
+  padding: 3px 8px;
+  border-radius: var(--r-full);
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.routing-badge.muted {
+  background: var(--bg-soft);
+  color: var(--t-muted);
+}
+.routing-btn strong { font-size: 15px; font-weight: 850; color: var(--t-primary); }
+.routing-btn span:last-child { font-size: 12px; color: var(--t-muted); line-height: 1.55; }
 .routing-btn.primary {
-  border-color: var(--c-primary); background: var(--c-primary-50);
+  border-color: var(--c-primary);
+  background: linear-gradient(135deg, var(--c-primary-50), var(--bg-card));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c-primary) 14%, transparent);
 }
 .routing-btn.primary strong { color: var(--c-primary); }
-.routing-btn.primary:hover { background: var(--c-primary-100); }
-.routing-btn.secondary:hover { border-color: var(--c-primary-200); background: var(--c-primary-50); }
+.routing-btn.primary:hover { background: var(--c-primary-100); transform: translateY(-1px); }
+.routing-btn.secondary:hover { border-color: var(--c-primary-200); background: var(--c-primary-50); transform: translateY(-1px); }
 </style>

@@ -76,18 +76,15 @@ public class SkillLoadTool extends BaseTool {
         log.info("AI 加载技能: key={}, name={}, appId={}", skill.getSkillKey(), skill.getName(), appId);
 
         // 返回技能的 system prompt 作为 AI 的行为指令
-        return String.format("""
-                === 已加载技能: %s ===
-                技能标识: %s
-                描述: %s
-
-                请严格按照以下指令为用户生成代码：
-
-                ---
-                %s
-                ---
-
-                现在请根据用户的描述开始生成代码。使用 writeFile 工具写入文件。""",
+        return String.format(
+                "=== 已加载技能: %s ===\n" +
+                "技能标识: %s\n" +
+                "描述: %s\n\n" +
+                "请严格按照以下指令为用户生成代码：\n\n" +
+                "---\n" +
+                "%s\n" +
+                "---\n\n" +
+                "现在请根据用户的描述开始生成代码。使用 writeFile 工具写入文件。",
                 skill.getName(), skill.getSkillKey(), skill.getDescription(),
                 skill.getSystemPrompt());
     }

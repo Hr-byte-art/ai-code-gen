@@ -5,6 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.wjh.aicodegen.ai.guardrail.PromptSafetyInputGuardrailSpecifyContentAiDetection;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import com.wjh.aicodegen.ai.tools.*;
+import com.wjh.aicodegen.ai.tools.CustomToolProvider;
 import com.wjh.aicodegen.manager.SpringContextUtil;
 import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.monitor.GlobalContextStorage;
@@ -103,6 +104,18 @@ public class AiCodeGeneratorServiceFactory {
 
         // 动态注入 system prompt
         builder.systemMessage(skill.getSystemPrompt());
+
+        // 注入自定义工具（Skill 定义的 HTTP 工具）
+        if (skill.getCustomTools() != null && !skill.getCustomTools().isBlank()) {
+            CustomToolProvider customToolProvider = SpringContextUtil.getBean(CustomToolProvider.class);
+            customToolProvider.registerTools(skill.getCustomTools());
+            // 将 CustomToolProvider 加入工具列表
+            Object[] toolsWithCustom = new Object[tools.length + 1];
+            System.arraycopy(tools, 0, toolsWithCustom, 0, tools.length);
+            toolsWithCustom[tools.length] = customToolProvider;
+            tools = toolsWithCustom;
+            log.info("注入自定义工具: skill={}, tools={}", skill.getSkillKey(), customToolProvider.getRegisteredToolNames());
+        }
 
         // 注入工具
         if (tools.length > 0) {

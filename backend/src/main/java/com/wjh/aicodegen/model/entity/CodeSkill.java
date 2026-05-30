@@ -93,4 +93,12 @@ public class CodeSkill implements Serializable {
     /** 数据来源: file=文件, manual=手动创建 */
     @Column("source")
     private String source;
+
+    /** 自定义工具定义（JSON 数组） */
+    @Column("custom_tools")
+    private String customTools;
+
+    /** 生命周期钩子定义（JSON 对象） */
+    @Column("hooks")
+    private String hooks;
 }

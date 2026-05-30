@@ -76,16 +76,15 @@ public class SkillCreateTool extends BaseTool {
 
             codeSkillService.save(skill);
 
-            String result = String.format("""
-                    技能创建成功！
-                    - 名称: %s
-                    - 标识: %s
-                    - 类型: %s
-                    - 积分: %d
-                    - 构建: %s
-                    - 模型: %s
-
-                    用户现在可以通过「%s」来生成代码了。""",
+            String result = String.format(
+                    "技能创建成功！\n" +
+                    "- 名称: %s\n" +
+                    "- 标识: %s\n" +
+                    "- 类型: %s\n" +
+                    "- 积分: %d\n" +
+                    "- 构建: %s\n" +
+                    "- 模型: %s\n\n" +
+                    "用户现在可以通过「%s」来生成代码了。",
                     name, skillKey, codeGenType, pointCost, buildStrategy, modelStrategy, name);
 
             log.info("AI 创建新技能: key={}, name={}, type={}", skillKey, name, codeGenType);

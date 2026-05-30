@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Component;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -56,6 +57,7 @@ public class SkillFileLoader {
      * 解析单个 SKILL.md 文件
      * 格式: YAML frontmatter (--- 之间) + Markdown body (--- 之后)
      */
+    @SuppressWarnings("unchecked")
     public CodeSkill parse(Resource resource) {
         try {
             String content = readResource(resource);
@@ -71,7 +73,11 @@ public class SkillFileLoader {
                 return null;
             }
 
-            Map<String, String> meta = parseYamlSimple(parts[0]);
+            // 使用 snakeyaml 解析 YAML（支持 JSON 值）
+            Yaml yaml = new Yaml();
+            Map<String, Object> meta = yaml.load(parts[0]);
+            if (meta == null) meta = new LinkedHashMap<>();
+
             String systemPrompt = parts[1].trim();
 
             if (!meta.containsKey("skillKey") || !meta.containsKey("name")) {
@@ -79,19 +85,43 @@ public class SkillFileLoader {
                 return null;
             }
 
-            String skillKey = meta.get("skillKey").trim();
+            String skillKey = String.valueOf(meta.get("skillKey")).trim();
+
+            // customTools 可能是 List 或 String，统一转为 JSON 字符串
+            String customToolsJson = null;
+            Object customToolsObj = meta.get("customTools");
+            if (customToolsObj != null) {
+                if (customToolsObj instanceof List) {
+                    customToolsJson = cn.hutool.json.JSONUtil.toJsonStr(customToolsObj);
+                } else {
+                    customToolsJson = String.valueOf(customToolsObj).trim();
+                }
+            }
+
+            // hooks 可能是 Map 或 String，统一转为 JSON 字符串
+            String hooksJson = null;
+            Object hooksObj = meta.get("hooks");
+            if (hooksObj != null) {
+                if (hooksObj instanceof Map) {
+                    hooksJson = cn.hutool.json.JSONUtil.toJsonStr(hooksObj);
+                } else {
+                    hooksJson = String.valueOf(hooksObj).trim();
+                }
+            }
 
             return CodeSkill.builder()
                     .skillKey(skillKey)
-                    .name(meta.getOrDefault("name", skillKey).trim())
-                    .description(meta.getOrDefault("description", "").trim())
-                    .codeGenType(meta.getOrDefault("codeGenType", skillKey).trim())
-                    .pointCost(parseInt(meta.getOrDefault("pointCost", "10")))
-                    .toolNames(meta.getOrDefault("toolNames", "").trim())
-                    .buildStrategy(meta.getOrDefault("buildStrategy", "none").trim())
-                    .modelStrategy(meta.getOrDefault("modelStrategy", "reasoning").trim())
-                    .sortOrder(parseInt(meta.getOrDefault("sortOrder", "99")))
-                    .isActive(parseBoolean(meta.getOrDefault("isActive", "true")) ? 1 : 0)
+                    .name(getString(meta, "name", skillKey))
+                    .description(getString(meta, "description", ""))
+                    .codeGenType(getString(meta, "codeGenType", skillKey))
+                    .pointCost(getInt(meta, "pointCost", 10))
+                    .toolNames(getString(meta, "toolNames", ""))
+                    .buildStrategy(getString(meta, "buildStrategy", "none"))
+                    .modelStrategy(getString(meta, "modelStrategy", "reasoning"))
+                    .sortOrder(getInt(meta, "sortOrder", 99))
+                    .isActive(getBool(meta, "isActive", true) ? 1 : 0)
+                    .customTools(customToolsJson)
+                    .hooks(hooksJson)
                     .systemPrompt(systemPrompt)
                     .contentHash(md5(systemPrompt))
                     .source("file")
@@ -103,6 +133,25 @@ public class SkillFileLoader {
             log.error("解析 SKILL.md 异常: {}", e.getMessage(), e);
             return null;
         }
+    }
+
+    private String getString(Map<String, Object> meta, String key, String defaultValue) {
+        Object val = meta.get(key);
+        return val != null ? String.valueOf(val).trim() : defaultValue;
+    }
+
+    private int getInt(Map<String, Object> meta, String key, int defaultValue) {
+        Object val = meta.get(key);
+        if (val instanceof Number) return ((Number) val).intValue();
+        try { return Integer.parseInt(String.valueOf(val).trim()); } catch (Exception e) { return defaultValue; }
+    }
+
+    private boolean getBool(Map<String, Object> meta, String key, boolean defaultValue) {
+        Object val = meta.get(key);
+        if (val instanceof Boolean) return (Boolean) val;
+        if (val == null) return defaultValue;
+        String s = String.valueOf(val).trim();
+        return "true".equalsIgnoreCase(s) || "1".equals(s);
     }
 
     /**
@@ -130,33 +179,6 @@ public class SkillFileLoader {
         return new String[]{yaml, body};
     }
 
-    /**
-     * 简单的 YAML 解析（只支持单层 key: value）
-     */
-    private Map<String, String> parseYamlSimple(String yaml) {
-        Map<String, String> map = new LinkedHashMap<>();
-        for (String line : yaml.split("\n")) {
-            line = line.trim();
-            if (line.isEmpty() || line.startsWith("#")) continue;
-
-            int colonIndex = line.indexOf(':');
-            if (colonIndex < 0) continue;
-
-            String key = line.substring(0, colonIndex).trim();
-            String value = line.substring(colonIndex + 1).trim();
-
-            // 去除引号
-            if (value.length() >= 2 &&
-                    ((value.startsWith("\"") && value.endsWith("\"")) ||
-                            (value.startsWith("'") && value.endsWith("'")))) {
-                value = value.substring(1, value.length() - 1);
-            }
-
-            map.put(key, value);
-        }
-        return map;
-    }
-
     private String readResource(Resource resource) {
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
@@ -170,18 +192,6 @@ public class SkillFileLoader {
             log.error("读取资源文件失败: {}", e.getMessage());
             return null;
         }
-    }
-
-    private int parseInt(String value) {
-        try {
-            return Integer.parseInt(value.trim());
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    private boolean parseBoolean(String value) {
-        return "true".equalsIgnoreCase(value.trim()) || "1".equals(value.trim());
     }
 
     private String md5(String input) {

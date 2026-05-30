@@ -47,7 +47,7 @@ public class ImageCollectorNode {
                     ImageSearchTool imageSearchTool = SpringContextUtil.getBean(ImageSearchTool.class);
                     for (ImageCollectionPlan.ImageSearchTask task : plan.getContentImageTasks()) {
                         futures.add(CompletableFuture.supplyAsync(() ->
-                            imageSearchTool.searchContentImages(task.query())));
+                            imageSearchTool.searchContentImages(task.getQuery())));
                     }
                 }
                 // 并发执行插画图片搜索
@@ -55,7 +55,7 @@ public class ImageCollectorNode {
                     IgoutuIllustrationTool illustrationTool = SpringContextUtil.getBean(IgoutuIllustrationTool.class);
                     for (ImageCollectionPlan.IllustrationTask task : plan.getIllustrationTasks()) {
                         futures.add(CompletableFuture.supplyAsync(() -> 
-                            illustrationTool.searchIllustrations(task.query())));
+                            illustrationTool.searchIllustrations(task.getQuery())));
                     }
                 }
                 // 并发执行架构图生成
@@ -63,7 +63,7 @@ public class ImageCollectorNode {
                     MermaidDiagramTool diagramTool = SpringContextUtil.getBean(MermaidDiagramTool.class);
                     for (ImageCollectionPlan.DiagramTask task : plan.getDiagramTasks()) {
                         futures.add(CompletableFuture.supplyAsync(() -> 
-                            diagramTool.generateMermaidDiagram(task.mermaidCode(), task.description())));
+                            diagramTool.generateMermaidDiagram(task.getMermaidCode(), task.getDescription())));
                     }
                 }
                 // 并发执行Logo生成
@@ -71,7 +71,7 @@ public class ImageCollectorNode {
                     LogoGeneratorTool logoTool = SpringContextUtil.getBean(LogoGeneratorTool.class);
                     for (ImageCollectionPlan.LogoTask task : plan.getLogoTasks()) {
                         futures.add(CompletableFuture.supplyAsync(() -> 
-                            logoTool.generateLogos(task.description())));
+                            logoTool.generateLogos(task.getDescription())));
                     }
                 }
                 

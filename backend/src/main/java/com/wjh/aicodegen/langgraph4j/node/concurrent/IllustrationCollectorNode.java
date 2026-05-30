@@ -25,7 +25,7 @@ public class IllustrationCollectorNode {
                     IgoutuIllustrationTool illustrationTool = SpringContextUtil.getBean(IgoutuIllustrationTool.class);
                     log.info("开始并发收集插画图片，任务数: {}", plan.getIllustrationTasks().size());
                     for (ImageCollectionPlan.IllustrationTask task : plan.getIllustrationTasks()) {
-                        List<ImageResource> images = illustrationTool.searchIllustrations(task.query());
+                        List<ImageResource> images = illustrationTool.searchIllustrations(task.getQuery());
                         if (images != null) {
                             illustrations.addAll(images);
                         }

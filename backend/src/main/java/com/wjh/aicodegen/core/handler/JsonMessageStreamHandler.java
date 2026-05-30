@@ -88,14 +88,14 @@ public class JsonMessageStreamHandler {
         StreamMessageTypeEnum typeEnum = StreamMessageTypeEnum.getEnumByValue(streamMessage.getType());
         if (typeEnum != null) {
             switch (typeEnum) {
-                case AI_RESPONSE -> {
+                case AI_RESPONSE: {
                     AiResponseMessage aiMessage = JSONUtil.toBean(chunk, AiResponseMessage.class);
                     String data = aiMessage.getData();
                     // 直接拼接响应
                     chatHistoryStringBuilder.append(data);
                     return data;
                 }
-                case TOOL_REQUEST -> {
+                case TOOL_REQUEST: {
                     ToolRequestMessage toolRequestMessage = JSONUtil.toBean(chunk, ToolRequestMessage.class);
                     String toolId = toolRequestMessage.getId();
                     // 检查是否是第一次看到这个工具 ID
@@ -109,7 +109,7 @@ public class JsonMessageStreamHandler {
                         return "";
                     }
                 }
-                case TOOL_EXECUTED -> {
+                case TOOL_EXECUTED: {
                     ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(chunk, ToolExecutedMessage.class);
                     String name = toolExecutedMessage.getName();
                     String arguments = toolExecutedMessage.getArguments();
@@ -122,7 +122,7 @@ public class JsonMessageStreamHandler {
                     chatHistoryStringBuilder.append(outPut);
                     return outPut;
                 }
-                default -> {
+                default: {
                     log.error("不支持的消息类型: {}", typeEnum);
                     return "";
                 }

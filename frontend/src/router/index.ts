@@ -78,6 +78,13 @@ const router = createRouter({
       component: () => import('@/views/token/ApiTestPage.vue'),
       meta: { title: 'API测试', requiresAuth: true, layout: 'workbench' }
     },
+    // Skill marketplace
+    {
+      path: '/skills',
+      name: 'skillMarket',
+      component: () => import('@/views/skill/SkillMarketPage.vue'),
+      meta: { title: 'Skill 市场', requiresAuth: true, layout: 'workbench' }
+    },
     // Admin routes
     {
       path: '/admin/appManage',

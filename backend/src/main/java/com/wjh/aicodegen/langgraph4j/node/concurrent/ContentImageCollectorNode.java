@@ -32,7 +32,7 @@ public class ContentImageCollectorNode {
                     ImageSearchTool imageSearchTool = SpringContextUtil.getBean(ImageSearchTool.class);
                     log.info("开始并发收集内容图片，任务数: {}", plan.getContentImageTasks().size());
                     for (ImageCollectionPlan.ImageSearchTask task : plan.getContentImageTasks()) {
-                        List<ImageResource> images = imageSearchTool.searchContentImages(task.query());
+                        List<ImageResource> images = imageSearchTool.searchContentImages(task.getQuery());
                         if (images != null) {
                             contentImages.addAll(images);
                         }

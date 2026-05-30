@@ -26,7 +26,7 @@ public class DiagramCollectorNode {
                     log.info("开始并发生成架构图，任务数: {}", plan.getDiagramTasks().size());
                     for (ImageCollectionPlan.DiagramTask task : plan.getDiagramTasks()) {
                         List<ImageResource> images = diagramTool.generateMermaidDiagram(
-                                task.mermaidCode(), task.description());
+                                task.getMermaidCode(), task.getDescription());
                         if (images != null) {
                             diagrams.addAll(images);
                         }

@@ -24,10 +24,13 @@ public class CodeParserExecutor {
      * @return 解析结果（HtmlCodeResult 或 MultiFileCodeResult）
      */
     public static Object executeParser(String codeContent, CodeGenTypeEnum codeGenType) {
-        return switch (codeGenType) {
-            case HTML -> HTML_CODE_PARSER.parseCode(codeContent);
-            case MULTI_FILE -> MULTI_FILE_CODE_PARSER.parseCode(codeContent);
-            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
-        };
+        switch (codeGenType) {
+            case HTML:
+                return HTML_CODE_PARSER.parseCode(codeContent);
+            case MULTI_FILE:
+                return MULTI_FILE_CODE_PARSER.parseCode(codeContent);
+            default:
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
+        }
     }
 }

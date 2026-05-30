@@ -113,7 +113,8 @@ const codeGenTypeLabel = computed(() => {
   const labels: Record<string, string> = { html: 'HTML', multi_file: '多文件', vue_project: 'Vue', fullstack: '全栈' }
   return labels[appForm.codeGenType] || appForm.codeGenType || '默认'
 })
-const deployUrl = computed(() => appForm.deployKey ? `/api/code_deploy/${appForm.deployKey}/index.html` : '')
+const expressDeployUrl = ref<string>('')
+const deployUrl = computed(() => expressDeployUrl.value || (appForm.deployKey ? `/api/code_deploy/${appForm.deployKey}/index.html` : ''))
 
 const currentPhase = computed(() => {
   if (appForm.deployedTime) return 4
@@ -157,8 +158,14 @@ const fetchAppInfo = async () => {
 
 const goBack = () => router.back()
 const goToChat = () => router.push(`/app/chat/${appId}`)
-const handlePreview = () => {
-  appForm.deployKey ? window.open(deployUrl.value, '_blank') : message.info('请先部署应用')
+const handlePreview = async () => {
+  if (!appForm.deployKey) { message.info('请先部署应用'); return }
+  // 全栈项目需要通过 deployApp 获取 Express URL
+  if (appForm.codeGenType === 'fullstack' && !expressDeployUrl.value) {
+    const url = await deployApp(appId)
+    if (url) expressDeployUrl.value = url
+  }
+  window.open(deployUrl.value, '_blank')
 }
 const openDeploy = () => window.open(deployUrl.value, '_blank')
 const handleSave = async () => {
@@ -170,8 +177,9 @@ const handleSave = async () => {
 const handleDeploy = async () => {
   deploying.value = true
   try {
-    await deployApp(appId)
-    message.success('部署请求已提交')
+    const url = await deployApp(appId)
+    if (url) expressDeployUrl.value = url
+    message.success('部署成功')
     subscribeBuildEvents()
   }
   catch (e) { message.error('部署失败') }

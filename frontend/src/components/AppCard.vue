@@ -26,7 +26,7 @@
     </div>
 
     <div class="card-actions">
-      <a-button size="small" type="primary" @click.stop="$emit('chat')">
+      <a-button size="small" type="primary" class="primary-action" @click.stop="$emit('chat')">
         <MessageOutlined /> 继续迭代
       </a-button>
       <a-button size="small" @click.stop="$emit('preview')" v-if="app.deployedTime">
@@ -35,14 +35,25 @@
       <a-button size="small" @click.stop="$emit('deploy')" v-else>
         <CloudUploadOutlined /> 部署
       </a-button>
-      <a-button size="small" @click.stop="$emit('edit')">
-        <EditOutlined /> 交付
-      </a-button>
-      <a-popconfirm title="确定删除此应用？删除后不可恢复。" @confirm.stop="$emit('delete')">
-        <a-button size="small" danger @click.stop>
-          <DeleteOutlined />
+      <a-dropdown trigger="click">
+        <a-button size="small" class="more-action" @click.stop>
+          <MoreOutlined /> 更多
         </a-button>
-      </a-popconfirm>
+        <template #overlay>
+          <a-menu @click.stop>
+            <a-menu-item key="edit" @click="$emit('edit')">
+              <EditOutlined /> 交付页
+            </a-menu-item>
+            <a-menu-item key="delete" danger>
+              <a-popconfirm title="确定删除此应用？删除后不可恢复。" @confirm.stop="$emit('delete')">
+                <span class="delete-menu-item" @click.stop>
+                  <DeleteOutlined /> 删除应用
+                </span>
+              </a-popconfirm>
+            </a-menu-item>
+          </a-menu>
+        </template>
+      </a-dropdown>
     </div>
   </div>
 </template>
@@ -51,7 +62,7 @@
 import { computed, ref, watch } from 'vue'
 import {
   MessageOutlined, EditOutlined, EyeOutlined,
-  CloudUploadOutlined, DeleteOutlined
+  CloudUploadOutlined, DeleteOutlined, MoreOutlined
 } from '@ant-design/icons-vue'
 import defaultCover from '@/assets/default-cover.webp'
 import coverCreated from '@/assets/cover-created.webp'
@@ -300,12 +311,27 @@ const timeAgo = computed(() => {
   display: flex;
   gap: 7px;
   padding-top: 1px;
-  flex-wrap: wrap;
+  align-items: center;
 }
 
 .card-actions :deep(.ant-btn) {
   font-size: 12px !important;
-  height: 29px !important;
-  padding: 0 10px !important;
+  height: 30px !important;
+  padding: 0 11px !important;
+}
+
+.primary-action {
+  flex: 1;
+}
+
+.more-action {
+  color: var(--t-muted);
+}
+
+.delete-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 </style>

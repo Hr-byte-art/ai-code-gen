@@ -346,6 +346,10 @@ export interface CodeSkill {
   modelStrategy: string
   isActive: number
   sortOrder: number
+  customTools: string | null
+  hooks: string | null
+  contentHash: string | null
+  source: string | null
   createTime: string
   updateTime: string
 }

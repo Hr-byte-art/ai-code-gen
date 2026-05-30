@@ -475,11 +475,16 @@ public class AiTokenStatisticsListener implements ChatModelListener {
             return "UNKNOWN";
         }
 
-        return switch (codeGenType.toUpperCase()) {
-            case "HTML", "VUE_PROJECT", "MULTI_FILE" -> "CODE_GENERATION";
-            case "ROUTING" -> "ROUTING";
+        switch (codeGenType.toUpperCase()) {
+            case "HTML":
+            case "VUE_PROJECT":
+            case "MULTI_FILE":
+                return "CODE_GENERATION";
+            case "ROUTING":
+                return "ROUTING";
             // 默认认为是代码生成
-            default -> "CODE_GENERATION";
-        };
+            default:
+                return "CODE_GENERATION";
+        }
     }
 }

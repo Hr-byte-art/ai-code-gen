@@ -25,7 +25,7 @@ public class LogoCollectorNode {
                     LogoGeneratorTool logoTool = SpringContextUtil.getBean(LogoGeneratorTool.class);
                     log.info("开始并发生成Logo，任务数: {}", plan.getLogoTasks().size());
                     for (ImageCollectionPlan.LogoTask task : plan.getLogoTasks()) {
-                        List<ImageResource> images = logoTool.generateLogos(task.description());
+                        List<ImageResource> images = logoTool.generateLogos(task.getDescription());
                         if (images != null) {
                             logos.addAll(images);
                         }

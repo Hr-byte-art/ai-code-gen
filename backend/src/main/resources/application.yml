@@ -42,6 +42,24 @@ management:
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.wjh.aicodegen.observability.model
+# 多 Agent 配置（默认值）
+agent:
+  review:
+    # base-url: https://api.deepseek.com
+    # model-name: deepseek-chat
+    max-tokens: 4096
+    temperature: 0.3
+    base-url: https://token-plan-cn.xiaomimimo.com/v1
+    api-key: tp-cugqw3dsx8bogxhyt5nangl92bn2yakf213kr5r6g012pn14
+    model-name: mimo-v2.5-pro
+  optimizer:
+    # base-url: https://api.deepseek.com
+    # model-name: deepseek-chat
+    max-tokens: 8192
+    temperature: 0.5
+    base-url: https://token-plan-cn.xiaomimimo.com/v1
+    api-key: tp-cugqw3dsx8bogxhyt5nangl92bn2yakf213kr5r6g012pn14
+    model-name: mimo-v2.5-pro
 langchain4j:
   open-ai:
     chat-model:

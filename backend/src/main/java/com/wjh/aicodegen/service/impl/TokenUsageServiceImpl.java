@@ -645,16 +645,16 @@ public class TokenUsageServiceImpl extends ServiceImpl<TokenUsageMapper, TokenUs
         private String getModelDisplayName(String modelName) {
                 if (modelName == null)
                         return "未知模型";
-                return switch (modelName.toLowerCase()) {
-                        case "gpt-4o-mini" -> "GPT-4o Mini";
-                        case "gpt-4o" -> "GPT-4o";
-                        case "gpt-4-turbo" -> "GPT-4 Turbo";
-                        case "gpt-3.5-turbo" -> "GPT-3.5 Turbo";
-                        case "claude-3-haiku" -> "Claude-3 Haiku";
-                        case "claude-3-sonnet" -> "Claude-3 Sonnet";
-                        case "claude-3-opus" -> "Claude-3 Opus";
-                        default -> modelName;
-                };
+                switch (modelName.toLowerCase()) {
+                        case "gpt-4o-mini": return "GPT-4o Mini";
+                        case "gpt-4o": return "GPT-4o";
+                        case "gpt-4-turbo": return "GPT-4 Turbo";
+                        case "gpt-3.5-turbo": return "GPT-3.5 Turbo";
+                        case "claude-3-haiku": return "Claude-3 Haiku";
+                        case "claude-3-sonnet": return "Claude-3 Sonnet";
+                        case "claude-3-opus": return "Claude-3 Opus";
+                        default: return modelName;
+                }
         }
 
         /**
@@ -737,13 +737,13 @@ public class TokenUsageServiceImpl extends ServiceImpl<TokenUsageMapper, TokenUs
         private String getPurposeDescription(String purpose) {
                 if (purpose == null)
                         return "未知";
-                return switch (purpose) {
-                        case "ROUTING" -> "AI路由决策";
-                        case "CODE_GENERATION" -> "代码生成";
-                        case "INPUT_SAFETY_CHECK" -> "输入安全检查";
-                        case "CHAT_INTERACTION" -> "聊天交互";
-                        default -> purpose;
-                };
+                switch (purpose) {
+                        case "ROUTING": return "AI路由决策";
+                        case "CODE_GENERATION": return "代码生成";
+                        case "INPUT_SAFETY_CHECK": return "输入安全检查";
+                        case "CHAT_INTERACTION": return "聊天交互";
+                        default: return purpose;
+                }
         }
 
         @Override

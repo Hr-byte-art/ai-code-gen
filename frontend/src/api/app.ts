@@ -51,8 +51,10 @@ export function getGoodAppList(data: AppQueryRequest) {
 // ==================== 应用操作接口 ====================
 
 // 应用部署
-export function deployApp(appId: string) {
-  return request.post<ApiResponse<string>>('/app/deploy', { appId })
+export async function deployApp(appId: string): Promise<string | null> {
+  const res: any = await request.post<ApiResponse<string>>('/app/deploy', { appId })
+  // Axios 拦截器已提取 response.data，所以 res 就是 { code, data, message }
+  return res?.data || null
 }
 
 // 取消应用代码生成任务

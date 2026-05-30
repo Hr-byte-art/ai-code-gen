@@ -133,11 +133,20 @@ const fetchMyApps = async () => {
 const handleCreate = () => router.push('/')
 const goToChat = (id: string) => router.push(`/app/chat/${id}`)
 const goToEdit = (id: string) => router.push(`/app/edit/${id}`)
-const goToPreview = (app: any) => {
-  if (app.deployKey) window.open(`/api/code_deploy/${app.deployKey}/index.html`, '_blank')
+const goToPreview = async (app: any) => {
+  if (!app.deployKey) return
+  // 全栈项目需要通过 deployApp 获取 Express URL
+  if (app.codeGenType === 'fullstack') {
+    const url = await deployApp(app.id)
+    if (url) { window.open(url, '_blank'); return }
+  }
+  window.open(`/api/code_deploy/${app.deployKey}/index.html`, '_blank')
 }
 const handleDeploy = async (id: string) => {
-  try { await deployApp(id); message.success('部署成功') } catch (e) { message.error('部署失败') }
+  try {
+    const url = await deployApp(id)
+    if (url) window.open(url, '_blank')
+  } catch (e) { message.error('部署失败') }
 }
 const handleDelete = async (id: string) => {
   try {

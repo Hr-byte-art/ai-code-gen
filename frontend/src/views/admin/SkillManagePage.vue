@@ -25,6 +25,10 @@
           <template v-if="column.key === 'isActive'">
             <a-tag :color="record.isActive ? 'green' : 'red'">{{ record.isActive ? '启用' : '禁用' }}</a-tag>
           </template>
+          <template v-if="column.key === 'extensions'">
+            <a-tag v-if="record.customTools" color="cyan">自定义工具</a-tag>
+            <a-tag v-if="record.hooks" color="orange">钩子</a-tag>
+          </template>
           <template v-if="column.key === 'action'">
             <a-button type="link" size="small" @click="showEdit(record)">编辑</a-button>
             <a-popconfirm title="确定删除？" @confirm="handleDelete(record)">
@@ -87,6 +91,22 @@
         <a-form-item label="工具列表（逗号分隔，留空表示全部）">
           <a-input v-model:value="form.toolNames" placeholder="aiImageSearchTool,webSearchTool" />
         </a-form-item>
+
+        <a-collapse :bordered="false" style="background:transparent;margin-bottom:16px">
+          <a-collapse-panel key="customTools" header="自定义工具（JSON）">
+            <a-typography-paragraph type="secondary" :style="{fontSize:'12px',marginBottom:'8px'}">
+              定义 HTTP 工具，格式：[{'{'}"name":"qr","description":"生成二维码","endpoint":"https://...","method":"GET","parameters":[{'{'}"name":"text","type":"string","required":true{'}'}]{'}'}]
+            </a-typography-paragraph>
+            <a-textarea v-model:value="form.customTools" :rows="4" placeholder='[{"name":"qr","description":"生成二维码","endpoint":"https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={text}","method":"GET","parameters":[{"name":"text","type":"string","required":true}]}]' />
+          </a-collapse-panel>
+          <a-collapse-panel key="hooks" header="生命周期钩子（JSON）">
+            <a-typography-paragraph type="secondary" :style="{fontSize:'12px',marginBottom:'8px'}">
+              定义 beforeGenerate / afterGenerate 钩子，格式：{'{'}"beforeGenerate":[{'{'}"type":"http","url":"...","method":"POST"{'}'}]{'}'}
+            </a-typography-paragraph>
+            <a-textarea v-model:value="form.hooks" :rows="3" placeholder='{"beforeGenerate":[{"type":"http","url":"https://api.example.com/before","method":"POST"}]}' />
+          </a-collapse-panel>
+        </a-collapse>
+
         <a-form-item label="系统提示词" required>
           <a-textarea v-model:value="form.systemPrompt" :rows="10" />
         </a-form-item>
@@ -111,7 +131,8 @@ const skillList = ref<CodeSkill[]>([])
 const form = reactive<Partial<CodeSkill>>({
   name: '', skillKey: '', description: '', systemPrompt: '',
   codeGenType: '', pointCost: 10, toolNames: null,
-  buildStrategy: 'none', modelStrategy: 'standard', isActive: 1, sortOrder: 0
+  buildStrategy: 'none', modelStrategy: 'standard', isActive: 1, sortOrder: 0,
+  customTools: null, hooks: null
 })
 
 const columns = [
@@ -120,6 +141,7 @@ const columns = [
   { title: '积分', dataIndex: 'pointCost', key: 'pointCost', width: 70 },
   { title: '构建', dataIndex: 'buildStrategy', key: 'buildStrategy', width: 100 },
   { title: '模型', dataIndex: 'modelStrategy', key: 'modelStrategy', width: 100 },
+  { title: '扩展', key: 'extensions', width: 130 },
   { title: '状态', dataIndex: 'isActive', key: 'isActive', width: 80 },
   { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder', width: 70 },
   { title: '操作', key: 'action', width: 130 },
@@ -135,7 +157,8 @@ const resetForm = () => {
   Object.assign(form, {
     name: '', skillKey: '', description: '', systemPrompt: '',
     codeGenType: '', pointCost: 10, toolNames: null,
-    buildStrategy: 'none', modelStrategy: 'standard', isActive: 1, sortOrder: 0
+    buildStrategy: 'none', modelStrategy: 'standard', isActive: 1, sortOrder: 0,
+    customTools: null, hooks: null
   })
 }
 

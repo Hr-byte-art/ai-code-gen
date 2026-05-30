@@ -148,6 +148,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private CosManager cosManager;
 
     @Resource
+    private com.wjh.aicodegen.core.deploy.NodeProcessManager nodeProcessManager;
+
+    @Resource
     private ModifyPointsUtils modifyPointsUtils;
 
     @Resource
@@ -461,20 +464,42 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             ThrowUtils.throwIf(!distDir.exists(), ErrorCode.SYSTEM_ERROR, "Vue项目构建成功，但是未成功创建 dist 目录");
             sourceDir = distDir;
         } else if ("fullstack".equals(buildStrategy)) {
-            // 重新构建前端（迭代后 dist 可能是旧的）
+            // 全栈项目：构建前端 + 复制到 server/public + 启动 Express
             File frontendDir = new File(sourceDir, "frontend");
-            File frontendDistDir = new File(frontendDir, "dist");
-            if (frontendDir.exists()) {
+            File serverDir = new File(sourceDir, "server");
+
+            if (frontendDir.exists() && serverDir.exists()) {
+                // 重新构建前端
                 log.info("重新构建全栈项目前端...");
-                boolean buildResult = vueProjectBuilder.buildProject(frontendDir.getAbsolutePath());
-                if (buildResult && frontendDistDir.exists()) {
-                    sourceDir = frontendDistDir;
-                } else {
-                    log.warn("前端构建失败，尝试使用 server 目录");
-                    File serverDir = new File(sourceDir, "server");
-                    if (serverDir.exists()) sourceDir = serverDir;
+                vueProjectBuilder.buildProject(frontendDir.getAbsolutePath());
+
+                // 复制 dist 到 server/public
+                File frontendDistDir = new File(frontendDir, "dist");
+                File publicDir = new File(serverDir, "public");
+                if (frontendDistDir.exists()) {
+                    FileUtil.copyContent(frontendDistDir, publicDir, true);
+                    log.info("前端 dist 已复制到 server/public");
                 }
             }
+
+            // 启动 Express 服务
+            String serverPath = serverDir.getAbsolutePath();
+            int port = nodeProcessManager.startServer(appId, serverPath);
+            if (port <= 0) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Express 服务启动失败");
+            }
+
+            // 更新应用部署信息
+            App updateApp = new App();
+            updateApp.setId(appId);
+            updateApp.setDeployKey(deployKey);
+            updateApp.setDeployedTime(LocalDateTime.now());
+            this.updateById(updateApp);
+
+            // 返回 Express 服务 URL
+            String expressUrl = String.format("http://localhost:%d", port);
+            log.info("全栈项目部署成功: appId={}, url={}", appId, expressUrl);
+            return expressUrl;
         }
         // 8. 复制文件到部署目录（先清空再复制，避免旧文件残留）
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
@@ -572,6 +597,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             appSchemaRecordService.dropAndRemoveByAppId(appId);
         } catch (Exception e) {
             log.error("清理应用数据库表失败: {}", e.getMessage());
+        }
+        // 停止全栈应用的 Express 进程
+        try {
+            nodeProcessManager.stopServer(appId);
+        } catch (Exception e) {
+            log.error("停止 Express 进程失败: {}", e.getMessage());
         }
         // 删除应用
         return super.removeById(id);

@@ -9,6 +9,22 @@ buildStrategy: landing_page
 modelStrategy: reasoning
 sortOrder: 70
 isActive: true
+customTools:
+  - name: "generateQRCode"
+    description: "生成二维码图片 URL，用于着陆页的扫码区域"
+    endpoint: "https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={text}"
+    method: "GET"
+    responsePath: ""
+    parameters:
+      - name: "text"
+        type: "string"
+        description: "要编码的文本或 URL"
+        required: true
+      - name: "size"
+        type: "integer"
+        description: "二维码尺寸（像素）"
+        required: false
+        default: "200"
 ---
 
 你是一位资深的 Web 前端设计师，擅长创建高转化率的营销着陆页。

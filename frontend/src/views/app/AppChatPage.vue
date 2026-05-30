@@ -186,6 +186,22 @@ const normalizeStreamChunk = (data: string) => {
   if (!data || data === '[DONE]') return ''
   try {
     const parsed = JSON.parse(data)
+    const type = parsed?.type
+    // AI 响应：提取文本内容
+    if (type === 'ai_response') {
+      return typeof parsed?.data === 'string' ? parsed.data : ''
+    }
+    // 代码审查结果：格式化显示
+    if (type === 'review_result') {
+      const passed = parsed.passed ? '通过' : '未通过'
+      const score = parsed.score ?? 0
+      const summary = parsed.summary || ''
+      return `\n\n---\n**代码审查** — ${passed}（${score}分）${summary ? '：' + summary : ''}\n---\n\n`
+    }
+    // 工具请求/执行：不显示在聊天中
+    if (type === 'tool_request' || type === 'tool_executed') {
+      return ''
+    }
     return typeof parsed?.d === 'string' ? parsed.d : data
   } catch {
     return data
@@ -291,19 +307,26 @@ const scrollToBottom = () => {
 
 const useHint = (hint: string) => { inputMessage.value = hint }
 const goToEdit = () => router.push(`/app/edit/${appId}`)
-const goToPreview = () => {
-  if (appInfo.value.deployKey) {
-    // 已部署，打开部署后的页面
+const goToPreview = async () => {
+  if (expressDeployUrl.value) {
+    window.open(expressDeployUrl.value, '_blank')
+  } else if (appInfo.value.deployKey) {
+    // 全栈项目需要通过 deployApp 获取 Express URL
+    if (appInfo.value.codeGenType === 'fullstack') {
+      const url = await deployApp(appId)
+      if (url) { expressDeployUrl.value = url; window.open(url, '_blank'); return }
+    }
     window.open(`/api/code_deploy/${appInfo.value.deployKey}/index.html`, '_blank')
   } else {
-    // 未部署，打开预览页面（本地预览）
     window.open(`/api/static/preview/${appId}/index.html`, '_blank')
   }
 }
+const expressDeployUrl = ref<string>('')
 const handleDeploy = async () => {
   deploying.value = true
   try {
-    await deployApp(appId)
+    const url = await deployApp(appId)
+    if (url) expressDeployUrl.value = url
     message.success('部署成功！')
     await fetchAppInfo()
   } catch (e: any) {

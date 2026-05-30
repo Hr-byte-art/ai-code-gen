@@ -149,12 +149,13 @@ export const useAppStore = defineStore('app', () => {
   }
 
   // 部署应用
-  async function deployApp(appId: string) {
+  async function deployApp(appId: string): Promise<string | null> {
     loading.value = true
     try {
       const res = await deployAppApi(appId)
-      message.success('部署请求已提交')
-      return res.data
+      const deployUrl = (res as any)?.data?.data || null
+      message.success('部署成功')
+      return deployUrl
     } catch (error) {
       message.error('部署失败')
       return null

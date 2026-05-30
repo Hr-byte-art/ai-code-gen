@@ -29,11 +29,14 @@ public class CodeFileSaverExecutor {
      * @return 保存的目录
      */
     public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType, Long appId) {
-        return switch (codeGenType) {
-            case HTML -> HTML_CODE_FILE_SAVER.saveCode((HtmlCodeResult) codeResult, appId);
-            case MULTI_FILE -> MULTI_FILE_CODE_FILE_SAVER.saveCode((MultiFileCodeResult) codeResult, appId);
-            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
-        };
+        switch (codeGenType) {
+            case HTML:
+                return HTML_CODE_FILE_SAVER.saveCode((HtmlCodeResult) codeResult, appId);
+            case MULTI_FILE:
+                return MULTI_FILE_CODE_FILE_SAVER.saveCode((MultiFileCodeResult) codeResult, appId);
+            default:
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
+        }
     }
 
 
@@ -45,10 +48,13 @@ public class CodeFileSaverExecutor {
      * @return 保存的目录
      */
     public static File executeSaver(Object codeResult, CodeGenTypeEnum codeGenType) {
-        return switch (codeGenType) {
-            case HTML -> HTML_CODE_FILE_SAVER.saveCode((HtmlCodeResult) codeResult);
-            case MULTI_FILE -> MULTI_FILE_CODE_FILE_SAVER.saveCode((MultiFileCodeResult) codeResult);
-            default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
-        };
+        switch (codeGenType) {
+            case HTML:
+                return HTML_CODE_FILE_SAVER.saveCode((HtmlCodeResult) codeResult);
+            case MULTI_FILE:
+                return MULTI_FILE_CODE_FILE_SAVER.saveCode((MultiFileCodeResult) codeResult);
+            default:
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + codeGenType);
+        }
     }
 }
