@@ -111,6 +111,7 @@ export interface AppAddRequest {
   initPrompt: string
   templateKey?: string
   codeGenType?: string
+  designKey?: string
 }
 
 export interface RoutingRecommendation {
@@ -333,6 +334,12 @@ export interface CodeTemplate {
   updateTime: string
 }
 
+export interface DesignTemplateInfo {
+  key: string
+  name: string
+  description: string
+}
+
 export interface CodeSkill {
   id: string
   name: string
@@ -350,6 +357,11 @@ export interface CodeSkill {
   hooks: string | null
   contentHash: string | null
   source: string | null
+  isPublic: number
+  useCount: number
+  authorId: string | null
+  ratingAvg: number | null
+  ratingCount: number
   createTime: string
   updateTime: string
 }

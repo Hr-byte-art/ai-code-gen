@@ -101,4 +101,24 @@ public class CodeSkill implements Serializable {
     /** 生命周期钩子定义（JSON 对象） */
     @Column("hooks")
     private String hooks;
+
+    /** 是否公开到市场 */
+    @Column("is_public")
+    private Integer isPublic;
+
+    /** 使用次数 */
+    @Column("use_count")
+    private Integer useCount;
+
+    /** 作者用户 ID */
+    @Column("author_id")
+    private Long authorId;
+
+    /** 平均评分（1-5） */
+    @Column("rating_avg")
+    private Double ratingAvg;
+
+    /** 评分人数 */
+    @Column("rating_count")
+    private Integer ratingCount;
 }
