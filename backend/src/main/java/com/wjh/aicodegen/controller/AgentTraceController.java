@@ -2,7 +2,7 @@ package com.wjh.aicodegen.controller;
 
 import com.wjh.aicodegen.annotation.AuthCheck;
 import com.wjh.aicodegen.common.BaseResponse;
-import com.wjh.aicodegen.common.ResultUtils;
+import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.model.entity.AgentTrace;
 import com.wjh.aicodegen.service.AgentTraceService;
 import jakarta.annotation.Resource;

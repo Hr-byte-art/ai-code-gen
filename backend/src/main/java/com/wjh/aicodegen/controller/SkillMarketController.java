@@ -2,7 +2,7 @@ package com.wjh.aicodegen.controller;
 
 import com.wjh.aicodegen.annotation.AuthCheck;
 import com.wjh.aicodegen.common.BaseResponse;
-import com.wjh.aicodegen.common.ResultUtils;
+import com.wjh.aicodegen.utils.ResultUtils;
 import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.service.SkillMarketService;
