@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,13 +32,15 @@ public class NodeProcessManager {
      *
      * @param appId     应用 ID
      * @param serverDir server 目录绝对路径
-     * @return 分配的端口号
+     * @return 分配的端口号，失败返回 -1
      */
     public int startServer(Long appId, String serverDir) {
         // 如果已经在运行，先停止
         if (isRunning(appId)) {
             log.info("Express 已在运行，先停止: appId={}", appId);
             stopServer(appId);
+            // 等待端口释放
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
         }
 
         int port = allocatePort(appId);
@@ -54,25 +57,21 @@ public class NodeProcessManager {
             Process process = pb.start();
             processes.put(appId, process);
 
-            // 等待一下检查是否启动成功
-            Thread.sleep(2000);
-            if (process.isAlive()) {
+            // 等待端口就绪（最多 10 秒）
+            boolean ready = waitForPortReady(port, 10);
+            if (ready) {
                 log.info("Express 启动成功: appId={}, port={}, dir={}", appId, port, serverDir);
+                return port;
             } else {
-                int exitCode = process.exitValue();
-                log.error("Express 启动失败: appId={}, exitCode={}", appId, exitCode);
-                processes.remove(appId);
-                portMap.remove(appId);
+                log.error("Express 启动超时: appId={}, port={}", appId, port);
+                stopServer(appId);
                 return -1;
             }
         } catch (Exception e) {
             log.error("Express 启动异常: appId={}, error={}", appId, e.getMessage());
             processes.remove(appId);
-            portMap.remove(appId);
             return -1;
         }
-
-        return port;
     }
 
     /**
@@ -110,6 +109,15 @@ public class NodeProcessManager {
     }
 
     /**
+     * 检查 Express 是否就绪（端口可连接）
+     */
+    public boolean isReady(Long appId) {
+        int port = getPort(appId);
+        if (port <= 0) return false;
+        return isPortOpen(port);
+    }
+
+    /**
      * 获取应用的端口号
      */
     public int getPort(Long appId) {
@@ -123,6 +131,28 @@ public class NodeProcessManager {
         int port = getPort(appId);
         if (port <= 0) return null;
         return "http://localhost:" + port;
+    }
+
+    /**
+     * 等待端口就绪
+     */
+    private boolean waitForPortReady(int port, int timeoutSeconds) {
+        for (int i = 0; i < timeoutSeconds * 2; i++) {
+            if (isPortOpen(port)) return true;
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+        }
+        return false;
+    }
+
+    /**
+     * 检查端口是否可连接
+     */
+    private boolean isPortOpen(int port) {
+        try (Socket socket = new Socket("localhost", port)) {
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     /**

@@ -150,6 +150,14 @@ const fetchAppInfo = async () => {
     Object.assign(appForm, res.data)
     const statusRes = await getAppBuildStatus(appId)
     buildStatus.value = statusRes.data || {}
+
+    // 全栈项目：自动获取 Express URL
+    if (appForm.codeGenType === 'fullstack' && appForm.deployKey) {
+      try {
+        const url = await deployApp(appId)
+        if (url) expressDeployUrl.value = url
+      } catch (e) { /* Express 启动失败不影响页面加载 */ }
+    }
   } catch (e) {
     message.error('应用不存在或已被删除')
     router.push('/app')
