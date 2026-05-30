@@ -100,6 +100,29 @@
                 </template>
               </div>
             </div>
+
+            <div class="choice-group">
+              <div class="choice-head">
+                <span>设计风格</span>
+                <small>可选，模仿知名网站的视觉风格</small>
+              </div>
+              <div class="choice-list">
+                <button class="choice-btn mode" :class="{ active: !selectedDesignKey }" @click="selectedDesignKey = null">
+                  <span>默认风格</span>
+                  <small>AI 自由发挥</small>
+                </button>
+                <button
+                  v-for="d in designTemplates.slice(0, 8)"
+                  :key="d.key"
+                  class="choice-btn mode"
+                  :class="{ active: selectedDesignKey === d.key }"
+                  @click="selectedDesignKey = d.key"
+                >
+                  <span>{{ d.name }}</span>
+                  <small>{{ d.description.slice(0, 20) }}...</small>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -180,7 +203,8 @@ import workflowPreview from '@/assets/workflow-preview.webp'
 import { getGoodAppList, createApp, getRoutingRecommendation } from '@/api/app'
 import { listTemplates } from '@/api/template'
 import { listSkills } from '@/api/skill'
-import type { CodeTemplate, CodeSkill, RoutingRecommendation } from '@/types'
+import { getDesignTemplateList } from '@/api/design'
+import type { CodeTemplate, CodeSkill, RoutingRecommendation, DesignTemplateInfo } from '@/types'
 
 const router = useRouter()
 const prompt = ref('')
@@ -192,8 +216,10 @@ const total = ref(0)
 const appList = ref<any[]>([])
 const apiTemplates = ref<CodeTemplate[]>([])
 const skills = ref<CodeSkill[]>([])
+const designTemplates = ref<DesignTemplateInfo[]>([])
 const selectedTemplateKey = ref<string | null>(null)
 const selectedCodeGenType = ref<string | null>(null)
+const selectedDesignKey = ref<string | null>(null)
 const routingRecommendation = ref<RoutingRecommendation | null>(null)
 const showRoutingModal = ref(false)
 const routingLoading = ref(false)
@@ -263,6 +289,7 @@ const doCreateApp = async (codeGenType?: string) => {
     const params: any = { initPrompt: prompt.value }
     if (selectedTemplateKey.value) params.templateKey = selectedTemplateKey.value
     if (codeGenType) params.codeGenType = codeGenType
+    if (selectedDesignKey.value) params.designKey = selectedDesignKey.value
     const res = await createApp(params)
     message.success('应用资产已创建')
     router.push(`/app/chat/${res.data}?autoGenerate=1`)
@@ -314,7 +341,12 @@ const fetchSkills = async () => {
   catch (e) {}
 }
 
-onMounted(() => { fetchAppList(); fetchTemplates(); fetchSkills() })
+const fetchDesignTemplates = async () => {
+  try { const res: any = await getDesignTemplateList(); designTemplates.value = res.data || [] }
+  catch (e) {}
+}
+
+onMounted(() => { fetchAppList(); fetchTemplates(); fetchSkills(); fetchDesignTemplates() })
 </script>
 
 <style scoped>

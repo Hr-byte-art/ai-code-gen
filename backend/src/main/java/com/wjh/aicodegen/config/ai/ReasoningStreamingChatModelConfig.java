@@ -11,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
+import java.time.Duration;
 import java.util.List;
 
 @Configuration
@@ -27,6 +28,8 @@ public class ReasoningStreamingChatModelConfig {
     private Integer maxTokens;
 
     private Double temperature;
+
+    private Integer timeout = 300; // 超时时间（秒），默认5分钟
 
     private Boolean logRequests = false;
 
@@ -48,6 +51,7 @@ public class ReasoningStreamingChatModelConfig {
                 .maxTokens(maxTokens)
                 .listeners(List.of(aiModelMonitorListener, aiTokenStatisticsListener))
                 .temperature(temperature)
+                .timeout(Duration.ofSeconds(timeout))
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .build();

@@ -144,10 +144,14 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             chatMemory.clear();
             for (ChatHistory history : historyList) {
                 if (ChatHistoryMessageTypeEnum.USER.getValue().equals(history.getMessageType())) {
-                    chatMemory.add(UserMessage.from(history.getMessage()));
+                    // 转义 {{...}} 防止 LangChain4j 误解析为模板变量
+                    String message = escapeTemplateVariables(history.getMessage());
+                    chatMemory.add(UserMessage.from(message));
                     loadedCount++;
                 } else if (ChatHistoryMessageTypeEnum.AI.getValue().equals(history.getMessageType())) {
-                    chatMemory.add(AiMessage.from(history.getMessage()));
+                    // 转义 {{...}} 防止 LangChain4j 误解析为模板变量
+                    String message = escapeTemplateVariables(history.getMessage());
+                    chatMemory.add(AiMessage.from(message));
                     loadedCount++;
                 }
             }
@@ -158,6 +162,16 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
             // 加载失败不影响系统运行，只是没有历史上下文
             return 0;
         }
+    }
+
+    /**
+     * 转义消息中的 {{...}} 模板变量，防止 LangChain4j 误解析
+     */
+    private String escapeTemplateVariables(String message) {
+        if (message == null) return null;
+        // 将 {{ 替换为 \{\{，将 }} 替换为 \}\}
+        // 但 LangChain4j 使用 {{ 和 }} 作为模板变量，所以需要移除这些
+        return message.replace("{{", "").replace("}}", "");
     }
 
 

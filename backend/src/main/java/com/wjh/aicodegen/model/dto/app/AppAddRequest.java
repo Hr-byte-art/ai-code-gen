@@ -26,6 +26,11 @@ public class AppAddRequest implements Serializable {
      */
     private String codeGenType;
 
+    /**
+     * 设计风格标识（可选，用于注入 DESIGN.md 设计规范）
+     */
+    private String designKey;
+
     @Serial
     private static final long serialVersionUID = 1L;
 }

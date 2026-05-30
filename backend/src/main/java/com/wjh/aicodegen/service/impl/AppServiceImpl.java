@@ -158,6 +158,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private CodeTemplateService codeTemplateService;
+    @Resource
+    private DesignTemplateService designTemplateService;
 
     @Override
     public AppVO getAppVO(App app) {
@@ -668,6 +670,20 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                         + "【用户需求】\n" + initPrompt;
                 codeTemplateService.incrementUseCount(template.getId());
                 log.info("使用模板 {} 生成应用，模板ID: {}", templateKey, template.getId());
+            }
+        }
+
+        // 如果提供了设计风格标识，将 DESIGN.md 设计规范注入到 prompt 中
+        String designKey = appAddRequest.getDesignKey();
+        if (StrUtil.isNotBlank(designKey)) {
+            String designContent = designTemplateService.getDesignTemplate(designKey);
+            if (designContent != null) {
+                // 转义 DESIGN.md 中的 {{...}} 模板变量，防止 LangChain4j 误解析
+                String escapedContent = designContent.replace("{{", "").replace("}}", "");
+                initPrompt = initPrompt + "\n\n## 设计风格要求\n\n"
+                        + "请严格按照以下 DESIGN.md 的设计规范生成代码：\n\n"
+                        + escapedContent;
+                log.info("使用设计风格 {} 生成应用", designKey);
             }
         }
 

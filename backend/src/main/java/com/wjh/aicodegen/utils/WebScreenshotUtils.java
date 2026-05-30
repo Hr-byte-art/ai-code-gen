@@ -93,12 +93,16 @@ public class WebScreenshotUtils {
             options.addArguments(String.format("--window-size=%d,%d", width, height));
             // 禁用扩展
             options.addArguments("--disable-extensions");
+            // 禁用图片加载（加速截图）
+            options.addArguments("--blink-settings=imagesEnabled=false");
             // 设置用户代理
             options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
             // 创建驱动
             WebDriver driver = new ChromeDriver(options);
-            // 设置页面加载超时
-            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
+            // 设置页面加载超时（增加到 60 秒）
+            driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(60));
+            // 设置脚本超时
+            driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(30));
             // 设置隐式等待
             driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
             return driver;
@@ -144,14 +148,14 @@ public class WebScreenshotUtils {
     private static void waitForPageLoad(WebDriver driver) {
         try {
             // 创建等待页面加载对象
-            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(20));
             // 等待 document.readyState 为complete
             wait.until(webDriver ->
                     ((JavascriptExecutor) webDriver).executeScript("return document.readyState")
                             .equals("complete")
             );
             // 额外等待一段时间，确保动态内容加载完成
-            Thread.sleep(2000);
+            Thread.sleep(1000);
             log.info("页面加载完成");
         } catch (Exception e) {
             log.error("等待页面加载时出现异常，继续执行截图", e);

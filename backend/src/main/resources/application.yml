@@ -42,6 +42,10 @@ management:
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.wjh.aicodegen.observability.model
+# 设计模板配置
+design:
+  template:
+    dir: design-templates/design-md
 # 多 Agent 配置（默认值）
 agent:
   review:
