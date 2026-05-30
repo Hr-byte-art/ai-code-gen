@@ -10,6 +10,7 @@ import com.wjh.aicodegen.ai.model.message.ToolExecutedMessage;
 import com.wjh.aicodegen.ai.model.message.ToolRequestMessage;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import com.wjh.aicodegen.constant.AppConstant;
+import com.wjh.aicodegen.core.builder.BuildRetryService;
 import com.wjh.aicodegen.core.builder.FullstackProjectBuilder;
 import com.wjh.aicodegen.core.builder.VueProjectBuilder;
 import com.wjh.aicodegen.core.parser.CodeParserExecutor;
@@ -67,6 +68,10 @@ public class AiCodeGeneratorFacade {
     private AgentOrchestrator agentOrchestrator;
     @Resource
     private SkillHookExecutor skillHookExecutor;
+    @Resource
+    private com.wjh.aicodegen.langgraph4j.workflow.ReviewWorkflow reviewWorkflow;
+    @Resource
+    private BuildRetryService buildRetryService;
 
     /**
      * 统一入口：根据 CodeSkill 生成并保存代码（流式）
@@ -155,10 +160,12 @@ public class AiCodeGeneratorFacade {
                         if (!taskCancellationManager.isTaskCancelled(appId)) {
                             String completeCode = codeBuilder.toString();
 
-                            // 多 Agent 审查流程：代码生成 → 审查 → 优化
-                            log.info("启动多 Agent 审查流程，应用ID: {}", appId);
-                            String reviewedCode = agentOrchestrator.reviewAndOptimize(
-                                    completeCode, codeGenType, appId);
+                            // 审查工作流：reviewer → (pass | fail → optimizer → reviewer)
+                            log.info("启动审查工作流，应用ID: {}", appId);
+                            var reviewResult = reviewWorkflow.execute(completeCode, appId);
+                            String reviewedCode = reviewResult.getFinalCode();
+                            log.info("审查工作流完成: appId={}, status={}, retryCount={}",
+                                    appId, reviewResult.getStatus(), reviewResult.getRetryCount());
 
                             Object parsedResult = CodeParserExecutor.executeParser(reviewedCode, codeGenType);
                             File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
@@ -199,18 +206,23 @@ public class AiCodeGeneratorFacade {
                         // 清理全局上下文，防止内存泄漏
                         GlobalContextStorage.removeContext(String.valueOf(appId));
 
-                        // Agent 审查：读取生成的代码文件，运行审查
+                        // 审查工作流：读取生成的代码文件，运行 reviewer → optimizer 循环
                         if (!taskCancellationManager.isTaskCancelled(appId)) {
                             try {
-                                ReviewResult reviewResult = reviewGeneratedFiles(appId);
-                                if (reviewResult != null) {
-                                    ReviewResultMessage reviewMsg = new ReviewResultMessage(reviewResult);
-                                    sink.next(JSONUtil.toJsonStr(reviewMsg));
-                                    log.info("Agent 审查完成: appId={}, passed={}, score={}",
-                                            appId, reviewResult.getPassed(), reviewResult.getScore());
+                                String generatedCode = collectGeneratedCode(appId);
+                                if (generatedCode != null && !generatedCode.isBlank()) {
+                                    var workflowResult = reviewWorkflow.execute(generatedCode, appId);
+                                    ReviewResult reviewResult = workflowResult.getReviewResult();
+                                    if (reviewResult != null) {
+                                        ReviewResultMessage reviewMsg = new ReviewResultMessage(reviewResult);
+                                        sink.next(JSONUtil.toJsonStr(reviewMsg));
+                                        log.info("审查工作流完成: appId={}, status={}, score={}, retryCount={}",
+                                                appId, workflowResult.getStatus(),
+                                                reviewResult.getScore(), workflowResult.getRetryCount());
+                                    }
                                 }
                             } catch (Exception e) {
-                                log.warn("Agent 审查异常，跳过: appId={}, error={}", appId, e.getMessage());
+                                log.warn("审查工作流异常，跳过: appId={}, error={}", appId, e.getMessage());
                             }
 
                             // 执行 afterGenerate 钩子（如果有）
@@ -278,8 +290,18 @@ public class AiCodeGeneratorFacade {
                     projectDir = findProjectDir(appId);
                 }
                 if (projectDir != null && projectDir.exists()) {
-                    vueProjectBuilder.buildProjectAsync(projectDir.getAbsolutePath());
-                    log.info("应用 {} 项目构建已启动: {}", appId, projectDir.getName());
+                    // 使用重试服务进行构建
+                    final String finalBuildStrategy = buildStrategy;
+                    final File finalProjectDir = projectDir;
+                    Thread.ofVirtual().name("build-retry-" + appId).start(() -> {
+                        boolean success = buildRetryService.buildWithRetry(
+                                finalProjectDir.getAbsolutePath(), finalBuildStrategy, appId);
+                        if (success) {
+                            log.info("应用 {} 构建成功", appId);
+                        } else {
+                            log.error("应用 {} 构建失败（已重试）", appId);
+                        }
+                    });
                 }
                 break;
             case "fullstack":
@@ -288,8 +310,17 @@ public class AiCodeGeneratorFacade {
                     log.warn("应用 {} 未找到全栈项目目录，跳过构建", appId);
                     return;
                 }
-                fullstackProjectBuilder.buildProjectAsync(fullstackProjectDir.getAbsolutePath(), appId);
-                log.info("应用 {} 全栈项目构建已启动: {}", appId, fullstackProjectDir.getName());
+                // 使用重试服务进行构建
+                final File finalFullstackDir = fullstackProjectDir;
+                Thread.ofVirtual().name("build-retry-fullstack-" + appId).start(() -> {
+                    boolean success = buildRetryService.buildWithRetry(
+                            finalFullstackDir.getAbsolutePath(), "fullstack", appId);
+                    if (success) {
+                        log.info("应用 {} 全栈构建成功", appId);
+                    } else {
+                        log.error("应用 {} 全栈构建失败（已重试）", appId);
+                    }
+                });
                 break;
             default:
                 log.info("应用 {} 构建策略为 {}，跳过构建", appId, buildStrategy);
@@ -361,43 +392,28 @@ public class AiCodeGeneratorFacade {
     }
 
     /**
-     * 读取生成的代码文件，运行 Agent 审查
+     * 收集生成的代码文件内容（供审查工作流使用）
      */
-    private ReviewResult reviewGeneratedFiles(Long appId) {
+    private String collectGeneratedCode(Long appId) {
         File projectDir = findProjectDir(appId);
         if (projectDir == null || !projectDir.exists()) {
             log.warn("未找到生成目录，跳过审查: appId={}", appId);
             return null;
         }
 
-        // 收集所有代码文件内容
         List<String> codeFiles = collectCodeFiles(projectDir.toPath());
         if (codeFiles.isEmpty()) {
             log.warn("未找到代码文件，跳过审查: appId={}", appId);
             return null;
         }
 
-        // 拼接为单个字符串（带文件标记）
         String combinedCode = String.join("\n\n", codeFiles);
         if (combinedCode.length() > 50000) {
             log.info("代码过长（{} 字符），截取前 50000 字符进行审查", combinedCode.length());
             combinedCode = combinedCode.substring(0, 50000);
         }
-
-        // 运行审查（复用 AgentOrchestrator，但不做优化重试，只出审查结果）
-        try {
-            ReviewResult result = reviewAgent.reviewCode(combinedCode);
-            return result;
-        } catch (Exception e) {
-            log.error("Agent 审查调用失败: appId={}", appId, e);
-            return null;
-        }
+        return combinedCode;
     }
-
-    /** 直接注入 ReviewAgent 用于文件审查（避免走完整的 reviewAndOptimize 重试循环） */
-    @Resource
-    @Lazy
-    private com.wjh.aicodegen.agent.ReviewAgent reviewAgent;
 
     /**
      * 递归收集目录下的代码文件内容
