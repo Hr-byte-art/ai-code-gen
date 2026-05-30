@@ -109,6 +109,12 @@ const router = createRouter({
       name: 'skillManage',
       component: () => import('@/views/admin/SkillManagePage.vue'),
       meta: { title: '技能管理', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
+    },
+    {
+      path: '/admin/agentTrace',
+      name: 'agentTrace',
+      component: () => import('@/views/admin/AgentTracePage.vue'),
+      meta: { title: 'Agent 追踪', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
     }
   ]
 })
