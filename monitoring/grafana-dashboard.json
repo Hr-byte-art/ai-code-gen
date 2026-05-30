@@ -1,0 +1,227 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "熵擎 AI 代码生成平台",
+    "tags": ["ai", "code-gen", "spring-boot"],
+    "timezone": "Asia/Shanghai",
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "代码生成总次数",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(code_generation_total)",
+            "legendFormat": "总计"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "thresholds": { "steps": [{ "color": "green", "value": null }] } }
+        }
+      },
+      {
+        "id": 2,
+        "title": "Agent 执行总次数",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(agent_execution_total)",
+            "legendFormat": "总计"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "thresholds": { "steps": [{ "color": "blue", "value": null }] } }
+        }
+      },
+      {
+        "id": 3,
+        "title": "应用部署总次数",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(app_deploy_total)",
+            "legendFormat": "总计"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "thresholds": { "steps": [{ "color": "purple", "value": null }] } }
+        }
+      },
+      {
+        "id": 4,
+        "title": "工具调用总次数",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+        "targets": [
+          {
+            "expr": "sum(tool_call_total)",
+            "legendFormat": "总计"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "thresholds": { "steps": [{ "color": "orange", "value": null }] } }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Agent 执行耗时分布",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+        "targets": [
+          {
+            "expr": "rate(agent_execution_duration_seconds_sum[5m]) / rate(agent_execution_duration_seconds_count[5m])",
+            "legendFormat": "{{agent_name}} 平均耗时"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(agent_execution_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{agent_name}} P95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "s" }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Agent 执行次数（按状态）",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+        "targets": [
+          {
+            "expr": "rate(agent_execution_total[5m])",
+            "legendFormat": "{{agent_name}} - {{status}}"
+          }
+        ]
+      },
+      {
+        "id": 20,
+        "title": "Skill 使用分布",
+        "type": "piechart",
+        "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+        "targets": [
+          {
+            "expr": "sum by (skill_key) (skill_usage_total)",
+            "legendFormat": "{{skill_key}}"
+          }
+        ]
+      },
+      {
+        "id": 21,
+        "title": "Skill 生成耗时",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+        "targets": [
+          {
+            "expr": "rate(skill_generation_duration_seconds_sum[5m]) / rate(skill_generation_duration_seconds_count[5m])",
+            "legendFormat": "{{skill_key}} 平均耗时"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "s" }
+        }
+      },
+      {
+        "id": 22,
+        "title": "代码生成次数（按类型）",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+        "targets": [
+          {
+            "expr": "rate(code_generation_total[5m])",
+            "legendFormat": "{{code_gen_type}} - {{status}}"
+          }
+        ]
+      },
+      {
+        "id": 30,
+        "title": "工具调用 Top 10",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+        "targets": [
+          {
+            "expr": "topk(10, sum by (tool_name) (tool_call_total))",
+            "legendFormat": "{{tool_name}}"
+          }
+        ]
+      },
+      {
+        "id": 31,
+        "title": "工具调用耗时 Top 10",
+        "type": "barchart",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+        "targets": [
+          {
+            "expr": "topk(10, rate(tool_call_duration_seconds_sum[5m]) / rate(tool_call_duration_seconds_count[5m]))",
+            "legendFormat": "{{tool_name}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "s" }
+        }
+      },
+      {
+        "id": 40,
+        "title": "JVM 内存使用",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 28 },
+        "targets": [
+          {
+            "expr": "jvm_memory_used_bytes{area=\"heap\"} / 1024 / 1024",
+            "legendFormat": "{{id}} used"
+          },
+          {
+            "expr": "jvm_memory_max_bytes{area=\"heap\"} / 1024 / 1024",
+            "legendFormat": "{{id}} max"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": { "unit": "decmbytes" }
+        }
+      },
+      {
+        "id": 41,
+        "title": "HTTP 请求速率",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 28 },
+        "targets": [
+          {
+            "expr": "rate(http_server_requests_seconds_count[5m])",
+            "legendFormat": "{{method}} {{uri}}"
+          }
+        ]
+      },
+      {
+        "id": 50,
+        "title": "部署次数（按类型）",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+        "targets": [
+          {
+            "expr": "rate(app_deploy_total[5m])",
+            "legendFormat": "{{code_gen_type}} - {{status}}"
+          }
+        ]
+      },
+      {
+        "id": 51,
+        "title": "Agent Token 消耗",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+        "targets": [
+          {
+            "expr": "rate(agent_token_usage_total[5m])",
+            "legendFormat": "{{agent_name}} - {{token_type}}"
+          }
+        ]
+      }
+    ],
+    "time": { "from": "now-1h", "to": "now" },
+    "templating": { "list": [] },
+    "annotations": { "list": [] }
+  },
+  "overwrite": true
+}

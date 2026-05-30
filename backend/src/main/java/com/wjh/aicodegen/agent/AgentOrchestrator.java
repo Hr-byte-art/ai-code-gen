@@ -33,6 +33,9 @@ public class AgentOrchestrator {
     @Resource
     private AgentTraceService agentTraceService;
 
+    @Resource
+    private com.wjh.aicodegen.observability.MetricsService metricsService;
+
     /** 最大审查重试次数 */
     private static final int MAX_REVIEW_RETRIES = 3;
 
@@ -111,6 +114,8 @@ public class AgentOrchestrator {
             throw e;
         } finally {
             long duration = System.currentTimeMillis() - startMs;
+            // 记录 Prometheus 指标
+            metricsService.recordAgentExecution("reviewer", status, duration);
             saveTrace(AgentTrace.builder()
                     .traceId(traceId)
                     .agentName("review")
@@ -149,6 +154,8 @@ public class AgentOrchestrator {
             throw e;
         } finally {
             long duration = System.currentTimeMillis() - startMs;
+            // 记录 Prometheus 指标
+            metricsService.recordAgentExecution("optimizer", status, duration);
             saveTrace(AgentTrace.builder()
                     .traceId(traceId)
                     .agentName("optimizer")
