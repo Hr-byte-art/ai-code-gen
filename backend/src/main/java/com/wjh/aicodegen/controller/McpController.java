@@ -1,14 +1,13 @@
 package com.wjh.aicodegen.controller;
 
 import com.mybatisflex.core.query.QueryWrapper;
-import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.annotation.AuthCheck;
 import com.wjh.aicodegen.common.BaseResponse;
 import com.wjh.aicodegen.utils.ResultUtils;
-import com.wjh.aicodegen.mapper.McpServerMapper;
 import com.wjh.aicodegen.mcp.McpTool;
 import com.wjh.aicodegen.mcp.McpToolRegistry;
 import com.wjh.aicodegen.model.entity.McpServer;
+import com.wjh.aicodegen.service.McpServerService;
 import jakarta.annotation.Resource;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,7 @@ public class McpController {
     private McpToolRegistry mcpToolRegistry;
 
     @Resource
-    private McpServerMapper mcpServerMapper;
+    private McpServerService mcpServerService;
 
     /**
      * 获取所有 MCP 服务器配置（管理员）
@@ -38,7 +37,7 @@ public class McpController {
     @GetMapping("/admin/list")
     @AuthCheck(mustRole = "admin")
     public BaseResponse<List<McpServer>> listServers() {
-        List<McpServer> servers = mcpServerMapper.selectList(
+        List<McpServer> servers = mcpServerService.list(
                 QueryWrapper.create().orderBy("create_time", false));
         return ResultUtils.success(servers);
     }
@@ -60,14 +59,14 @@ public class McpController {
                 .updateTime(LocalDateTime.now())
                 .isDelete(0)
                 .build();
-        mcpServerMapper.insert(server);
+        mcpServerService.save(server);
 
         // 自动连接并发现工具
         try {
             mcpToolRegistry.registerServer(server.getUrl(), server.getName());
             int toolCount = mcpToolRegistry.getToolsByServer(server.getName()).size();
             server.setToolCount(toolCount);
-            mcpServerMapper.updateById(server);
+            mcpServerService.updateById(server);
         } catch (Exception e) {
             log.warn("MCP 服务器连接失败: name={}, error={}", server.getName(), e.getMessage());
         }
@@ -81,11 +80,11 @@ public class McpController {
     @PostMapping("/admin/delete")
     @AuthCheck(mustRole = "admin")
     public BaseResponse<Boolean> deleteServer(@RequestParam Long id) {
-        McpServer server = mcpServerMapper.selectById(id);
+        McpServer server = mcpServerService.getById(id);
         if (server == null) return ResultUtils.success(false);
 
         mcpToolRegistry.unregisterServer(server.getName());
-        mcpServerMapper.deleteById(id);
+        mcpServerService.removeById(id);
         return ResultUtils.success(true);
     }
 
@@ -95,14 +94,14 @@ public class McpController {
     @PostMapping("/admin/refresh")
     @AuthCheck(mustRole = "admin")
     public BaseResponse<Integer> refreshServer(@RequestParam Long id) {
-        McpServer server = mcpServerMapper.selectById(id);
+        McpServer server = mcpServerService.getById(id);
         if (server == null) return ResultUtils.success(0);
 
         mcpToolRegistry.refreshServer(server.getName());
         int toolCount = mcpToolRegistry.getToolsByServer(server.getName()).size();
         server.setToolCount(toolCount);
         server.setUpdateTime(LocalDateTime.now());
-        mcpServerMapper.updateById(server);
+        mcpServerService.updateById(server);
 
         return ResultUtils.success(toolCount);
     }

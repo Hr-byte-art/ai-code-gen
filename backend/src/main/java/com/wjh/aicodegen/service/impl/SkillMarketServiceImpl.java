@@ -3,13 +3,13 @@ package com.wjh.aicodegen.service.impl;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
-import com.wjh.aicodegen.mapper.SkillInstallMapper;
-import com.wjh.aicodegen.mapper.SkillRatingMapper;
 import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.model.entity.SkillInstall;
 import com.wjh.aicodegen.model.entity.SkillRating;
 import com.wjh.aicodegen.service.CodeSkillService;
+import com.wjh.aicodegen.service.SkillInstallService;
 import com.wjh.aicodegen.service.SkillMarketService;
+import com.wjh.aicodegen.service.SkillRatingService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,10 +27,10 @@ public class SkillMarketServiceImpl implements SkillMarketService {
     private CodeSkillService codeSkillService;
 
     @Resource
-    private SkillInstallMapper skillInstallMapper;
+    private SkillInstallService skillInstallService;
 
     @Resource
-    private SkillRatingMapper skillRatingMapper;
+    private SkillRatingService skillRatingService;
 
     @Override
     @Transactional
@@ -59,7 +59,6 @@ public class SkillMarketServiceImpl implements SkillMarketService {
     @Override
     @Transactional
     public void install(Long skillId, Long userId) {
-        // 检查是否已安装
         if (isInstalled(skillId, userId)) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "已安装该技能");
         }
@@ -69,16 +68,14 @@ public class SkillMarketServiceImpl implements SkillMarketService {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "技能不存在或未发布");
         }
 
-        // 创建安装记录
         SkillInstall install = SkillInstall.builder()
                 .skillId(skillId)
                 .userId(userId)
                 .installTime(LocalDateTime.now())
                 .isDelete(0)
                 .build();
-        skillInstallMapper.insert(install);
+        skillInstallService.save(install);
 
-        // 增加使用次数
         sourceSkill.setUseCount((sourceSkill.getUseCount() == null ? 0 : sourceSkill.getUseCount()) + 1);
         codeSkillService.updateById(sourceSkill);
 
@@ -88,7 +85,7 @@ public class SkillMarketServiceImpl implements SkillMarketService {
     @Override
     @Transactional
     public void uninstall(Long skillId, Long userId) {
-        SkillInstall install = skillInstallMapper.selectOne(
+        SkillInstall install = skillInstallService.getOne(
                 QueryWrapper.create()
                         .where("skill_id = ?", skillId)
                         .and("user_id = ?", userId));
@@ -97,9 +94,8 @@ public class SkillMarketServiceImpl implements SkillMarketService {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "未安装该技能");
         }
 
-        skillInstallMapper.deleteById(install.getId());
+        skillInstallService.removeById(install.getId());
 
-        // 减少使用次数
         CodeSkill skill = codeSkillService.getById(skillId);
         if (skill != null && skill.getUseCount() != null && skill.getUseCount() > 0) {
             skill.setUseCount(skill.getUseCount() - 1);
@@ -119,20 +115,17 @@ public class SkillMarketServiceImpl implements SkillMarketService {
         CodeSkill skill = codeSkillService.getById(skillId);
         if (skill == null) throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "技能不存在");
 
-        // 检查是否已评分
-        SkillRating existing = skillRatingMapper.selectOne(
+        SkillRating existing = skillRatingService.getOne(
                 QueryWrapper.create()
                         .where("skill_id = ?", skillId)
                         .and("user_id = ?", userId));
 
         if (existing != null) {
-            // 更新评分
             existing.setScore(score);
             existing.setComment(comment);
             existing.setUpdateTime(LocalDateTime.now());
-            skillRatingMapper.updateById(existing);
+            skillRatingService.updateById(existing);
         } else {
-            // 新增评分
             SkillRating rating = SkillRating.builder()
                     .skillId(skillId)
                     .userId(userId)
@@ -142,12 +135,10 @@ public class SkillMarketServiceImpl implements SkillMarketService {
                     .updateTime(LocalDateTime.now())
                     .isDelete(0)
                     .build();
-            skillRatingMapper.insert(rating);
+            skillRatingService.save(rating);
         }
 
-        // 更新平均评分
         updateRatingAvg(skillId);
-
         log.info("技能已评分: skillId={}, userId={}, score={}", skillId, userId, score);
     }
 
@@ -161,7 +152,7 @@ public class SkillMarketServiceImpl implements SkillMarketService {
 
     @Override
     public List<CodeSkill> getInstalledSkills(Long userId) {
-        List<SkillInstall> installs = skillInstallMapper.selectList(
+        List<SkillInstall> installs = skillInstallService.list(
                 QueryWrapper.create().where("user_id = ?", userId));
 
         List<Long> skillIds = installs.stream()
@@ -175,14 +166,14 @@ public class SkillMarketServiceImpl implements SkillMarketService {
 
     @Override
     public boolean isInstalled(Long skillId, Long userId) {
-        return skillInstallMapper.selectCount(
+        return skillInstallService.count(
                 QueryWrapper.create()
                         .where("skill_id = ?", skillId)
                         .and("user_id = ?", userId)) > 0;
     }
 
     private void updateRatingAvg(Long skillId) {
-        List<SkillRating> ratings = skillRatingMapper.selectList(
+        List<SkillRating> ratings = skillRatingService.list(
                 QueryWrapper.create().where("skill_id = ?", skillId));
 
         if (ratings.isEmpty()) return;
