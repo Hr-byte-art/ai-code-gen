@@ -115,6 +115,12 @@ const router = createRouter({
       name: 'agentTrace',
       component: () => import('@/views/admin/AgentTracePage.vue'),
       meta: { title: 'Agent 追踪', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
+    },
+    {
+      path: '/admin/mcpManage',
+      name: 'mcpManage',
+      component: () => import('@/views/admin/McpManagePage.vue'),
+      meta: { title: 'MCP 管理', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
     }
   ]
 })

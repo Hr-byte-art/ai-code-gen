@@ -25,6 +25,9 @@
           <router-link to="/admin/agentTrace" :class="['admin-nav-link', { active: route.path === '/admin/agentTrace' }]">
             Agent 追踪
           </router-link>
+          <router-link to="/admin/mcpManage" :class="['admin-nav-link', { active: route.path === '/admin/mcpManage' }]">
+            MCP 管理
+          </router-link>
         </nav>
         <div class="admin-header-right">
           <ThemeToggle />
