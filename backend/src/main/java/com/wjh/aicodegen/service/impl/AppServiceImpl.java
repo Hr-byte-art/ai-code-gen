@@ -10,6 +10,7 @@ import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
 import com.wjh.aicodegen.ai.factory.AiGenerateAppNameServiceFactory;
 import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
+import com.wjh.aicodegen.ai.service.AiGenerateAppNameService;
 import com.wjh.aicodegen.constant.AppConstant;
 import com.wjh.aicodegen.constant.UserConstant;
 import com.wjh.aicodegen.convert.AppConverter;
@@ -133,7 +134,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     private GenerationStreamManager generationStreamManager;
 
     @Resource
-    private AiGenerateAppNameServiceFactory AiGenerateAppNameServiceFactory;
+    private AiGenerateAppNameServiceFactory aiGenerateAppNameServiceFactory;
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
@@ -702,8 +703,46 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         projectDownloadService.downloadProjectAsZip(sourceDirPath, downloadFileName, response);
     }
 
+    private String generateAppName(String initPrompt) {
+        String fallbackAppName = StrUtil.sub(initPrompt, 0, Math.min(initPrompt.length(), 12));
+        try {
+            MonitorContext nameGenerationContext = MonitorContext.builder()
+                    .aiCallPurpose(AiCallPurposeEnum.APP_NAME_GENERATION.getCode())
+                    .build();
+            MonitorContextHolder.setContext(nameGenerationContext);
+            AiGenerateAppNameService aiGenerateAppNameService = aiGenerateAppNameServiceFactory.createAiGenerateAppNameService();
+            String generatedAppName = aiGenerateAppNameService.generateAppName(initPrompt);
+            String appName = normalizeAppName(generatedAppName);
+            if (StrUtil.isBlank(appName)) {
+                return fallbackAppName;
+            }
+            return appName;
+        } catch (Exception e) {
+            log.warn("AI 生成应用名称失败，使用默认名称", e);
+            return fallbackAppName;
+        } finally {
+            MonitorContextHolder.clearContext();
+        }
+    }
+
+    private String normalizeAppName(String appName) {
+        if (StrUtil.isBlank(appName)) {
+            return null;
+        }
+        String normalizedAppName = appName.trim()
+                .replace("\"", "")
+                .replace("'", "")
+                .replace("`", "")
+                .replace("“", "")
+                .replace("”", "")
+                .replace("‘", "")
+                .replace("’", "");
+        return StrUtil.sub(normalizedAppName, 0, Math.min(normalizedAppName.length(), 12));
+    }
+
     @Override
     public Long createApp(AppAddRequest appAddRequest, User loginUser, String initPrompt) {
+        String originalUserPrompt = initPrompt;
         // 如果提供了模板标识，将模板内容注入到 prompt 中
         String templateKey = appAddRequest.getTemplateKey();
         if (StrUtil.isNotBlank(templateKey)) {
@@ -735,11 +774,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         App app = appConverter.toApp(appAddRequest);
         app.setUserId(loginUser.getId());
 
-        // AiGenerateAppNameService aiGenerateAppNameService =
-        // AiGenerateAppNameServiceFactory.createAiGenerateAppNameService();
-        // app.setAppName(aiGenerateAppNameService.generateAppName(initPrompt));
-
-        String appName = StrUtil.sub(initPrompt, 0, Math.min(initPrompt.length(), 12));
+        String appName = generateAppName(originalUserPrompt);
         app.setAppName(appName);
         app.setIsDelete(0);
 
