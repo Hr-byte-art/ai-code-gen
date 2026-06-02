@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,6 +22,9 @@ public class NodeProcessManager {
     /** appId -> Process */
     private final ConcurrentHashMap<Long, Process> processes = new ConcurrentHashMap<>();
 
+    /** appId -> 部署锁 */
+    private final ConcurrentHashMap<Long, Object> deployLocks = new ConcurrentHashMap<>();
+
     /** appId -> port */
     private final ConcurrentHashMap<Long, Integer> portMap = new ConcurrentHashMap<>();
 
@@ -37,6 +39,12 @@ public class NodeProcessManager {
      * @return 分配的端口号，失败返回 -1
      */
     public int startServer(Long appId, String serverDir) {
+        synchronized (deployLocks.computeIfAbsent(appId, key -> new Object())) {
+            return doStartServer(appId, serverDir);
+        }
+    }
+
+    private int doStartServer(Long appId, String serverDir) {
         // 如果已经在运行，先停止
         if (isRunning(appId)) {
             log.info("Express 已在运行，先停止: appId={}", appId);
@@ -50,8 +58,14 @@ public class NodeProcessManager {
 
         try {
             ProcessBuilder pb = new ProcessBuilder(nodeCmd, "index.js");
-            pb.directory(new File(serverDir));
+            File serverDirectory = new File(serverDir);
+            pb.directory(serverDirectory);
             pb.redirectErrorStream(true);
+            File logDir = new File(serverDirectory, "logs");
+            if (!logDir.exists() && !logDir.mkdirs()) {
+                log.warn("Express 日志目录创建失败: {}", logDir.getAbsolutePath());
+            }
+            pb.redirectOutput(ProcessBuilder.Redirect.appendTo(new File(logDir, "express.log")));
 
             // 设置 PORT 环境变量
             pb.environment().put("PORT", String.valueOf(port));
@@ -150,9 +164,13 @@ public class NodeProcessManager {
      * 检查 HTTP 服务是否可响应
      */
     private boolean isHttpReady(int port) {
+        return isHttpReady(port, "/api/health") || isHttpReady(port, "/");
+    }
+
+    private boolean isHttpReady(int port, String path) {
         HttpURLConnection connection = null;
         try {
-            URI uri = URI.create("http://127.0.0.1:" + port + "/");
+            URI uri = URI.create("http://127.0.0.1:" + port + path);
             connection = (HttpURLConnection) uri.toURL().openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(1000);
@@ -165,28 +183,6 @@ public class NodeProcessManager {
             if (connection != null) {
                 connection.disconnect();
             }
-        }
-    }
-
-    /**
-     * 等待端口就绪
-     */
-    private boolean waitForPortReady(int port, int timeoutSeconds) {
-        for (int i = 0; i < timeoutSeconds * 2; i++) {
-            if (isPortOpen(port)) return true;
-            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
-        }
-        return false;
-    }
-
-    /**
-     * 检查端口是否可连接
-     */
-    private boolean isPortOpen(int port) {
-        try (Socket socket = new Socket("localhost", port)) {
-            return true;
-        } catch (Exception e) {
-            return false;
         }
     }
 

@@ -94,6 +94,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
      */
     private final ConcurrentHashMap<String, CodeGenTypeEnum> routeCache = new ConcurrentHashMap<>();
 
+    /**
+     * 同一应用部署互斥，避免重复点击导致构建产物和 Node 进程互相覆盖
+     */
+    private final ConcurrentHashMap<Long, Object> appDeployLocks = new ConcurrentHashMap<>();
+
     @Resource
     private UserService userService;
 
@@ -427,8 +432,14 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Override
     public String deployApp(Long appId, User loginUser) {
-        // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        synchronized (appDeployLocks.computeIfAbsent(appId, key -> new Object())) {
+            return doDeployApp(appId, loginUser);
+        }
+    }
+
+    private String doDeployApp(Long appId, User loginUser) {
+        // 1. 参数校验
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
         // 2. 查询应用信息
         App app = this.getById(appId);
