@@ -17,9 +17,6 @@
           <router-link to="/app" :class="['wb-nav-link', { active: isAppSection }]">
             <AppstoreOutlined /> 应用资产
           </router-link>
-          <router-link to="/skills" :class="['wb-nav-link', { active: route.path === '/skills' }]">
-            <AppstoreOutlined /> Skill 市场
-          </router-link>
           <router-link to="/token" :class="['wb-nav-link', { active: isTokenSection }]">
             <CloudServerOutlined /> 资源账单
           </router-link>

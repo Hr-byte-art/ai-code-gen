@@ -112,14 +112,14 @@
                   <small>AI 自由发挥</small>
                 </button>
                 <button
-                  v-for="d in designTemplates.slice(0, 8)"
+                  v-for="d in designTemplates.filter(item => normalizeDesignKey(item) !== 'default').slice(0, 8)"
                   :key="d.key"
                   class="choice-btn mode"
                   :class="{ active: selectedDesignKey === d.key }"
                   @click="selectedDesignKey = d.key"
                 >
-                  <span>{{ d.name }}</span>
-                  <small>{{ d.description.slice(0, 20) }}...</small>
+                  <span>{{ formatDesignName(d) }}</span>
+                  <small>{{ formatDesignDesc(d) }}</small>
                 </button>
               </div>
             </div>
@@ -223,6 +223,51 @@ const selectedDesignKey = ref<string | null>(null)
 const routingRecommendation = ref<RoutingRecommendation | null>(null)
 const showRoutingModal = ref(false)
 const routingLoading = ref(false)
+
+const DESIGN_STYLE_COPY: Record<string, { name: string; desc: string }> = {
+  default: { name: '默认风格', desc: 'AI 自由发挥' },
+  airbnb: { name: '民宿生活风', desc: '温暖卡片、图片友好' },
+  airtable: { name: '协作工具风', desc: '清爽表格、效率产品' },
+  apple: { name: '苹果极简风', desc: '大留白、高级产品感' },
+  binance: { name: '金融科技风', desc: '高对比、数据平台感' },
+  bmw: { name: '豪华汽车风', desc: '强视觉、黑白高级感' },
+  'bmw-m': { name: '性能运动风', desc: '速度感、强冲击力' },
+  bug: { name: '问题追踪风', desc: '工程化、任务管理感' },
+}
+
+const normalizeDesignKey = (template: DesignTemplateInfo) => {
+  const raw = `${template.key || template.name || ''}`.toLowerCase()
+  if (raw.includes('bmw-m') || raw.includes('bmw m')) return 'bmw-m'
+  if (raw.includes('airbnb')) return 'airbnb'
+  if (raw.includes('airtable')) return 'airtable'
+  if (raw.includes('apple')) return 'apple'
+  if (raw.includes('binance')) return 'binance'
+  if (raw === 'bmw' || raw.includes('bmw version')) return 'bmw'
+  if (raw.includes('bug')) return 'bug'
+  if (raw.includes('default')) return 'default'
+  return raw.replace(/[^a-z0-9-]/g, '')
+}
+
+const cleanDesignName = (name: string) => {
+  const raw = (name || '').replace(/version\s*:\s*\w+/gi, '').replace(/name\s*:/gi, '').trim()
+  return raw || '自定义风格'
+}
+
+const formatDesignName = (template: DesignTemplateInfo) => {
+  const copy = DESIGN_STYLE_COPY[normalizeDesignKey(template)]
+  return copy?.name || cleanDesignName(template.name)
+}
+
+const formatDesignDesc = (template: DesignTemplateInfo) => {
+  const copy = DESIGN_STYLE_COPY[normalizeDesignKey(template)]
+  if (copy?.desc) return copy.desc
+  const cleanDesc = (template.description || '')
+    .replace(/version\s*:\s*\w+/gi, '')
+    .replace(/name\s*:/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return cleanDesc ? cleanDesc.slice(0, 14) : '视觉参考风格'
+}
 
 const scenarioTemplates = [
   { name: '电商展示与下单', label: '电商展示', icon: ShoppingOutlined },

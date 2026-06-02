@@ -453,6 +453,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if ("fullstack".equals(buildStrategy)) {
             sourceDir = resolveFullstackProjectDir(appId, sourceDir);
             sourceDirPath = sourceDir.getAbsolutePath();
+            if (StrUtil.isNotBlank(app.getDeployKey()) && app.getDeployedTime() != null && nodeProcessManager.isReady(appId)) {
+                String expressUrl = nodeProcessManager.getUrl(appId);
+                log.info("全栈应用已部署且服务可用，直接复用现有地址: appId={}, url={}", appId, expressUrl);
+                return expressUrl;
+            }
         }
         // 6. 检查源目录是否存在
         if (!sourceDir.exists() || !sourceDir.isDirectory()) {
@@ -473,15 +478,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             if (frontendDir.exists() && serverDir.exists()) {
                 // 重新构建前端
                 log.info("重新构建全栈项目前端...");
-                vueProjectBuilder.buildProject(frontendDir.getAbsolutePath());
+                boolean buildSuccess = vueProjectBuilder.buildProject(frontendDir.getAbsolutePath());
+                ThrowUtils.throwIf(!buildSuccess, ErrorCode.SYSTEM_ERROR, "全栈项目前端构建失败，请检查构建日志");
 
                 // 复制 dist 到 server/public
                 File frontendDistDir = new File(frontendDir, "dist");
                 File publicDir = new File(serverDir, "public");
-                if (frontendDistDir.exists()) {
-                    FileUtil.copyContent(frontendDistDir, publicDir, true);
-                    log.info("前端 dist 已复制到 server/public");
-                }
+                ThrowUtils.throwIf(!frontendDistDir.exists(), ErrorCode.SYSTEM_ERROR, "全栈项目前端构建失败，未生成 dist 目录");
+                FileUtil.copyContent(frontendDistDir, publicDir, true);
+                log.info("前端 dist 已复制到 server/public");
             }
 
             // 启动 Express 服务
@@ -499,8 +504,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             this.updateById(updateApp);
 
             // 返回 Express 服务 URL
-            String expressUrl = String.format("http://localhost:%d", port);
+            String expressUrl = nodeProcessManager.getUrl(appId);
             log.info("全栈项目部署成功: appId={}, url={}", appId, expressUrl);
+            generateAppScreenshotAsync(appId, expressUrl);
             return expressUrl;
         }
         // 8. 复制文件到部署目录（先清空再复制，避免旧文件残留）
@@ -551,6 +557,33 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         // 11. 异步生成截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployUrl);
         return appDeployUrl;
+    }
+
+    @Override
+    public String getDeployedAppUrl(Long appId, User loginUser) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+        }
+        ThrowUtils.throwIf(StrUtil.isBlank(app.getDeployKey()) || app.getDeployedTime() == null,
+                ErrorCode.NOT_FOUND_ERROR, "应用尚未部署");
+
+        CodeSkill skill = codeSkillService.getByCodeGenTypeCached(app.getCodeGenType());
+        String buildStrategy = skill != null ? skill.getBuildStrategy() : "none";
+        if ("fullstack".equals(buildStrategy)) {
+            if (nodeProcessManager.isReady(appId)) {
+                String expressUrl = nodeProcessManager.getUrl(appId);
+                ThrowUtils.throwIf(StrUtil.isBlank(expressUrl), ErrorCode.SYSTEM_ERROR, "全栈服务地址不存在");
+                return expressUrl;
+            }
+            return null;
+        }
+
+        return String.format("%s:%s/%s/%s/index.html", deployHost, deployPort, deployPath, app.getDeployKey());
     }
 
     private File resolveFullstackProjectDir(Long appId, File defaultDir) {

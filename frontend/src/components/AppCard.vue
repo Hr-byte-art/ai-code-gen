@@ -44,12 +44,10 @@
             <a-menu-item key="edit" @click="$emit('edit')">
               <EditOutlined /> 交付页
             </a-menu-item>
-            <a-menu-item key="delete" danger>
-              <a-popconfirm title="确定删除此应用？删除后不可恢复。" @confirm.stop="$emit('delete')">
-                <span class="delete-menu-item" @click.stop>
-                  <DeleteOutlined /> 删除应用
-                </span>
-              </a-popconfirm>
+            <a-menu-item key="delete" danger @click="handleDeleteClick">
+              <span class="delete-menu-item">
+                <DeleteOutlined /> 删除应用
+              </span>
             </a-menu-item>
           </a-menu>
         </template>
@@ -64,6 +62,7 @@ import {
   MessageOutlined, EditOutlined, EyeOutlined,
   CloudUploadOutlined, DeleteOutlined, MoreOutlined
 } from '@ant-design/icons-vue'
+import { Modal } from 'ant-design-vue'
 import defaultCover from '@/assets/default-cover.webp'
 import coverCreated from '@/assets/cover-created.webp'
 import coverGenerated from '@/assets/cover-generated.webp'
@@ -71,6 +70,7 @@ import coverFailed from '@/assets/cover-failed.webp'
 import coverCancelled from '@/assets/cover-cancelled.webp'
 import coverDeployed from '@/assets/cover-deployed.webp'
 import coverRestricted from '@/assets/cover-restricted.webp'
+import { formatDateTime } from '@/utils/time'
 
 interface AppInfo {
   id: string
@@ -88,7 +88,7 @@ interface AppInfo {
 }
 
 const props = defineProps<{ app: AppInfo }>()
-defineEmits<{ click: []; chat: []; edit: []; preview: []; deploy: []; delete: [] }>()
+const emit = defineEmits<{ click: []; chat: []; edit: []; preview: []; deploy: []; delete: [] }>()
 
 const STATUS_COVER_MARKERS = {
   generated: 'defaultAppCover.jpg',
@@ -126,6 +126,18 @@ const handleCoverError = () => {
   coverImage.value = props.app.deployedTime ? coverDeployed : defaultCover
 }
 
+const handleDeleteClick = () => {
+  Modal.confirm({
+    title: '确定删除此应用？',
+    content: '删除后不可恢复。',
+    okText: '删除',
+    cancelText: '取消',
+    okType: 'danger',
+    centered: true,
+    onOk: () => emit('delete'),
+  })
+}
+
 const codeGenTypeLabel = computed(() => {
   const labels: Record<string, string> = { html: 'HTML', multi_file: '多文件', vue_project: 'Vue', fullstack: '全栈' }
   return labels[props.app.codeGenType || ''] || props.app.codeGenType
@@ -135,16 +147,7 @@ const statusClass = computed(() => props.app.deployedTime ? 'online' : props.app
 const nextStep = computed(() => props.app.deployedTime ? '查看线上效果或继续迭代' : props.app.deployKey ? '部署并确认访问地址' : '继续对话完善需求')
 const initials = computed(() => (props.app.title || '应用').slice(0, 2))
 
-const timeAgo = computed(() => {
-  const time = props.app.updateTime || props.app.createTime
-  if (!time) return '时间未知'
-  const diff = Date.now() - new Date(time).getTime()
-  if (diff < 60000) return '刚刚更新'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
-  if (diff < 2592000000) return `${Math.floor(diff / 86400000)} 天前`
-  return new Date(time).toLocaleDateString('zh-CN')
-})
+const timeAgo = computed(() => formatDateTime(props.app.updateTime || props.app.createTime, '时间未知'))
 </script>
 
 <style scoped>
@@ -168,18 +171,25 @@ const timeAgo = computed(() => {
 }
 
 .cover-wrap {
-  height: 132px;
+  height: 190px;
   border-radius: calc(var(--r-lg) - 4px);
   overflow: hidden;
-  background: var(--bg-soft);
+  background:
+    radial-gradient(circle at 18% 14%, color-mix(in srgb, var(--c-primary) 16%, transparent), transparent 34%),
+    linear-gradient(135deg, var(--bg-soft), color-mix(in srgb, var(--bg-card) 72%, var(--c-primary-50)));
   border: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cover-image {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 10px;
+  filter: drop-shadow(0 12px 22px rgba(15, 23, 42, 0.12));
 }
 
 .card-head {

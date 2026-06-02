@@ -56,7 +56,36 @@ const rankings = ref<any[]>([])
 const totalUsers = ref(0)
 const myRanking = ref<any>({})
 const fmtNum = (n: number) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n)
-const fetchRanking = async () => { loading.value = true; try { const r: any = await getUserTokenRanking({ page: 1, pageSize: 50 }); rankings.value = r.data?.rankings || []; totalUsers.value = r.data?.totalUsers || 0 } catch (e) {} finally { loading.value = false } }
+const toDateTimeParam = (date: Date) => {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+const getRankingParams = () => {
+  const now = new Date()
+  const start = new Date(now)
+
+  if (selected.value === 'all') {
+    return { page: 1, pageSize: 50 }
+  }
+
+  if (selected.value === 'today') {
+    start.setHours(0, 0, 0, 0)
+  }
+
+  if (selected.value === 'week') {
+    const day = start.getDay() || 7
+    start.setDate(start.getDate() - day + 1)
+    start.setHours(0, 0, 0, 0)
+  }
+
+  if (selected.value === 'month') {
+    start.setDate(1)
+    start.setHours(0, 0, 0, 0)
+  }
+
+  return { page: 1, pageSize: 50, startTime: toDateTimeParam(start), endTime: toDateTimeParam(now) }
+}
+const fetchRanking = async () => { loading.value = true; try { const r: any = await getUserTokenRanking(getRankingParams()); rankings.value = r.data?.rankings || []; totalUsers.value = r.data?.totalUsers || 0 } catch (e) {} finally { loading.value = false } }
 const fetchMyRanking = async () => { try { const r = await getUserTokenSummary(); myRanking.value = r.data || {} } catch (e) {} }
 onMounted(() => { fetchRanking(); fetchMyRanking() })
 </script>

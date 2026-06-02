@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.Socket;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -57,8 +59,8 @@ public class NodeProcessManager {
             Process process = pb.start();
             processes.put(appId, process);
 
-            // 等待端口就绪（最多 10 秒）
-            boolean ready = waitForPortReady(port, 10);
+            // 等待 HTTP 服务就绪（最多 10 秒）
+            boolean ready = waitForHttpReady(port, 10);
             if (ready) {
                 log.info("Express 启动成功: appId={}, port={}, dir={}", appId, port, serverDir);
                 return port;
@@ -114,7 +116,7 @@ public class NodeProcessManager {
     public boolean isReady(Long appId) {
         int port = getPort(appId);
         if (port <= 0) return false;
-        return isPortOpen(port);
+        return isHttpReady(port);
     }
 
     /**
@@ -130,7 +132,40 @@ public class NodeProcessManager {
     public String getUrl(Long appId) {
         int port = getPort(appId);
         if (port <= 0) return null;
-        return "http://localhost:" + port;
+        return "http://127.0.0.1:" + port;
+    }
+
+    /**
+     * 等待 HTTP 服务就绪
+     */
+    private boolean waitForHttpReady(int port, int timeoutSeconds) {
+        for (int i = 0; i < timeoutSeconds * 2; i++) {
+            if (isHttpReady(port)) return true;
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+        }
+        return false;
+    }
+
+    /**
+     * 检查 HTTP 服务是否可响应
+     */
+    private boolean isHttpReady(int port) {
+        HttpURLConnection connection = null;
+        try {
+            URI uri = URI.create("http://127.0.0.1:" + port + "/");
+            connection = (HttpURLConnection) uri.toURL().openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(1000);
+            connection.setReadTimeout(2000);
+            int status = connection.getResponseCode();
+            return status >= 200 && status < 500;
+        } catch (Exception e) {
+            return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
     }
 
     /**

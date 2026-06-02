@@ -38,6 +38,7 @@ public class ReviewResult {
      * 是否需要重试（严重问题）
      */
     public boolean needsRetry() {
-        return !Boolean.TRUE.equals(passed) && "critical".equals(severity);
+        return !Boolean.TRUE.equals(passed)
+                && (severity == null || severity.isBlank() || "critical".equalsIgnoreCase(severity));
     }
 }

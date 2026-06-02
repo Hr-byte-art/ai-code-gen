@@ -54,7 +54,7 @@ public interface TokenUsageService extends IService<TokenUsage> {
      * @param pageSize 每页大小
      * @return Token消耗排行榜
      */
-    TokenRankingDTO getTokenRanking(Integer page, Integer pageSize);
+    TokenRankingDTO getTokenRanking(Integer page, Integer pageSize, LocalDateTime startTime, LocalDateTime endTime);
 
     /**
      * 获取指定用户的Token使用详情列表

@@ -25,6 +25,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getAdminChatHistory } from '@/api/chat'
+import { formatDateTime as ft } from '@/utils/time'
 
 const loading = ref(false)
 const filter = reactive({ message: '', appId: '', userId: '' })
@@ -37,7 +38,6 @@ const columns = [
   { title: '时间', dataIndex: 'createTime', key: 'createTime', width: 160 },
 ]
 const chatList = ref<any[]>([])
-const ft = (t: string) => t ? new Date(t).toLocaleString('zh-CN') : ''
 const fetchChatList = async () => { loading.value = true; try { const r: any = await getAdminChatHistory({ pageNum: pagination.current, pageSize: pagination.pageSize, message: filter.message || undefined, appId: filter.appId || undefined, userId: filter.userId || undefined }); chatList.value = r.data?.records || []; pagination.total = r.data?.totalRow || 0 } catch (e) {} finally { loading.value = false } }
 const handleSearch = () => { pagination.current = 1; fetchChatList() }
 const handleReset = () => { filter.message = ''; filter.appId = ''; filter.userId = ''; handleSearch() }

@@ -141,6 +141,8 @@ public class TokenStatisticsController {
     public BaseResponse<TokenRankingDTO> getTokenRanking(
             @Parameter(description = "页码，从1开始") @RequestParam(defaultValue = "1") Integer page,
             @Parameter(description = "每页大小，最大100") @RequestParam(defaultValue = "20") Integer pageSize,
+            @Parameter(description = "开始时间") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @Parameter(description = "结束时间") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
             HttpServletRequest request) {
         try {
             // 检查是否为管理员，非管理员只能看前10名
@@ -150,7 +152,7 @@ public class TokenStatisticsController {
                 page = page > 1 ? 1 : page; // 非管理员只能看第一页
             }
 
-            TokenRankingDTO ranking = tokenUsageService.getTokenRanking(page, pageSize);
+            TokenRankingDTO ranking = tokenUsageService.getTokenRanking(page, pageSize, startTime, endTime);
             if (ranking == null) {
                 return new BaseResponse<>(ErrorCode.SYSTEM_ERROR.getCode(), null, "获取排行榜失败");
             }

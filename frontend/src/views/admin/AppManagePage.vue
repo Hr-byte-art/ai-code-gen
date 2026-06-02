@@ -41,11 +41,12 @@ import { message } from 'ant-design-vue'
 import { AppstoreOutlined } from '@ant-design/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getAdminAppList, adminUpdateApp, adminDeleteApp } from '@/api/app'
+import { formatDateTime as ft } from '@/utils/time'
 
 const loading = ref(false)
 const editVisible = ref(false)
 const filter = reactive({ appName: '', userId: '' })
-const editForm = reactive({ id: 0, appName: '', priority: 0 })
+const editForm = reactive({ id: '', appName: '', priority: 0 })
 const pagination = reactive({ current: 1, pageSize: 10, total: 0, showSizeChanger: true, showTotal: (t: number) => `共 ${t} 条` })
 const columns = [
   { title: '应用', dataIndex: 'app', key: 'app', width: 220 },
@@ -56,9 +57,8 @@ const columns = [
   { title: '操作', key: 'action', width: 130 },
 ]
 const appList = ref<any[]>([])
-const ft = (t: string) => t ? new Date(t).toLocaleString('zh-CN') : ''
 const fetchAppList = async () => { loading.value = true; try { const r: any = await getAdminAppList({ pageNum: pagination.current, pageSize: pagination.pageSize, appName: filter.appName || undefined, userId: filter.userId || undefined }); appList.value = r.data?.records || []; pagination.total = r.data?.totalRow || 0 } catch (e) {} finally { loading.value = false } }
-const handleEdit = (r: any) => { editForm.id = r.id; editForm.appName = r.appName; editForm.priority = r.priority || 0; editVisible.value = true }
+const handleEdit = (r: any) => { editForm.id = String(r.id); editForm.appName = r.appName; editForm.priority = r.priority || 0; editVisible.value = true }
 const handleUpdate = async () => { try { await adminUpdateApp(editForm); message.success('更新成功'); editVisible.value = false; fetchAppList() } catch (e) { message.error('更新失败') } }
 const handleDelete = async (r: any) => { try { await adminDeleteApp(r.id); message.success('删除成功'); fetchAppList() } catch (e) { message.error('删除失败') } }
 const handleSearch = () => { pagination.current = 1; fetchAppList() }

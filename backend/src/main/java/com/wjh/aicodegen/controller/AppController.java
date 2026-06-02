@@ -541,6 +541,22 @@ public class AppController {
 
 
     /**
+     * 查询应用已部署访问地址，不触发构建或启动
+     *
+     * @param appId   应用 ID
+     * @param request 请求对象
+     * @return 访问地址
+     */
+    @GetMapping("/deploy/url")
+    @Operation(summary = "查询应用已部署访问地址")
+    public BaseResponse<String> getDeployedAppUrl(@RequestParam Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        User loginUser = userService.getLoginUser(request);
+        String deployUrl = appService.getDeployedAppUrl(appId, loginUser);
+        return ResultUtils.success(deployUrl);
+    }
+
+    /**
      * 下载应用代码
      *
      * @param appId    应用ID

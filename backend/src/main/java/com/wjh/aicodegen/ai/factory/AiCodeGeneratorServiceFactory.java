@@ -150,7 +150,6 @@ public class AiCodeGeneratorServiceFactory {
             "readFile",
             "writeFile",
             "modifyFile",
-            "deleteFile",
             "webSearch",
             "webFetch",
             "exit"

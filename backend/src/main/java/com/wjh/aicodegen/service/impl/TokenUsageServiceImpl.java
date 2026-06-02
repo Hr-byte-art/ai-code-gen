@@ -218,14 +218,22 @@ public class TokenUsageServiceImpl extends ServiceImpl<TokenUsageMapper, TokenUs
         }
 
         @Override
-        public TokenRankingDTO getTokenRanking(Integer page, Integer pageSize) {
+        public TokenRankingDTO getTokenRanking(Integer page, Integer pageSize, LocalDateTime startTime,
+                        LocalDateTime endTime) {
                 try {
                         // 设置默认值
                         page = page != null && page > 0 ? page : 1;
                         pageSize = pageSize != null && pageSize > 0 ? Math.min(pageSize, 100) : 20;
 
-                        // 获取所有用户的Token统计
-                        List<TokenUsage> allTokens = list();
+                        // 获取时间范围内所有用户的Token统计
+                        QueryWrapper queryWrapper = QueryWrapper.create();
+                        if (startTime != null) {
+                                queryWrapper.and("createTime >= ?", startTime);
+                        }
+                        if (endTime != null) {
+                                queryWrapper.and("createTime <= ?", endTime);
+                        }
+                        List<TokenUsage> allTokens = list(queryWrapper);
 
                         // 按用户ID分组并计算汇总
                         Map<Long, UserTokenSummaryDTO> userSummaryMap = new HashMap<>();

@@ -32,8 +32,8 @@
                 <a-descriptions-item label="账号">{{ userStore.userInfo?.userAccount || '-' }}</a-descriptions-item>
                 <a-descriptions-item label="角色"><a-tag :color="userStore.isAdmin ? 'red' : 'blue'">{{ userStore.isAdmin ? '管理员' : '普通用户' }}</a-tag></a-descriptions-item>
                 <a-descriptions-item label="简介" :span="2">{{ userStore.userInfo?.userProfile || '暂无简介' }}</a-descriptions-item>
-                <a-descriptions-item label="注册时间">{{ formatTime(userStore.userInfo?.createTime || '') }}</a-descriptions-item>
-                <a-descriptions-item label="最后签到">{{ formatTime(userStore.userInfo?.recentlySignedIn || '') }}</a-descriptions-item>
+                <a-descriptions-item label="注册时间">{{ formatDateTime(userStore.userInfo?.createTime || '', '暂无') }}</a-descriptions-item>
+                <a-descriptions-item label="最后签到">{{ formatDateTime(userStore.userInfo?.recentlySignedIn || '', '暂无') }}</a-descriptions-item>
               </a-descriptions>
             </a-tab-pane>
             <a-tab-pane key="invited" tab="我的邀请">
@@ -71,6 +71,7 @@ import { message } from 'ant-design-vue'
 import { UserOutlined, EditOutlined, LockOutlined, CalendarOutlined, LogoutOutlined } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { updateMyInfo, changePassword, signIn, getMyInvited } from '@/api/user'
+import { formatDateTime } from '@/utils/time'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -82,7 +83,6 @@ const invitedLoading = ref(false)
 const editForm = reactive({ userName: '', userProfile: '' })
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const invitedUsers = ref<any[]>([])
-const formatTime = (t: string) => !t ? '暂无' : new Date(t).toLocaleString('zh-CN')
 const showEditModal = () => { editForm.userName = userStore.userInfo?.userName || ''; editForm.userProfile = userStore.userInfo?.userProfile || ''; editModalVisible.value = true }
 const showPasswordModal = () => { passwordForm.oldPassword = ''; passwordForm.newPassword = ''; passwordForm.confirmPassword = ''; passwordModalVisible.value = true }
 const handleUpdateInfo = async () => { try { await updateMyInfo({ id: userStore.userId!, userName: editForm.userName, userProfile: editForm.userProfile }); message.success('更新成功'); editModalVisible.value = false; await userStore.fetchUserInfo() } catch (e) { message.error('更新失败') } }

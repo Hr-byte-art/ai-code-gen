@@ -138,6 +138,7 @@
       <a-table :columns="columns" :data-source="records" :pagination="false" :loading="recordsLoading" size="small">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'modelName'"><a-tag color="blue">{{ record.modelName }}</a-tag></template>
+          <template v-if="column.key === 'purposeDescription'">{{ record.purposeDescription || record.aiCallPurpose }}</template>
           <template v-if="column.key === 'totalTokens'"><span class="tv">{{ record.totalTokens }}</span></template>
           <template v-if="column.key === 'createTime'">{{ formatTime(record.createTime) }}</template>
         </template>
@@ -155,6 +156,7 @@ import {
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getUserTokenSummary, getUserTokenDetails, getUserGenerationStats } from '@/api/token'
 import { getMyQuota } from '@/api/quota'
+import { formatDateTime as formatTime } from '@/utils/time'
 import type { UserQuotaVO, GenerationStatsDTO } from '@/types'
 
 const router = useRouter()
@@ -166,13 +168,15 @@ const quota = ref<UserQuotaVO | null>(null)
 const genStats = ref<GenerationStatsDTO | null>(null)
 
 const fmtNum = (n: number) => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : String(n)
-const formatTime = (t: string) => t ? new Date(t).toLocaleString('zh-CN') : ''
 
 const columns = [
   { title: '应用', dataIndex: 'appName', key: 'appName' },
+  { title: '应用 ID', dataIndex: 'appId', key: 'appId' },
   { title: '模型', dataIndex: 'modelName', key: 'modelName' },
-  { title: '用途', dataIndex: 'aiCallPurpose', key: 'aiCallPurpose' },
-  { title: 'Token', dataIndex: 'totalTokens', key: 'totalTokens' },
+  { title: '用途', dataIndex: 'purposeDescription', key: 'purposeDescription' },
+  { title: '输入', dataIndex: 'inputTokens', key: 'inputTokens' },
+  { title: '输出', dataIndex: 'outputTokens', key: 'outputTokens' },
+  { title: '总 Token', dataIndex: 'totalTokens', key: 'totalTokens' },
   { title: '时间', dataIndex: 'createTime', key: 'createTime' },
 ]
 

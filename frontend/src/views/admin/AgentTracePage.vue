@@ -38,6 +38,7 @@
 import { ref, onMounted } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import request from '@/utils/request'
+import { formatDateTime as formatTime } from '@/utils/time'
 
 interface AgentTrace {
   id: string
@@ -73,11 +74,6 @@ const columns = [
   { title: '时间', dataIndex: 'createTime', key: 'createTime', width: 150 },
   { title: '错误', dataIndex: 'errorMessage', key: 'errorMessage', ellipsis: true },
 ]
-
-const formatTime = (t: string) => {
-  if (!t) return ''
-  return new Date(t).toLocaleString('zh-CN')
-}
 
 const fetchList = async () => {
   loading.value = true

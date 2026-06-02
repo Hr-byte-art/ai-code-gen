@@ -43,7 +43,7 @@ export function getSystemTokenSummary(params?: { startTime?: string; endTime?: s
 // ==================== 排行榜接口 ====================
 
 // 获取用户Token消耗排行榜
-export function getUserTokenRanking(params?: { page?: number; pageSize?: number }) {
+export function getUserTokenRanking(params?: { page?: number; pageSize?: number; startTime?: string; endTime?: string }) {
   return request.get<ApiResponse<TokenRankingDTO>>('/token/ranking', { params })
 }
 

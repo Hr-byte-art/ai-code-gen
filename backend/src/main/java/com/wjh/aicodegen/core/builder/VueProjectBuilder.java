@@ -1,11 +1,15 @@
 package com.wjh.aicodegen.core.builder;
 
-import cn.hutool.core.util.RuntimeUtil;
+import cn.hutool.core.io.FileUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @Author 王哈哈
@@ -81,20 +85,18 @@ public class VueProjectBuilder {
     /**
      * 执行 npm install 命令
      */
-    private boolean executeNpmInstall(File projectDir) {
+    private BuildResult executeNpmInstall(File projectDir) {
         log.info("执行 npm install...");
-        String command = String.format("%s install", buildCommand("npm"));
-        // 5分钟超时
+        String[] command = {buildCommand("npm"), "install"};
         return executeCommand(projectDir, command, 300);
     }
 
     /**
      * 执行 npm run build 命令
      */
-    private boolean executeNpmBuild(File projectDir) {
+    private BuildResult executeNpmBuild(File projectDir) {
         log.info("执行 npm run build...");
-        String command = String.format("%s run build -- --base=./", buildCommand("npm"));
-        // 3分钟超时
+        String[] command = {buildCommand("npm"), "run", "build", "--", "--base=./"};
         return executeCommand(projectDir, command, 180);
     }
 
@@ -115,80 +117,149 @@ public class VueProjectBuilder {
      * 执行命令
      *
      * @param workingDir     工作目录
-     * @param command        命令字符串
+     * @param command        命令数组
      * @param timeoutSeconds 超时时间（秒）
-     * @return 是否执行成功
+     * @return 构建结果
      */
-    private boolean executeCommand(File workingDir, String command, int timeoutSeconds) {
+    private BuildResult executeCommand(File workingDir, String[] command, int timeoutSeconds) {
+        String commandText = String.join(" ", command);
+        long startMs = System.currentTimeMillis();
         try {
-            log.info("在目录 {} 中执行命令: {}", workingDir.getAbsolutePath(), command);
-            Process process = RuntimeUtil.exec(
-                    null,
-                    workingDir,
-                    // 命令分割为数组
-                    command.split("\\s+")
-            );
-            // 等待进程完成，设置超时
+            log.info("在目录 {} 中执行命令: {}", workingDir.getAbsolutePath(), commandText);
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.directory(workingDir);
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            Thread outputReader = Thread.ofVirtual().name("vue-build-output-" + System.currentTimeMillis()).start(() -> {
+                try (var inputStream = process.getInputStream()) {
+                    inputStream.transferTo(outputStream);
+                } catch (IOException e) {
+                    log.warn("读取构建输出失败: {}", e.getMessage());
+                }
+            });
+
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
-                log.error("命令执行超时（{}秒），强制终止进程", timeoutSeconds);
                 process.destroyForcibly();
-                return false;
+                outputReader.join(TimeUnit.SECONDS.toMillis(5));
+                String output = outputStream.toString(StandardCharsets.UTF_8);
+                log.error("命令执行超时（{}秒），强制终止进程", timeoutSeconds);
+                return BuildResult.failed(commandText, null, limitOutput(output),
+                        System.currentTimeMillis() - startMs, "命令执行超时");
             }
+
+            outputReader.join(TimeUnit.SECONDS.toMillis(5));
             int exitCode = process.exitValue();
+            String output = outputStream.toString(StandardCharsets.UTF_8);
+            long durationMs = System.currentTimeMillis() - startMs;
             if (exitCode == 0) {
-                log.info("命令执行成功: {}", command);
-                return true;
-            } else {
-                log.error("命令执行失败，退出码: {}", exitCode);
-                return false;
+                log.info("命令执行成功: {}", commandText);
+                return BuildResult.success(commandText, exitCode, limitOutput(output), durationMs);
             }
+            log.error("命令执行失败，退出码: {}, 输出: {}", exitCode, limitOutput(output));
+            return BuildResult.failed(commandText, exitCode, limitOutput(output), durationMs, "命令退出码非 0");
         } catch (Exception e) {
-            log.error("执行命令失败: {}, 错误信息: {}", command, e.getMessage());
-            return false;
+            log.error("执行命令失败: {}, 错误信息: {}", commandText, e.getMessage());
+            return BuildResult.failed(commandText, null, "", System.currentTimeMillis() - startMs, e.getMessage());
+        }
+    }
+
+    private boolean shouldRecoverNodeModules(BuildResult buildResult) {
+        String output = buildResult == null ? "" : buildResult.getOutput();
+        String errorMessage = buildResult == null ? "" : buildResult.getErrorMessage();
+        String combined = (output + "\n" + errorMessage).toLowerCase();
+        return combined.contains("err_module_not_found")
+                || combined.contains("cannot find package")
+                || combined.contains("esbuild")
+                || combined.contains("vite build");
+    }
+
+    private void cleanNodeModules(File projectDir) {
+        File nodeModulesDir = new File(projectDir, "node_modules");
+        File packageLock = new File(projectDir, "package-lock.json");
+        FileUtil.del(nodeModulesDir);
+        if (packageLock.exists()) {
+            FileUtil.del(packageLock);
         }
     }
 
 
+    public boolean buildProject(String projectPath) {
+        return buildProjectWithResult(projectPath).isSuccess();
+    }
+
     /**
-     * 构建 Vue 项目
+     * 构建 Vue 项目并返回详细结果
      *
      * @param projectPath 项目根目录路径
-     * @return 是否构建成功
+     * @return 构建结果
      */
-    public boolean buildProject(String projectPath) {
-        File projectDir = new File(projectPath);
-        if (!projectDir.exists() || !projectDir.isDirectory()) {
-            log.error("项目目录不存在: {}", projectPath);
-            return false;
+    public BuildResult buildProjectWithResult(String projectPath) {
+        ReentrantLock buildLock = BuildPathLockManager.getLock(projectPath);
+        buildLock.lock();
+        try {
+            File projectDir = new File(projectPath);
+            if (!projectDir.exists() || !projectDir.isDirectory()) {
+                log.error("项目目录不存在: {}", projectPath);
+                return BuildResult.failed("validate project", null, "", 0, "项目目录不存在: " + projectPath);
+            }
+            File packageJson = new File(projectDir, "package.json");
+            if (!packageJson.exists()) {
+                String directoryContents = listDirectoryContents(projectDir);
+                log.error("package.json 文件不存在: {}", packageJson.getAbsolutePath());
+                log.error("项目目录内容: {}", directoryContents);
+                return BuildResult.failed("validate package.json", null, directoryContents, 0,
+                        "package.json 文件不存在: " + packageJson.getAbsolutePath());
+            }
+            log.info("开始构建 Vue 项目: {}", projectPath);
+            log.info("项目目录结构: {}", listDirectoryContents(projectDir));
+
+            BuildResult installResult = executeNpmInstall(projectDir);
+            if (!installResult.isSuccess()) {
+                log.error("npm install 执行失败");
+                return installResult;
+            }
+
+            BuildResult buildResult = executeNpmBuild(projectDir);
+            if (!buildResult.isSuccess() && shouldRecoverNodeModules(buildResult)) {
+                log.warn("检测到前端依赖疑似损坏，清理 node_modules 后重试一次: {}", projectPath);
+                cleanNodeModules(projectDir);
+                BuildResult retryInstallResult = executeNpmInstall(projectDir);
+                if (!retryInstallResult.isSuccess()) {
+                    log.error("清理后重新安装依赖失败");
+                    return retryInstallResult;
+                }
+                buildResult = executeNpmBuild(projectDir);
+            }
+            if (!buildResult.isSuccess()) {
+                log.error("npm run build 执行失败");
+                return buildResult;
+            }
+
+            File distDir = new File(projectDir, "dist");
+            if (!distDir.exists()) {
+                log.error("构建完成但 dist 目录未生成: {}", distDir.getAbsolutePath());
+                return BuildResult.failed("validate dist", 0, buildResult.getOutput(), buildResult.getDurationMs(),
+                        "构建完成但 dist 目录未生成: " + distDir.getAbsolutePath());
+            }
+            log.info("Vue 项目构建成功，dist 目录: {}", distDir.getAbsolutePath());
+            return buildResult;
+        } finally {
+            buildLock.unlock();
         }
-        // 检查 package.json 是否存在
-        File packageJson = new File(projectDir, "package.json");
-        if (!packageJson.exists()) {
-            log.error("package.json 文件不存在: {}", packageJson.getAbsolutePath());
-            log.error("项目目录内容: {}", listDirectoryContents(projectDir));
-            return false;
+    }
+
+    private String limitOutput(String output) {
+        if (output == null) {
+            return "";
         }
-        log.info("开始构建 Vue 项目: {}", projectPath);
-        log.info("项目目录结构: {}", listDirectoryContents(projectDir));
-        // 执行 npm install
-        if (!executeNpmInstall(projectDir)) {
-            log.error("npm install 执行失败");
-            return false;
+        int maxLength = 12000;
+        if (output.length() <= maxLength) {
+            return output;
         }
-        // 执行 npm run build
-        if (!executeNpmBuild(projectDir)) {
-            log.error("npm run build 执行失败");
-            return false;
-        }
-        // 验证 dist 目录是否生成
-        File distDir = new File(projectDir, "dist");
-        if (!distDir.exists()) {
-            log.error("构建完成但 dist 目录未生成: {}", distDir.getAbsolutePath());
-            return false;
-        }
-        log.info("Vue 项目构建成功，dist 目录: {}", distDir.getAbsolutePath());
-        return true;
+        return output.substring(output.length() - maxLength);
     }
 
     /**

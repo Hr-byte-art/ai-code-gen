@@ -24,7 +24,7 @@
             <template v-if="column.key === 'totalTokens'"><span class="tv">{{ record.totalTokens }}</span></template>
             <template v-if="column.key === 'percentage'">
               <div class="usage-bar"><span :style="{ width: `${record.percentage || 0}%` }"></span></div>
-              <span class="pct">{{ record.percentage }}%</span>
+              <span class="pct">{{ Number(record.percentage || 0).toFixed(2) }}%</span>
             </template>
             <template v-if="column.key === 'estimatedCost'">¥{{ record.estimatedCost?.toFixed(2) || '0.00' }}</template>
           </template>
@@ -43,8 +43,8 @@
       </div>
       <div class="card compact"><div class="card-head"><h3 class="card-title">时间范围</h3></div>
         <a-descriptions :column="1" bordered size="small">
-          <a-descriptions-item label="开始时间">{{ ft(rankingData.statisticsStartTime) }}</a-descriptions-item>
-          <a-descriptions-item label="结束时间">{{ ft(rankingData.statisticsEndTime) }}</a-descriptions-item>
+          <a-descriptions-item label="开始时间"><span class="time-value">{{ rangeStartText() }}</span></a-descriptions-item>
+          <a-descriptions-item label="结束时间"><span class="time-value">{{ rangeEndText() }}</span></a-descriptions-item>
           <a-descriptions-item label="排行类型">{{ rankingData.rankingType || '-' }}</a-descriptions-item>
         </a-descriptions>
       </div>
@@ -58,6 +58,7 @@ import { useRouter } from 'vue-router'
 import { ArrowLeftOutlined } from '@ant-design/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getModelTokenRanking } from '@/api/token'
+import { formatDateTime as ft } from '@/utils/time'
 
 const router = useRouter()
 const loading = ref(false)
@@ -74,8 +75,45 @@ const columns = [
   { title: '占比', dataIndex: 'percentage', key: 'percentage', width: 170 },
   { title: '预估费用', dataIndex: 'estimatedCost', key: 'estimatedCost', width: 90 },
 ]
-const ft = (t: string) => t ? new Date(t).toLocaleString('zh-CN') : '-'
-const fetchRanking = async () => { loading.value = true; try { const r: any = await getModelTokenRanking({ limit: 20 }); rankings.value = r.data?.rankings || []; rankingData.value = r.data || {} } catch (e) {} finally { loading.value = false } }
+const pickModelTime = (field: 'firstUsedTime' | 'lastUsedTime', mode: 'min' | 'max') => {
+  const times = rankings.value.map(item => item?.[field]).filter(Boolean)
+  return times.sort((a, b) => {
+    const diff = new Date(a).getTime() - new Date(b).getTime()
+    return mode === 'min' ? diff : -diff
+  })[0] || ''
+}
+const rangeStartText = () => ft(rankingData.value.statisticsStartTime || pickModelTime('firstUsedTime', 'min'))
+const rangeEndText = () => ft(rankingData.value.statisticsEndTime || pickModelTime('lastUsedTime', 'max'))
+const toDateTimeParam = (date: Date) => {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+}
+const getRankingParams = () => {
+  const now = new Date()
+  const start = new Date(now)
+
+  if (selected.value === 'all') {
+    return { limit: 20 }
+  }
+
+  if (selected.value === 'today') {
+    start.setHours(0, 0, 0, 0)
+  }
+
+  if (selected.value === 'week') {
+    const day = start.getDay() || 7
+    start.setDate(start.getDate() - day + 1)
+    start.setHours(0, 0, 0, 0)
+  }
+
+  if (selected.value === 'month') {
+    start.setDate(1)
+    start.setHours(0, 0, 0, 0)
+  }
+
+  return { limit: 20, startTime: toDateTimeParam(start), endTime: toDateTimeParam(now) }
+}
+const fetchRanking = async () => { loading.value = true; try { const r: any = await getModelTokenRanking(getRankingParams()); rankings.value = r.data?.rankings || []; rankingData.value = r.data || {} } catch (e) {} finally { loading.value = false } }
 onMounted(() => fetchRanking())
 </script>
 
@@ -95,6 +133,7 @@ onMounted(() => fetchRanking())
 .usage-bar { display: inline-flex; width: 92px; height: 7px; overflow: hidden; border-radius: 999px; background: var(--bg-soft); vertical-align: middle; }
 .usage-bar span { display: block; height: 100%; border-radius: inherit; background: var(--c-primary); }
 .pct { font-size: 12px; color: var(--t-muted); margin-left: 8px; }
+.time-value { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: var(--r-sm); background: var(--bg-soft); color: var(--t-primary); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 750; }
 .info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 @media (max-width: 900px) { .info-grid { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .page { padding: 22px 16px 36px; } }

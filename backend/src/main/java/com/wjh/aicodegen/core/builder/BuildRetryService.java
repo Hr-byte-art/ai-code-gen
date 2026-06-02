@@ -2,8 +2,6 @@ package com.wjh.aicodegen.core.builder;
 
 import cn.hutool.core.io.FileUtil;
 import com.wjh.aicodegen.ai.factory.AiCodeGeneratorServiceFactory;
-import com.wjh.aicodegen.agent.AgentOrchestrator;
-import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
@@ -46,20 +44,17 @@ public class BuildRetryService {
         while (retryCount < MAX_BUILD_RETRIES) {
             log.info("开始构建，应用ID: {}, 第 {} 次尝试", appId, retryCount + 1);
 
-            boolean success = executeBuild(projectPath, buildStrategy, appId);
+            BuildResult buildResult = executeBuild(projectPath, buildStrategy, appId);
 
-            if (success) {
+            if (buildResult.isSuccess()) {
                 log.info("构建成功，应用ID: {}, 第 {} 次尝试", appId, retryCount + 1);
                 return true;
             }
 
             log.warn("构建失败，应用ID: {}, 第 {} 次尝试", appId, retryCount + 1);
-
-            // 收集错误信息
-            String errorInfo = collectBuildErrors(projectPath);
+            String errorInfo = buildResult.toErrorSummary();
             log.info("构建错误信息: {}", errorInfo);
 
-            // 使用 AI 修复代码
             if (retryCount < MAX_BUILD_RETRIES - 1) {
                 log.info("尝试使用 AI 修复构建错误，应用ID: {}", appId);
                 boolean fixed = fixBuildErrors(projectPath, errorInfo, appId);
@@ -79,59 +74,19 @@ public class BuildRetryService {
     /**
      * 执行构建
      */
-    private boolean executeBuild(String projectPath, String buildStrategy, Long appId) {
+    private BuildResult executeBuild(String projectPath, String buildStrategy, Long appId) {
         switch (buildStrategy) {
             case "vue":
             case "react":
             case "nextjs":
-                return vueProjectBuilder.buildProject(projectPath);
+                return vueProjectBuilder.buildProjectWithResult(projectPath);
             case "fullstack":
-                return fullstackProjectBuilder.buildProject(projectPath, appId);
+                return fullstackProjectBuilder.buildProjectWithResult(projectPath, appId);
             default:
                 log.warn("未知的构建策略: {}", buildStrategy);
-                return false;
+                return BuildResult.failed("detect build strategy", null, "", 0,
+                        "未知的构建策略: " + buildStrategy);
         }
-    }
-
-    /**
-     * 收集构建错误信息
-     */
-    private String collectBuildErrors(String projectPath) {
-        StringBuilder errors = new StringBuilder();
-
-        // 检查是否有错误日志文件
-        File projectDir = new File(projectPath);
-        File[] logFiles = projectDir.listFiles((dir, name) ->
-            name.endsWith(".log") || name.equals("npm-debug.log"));
-
-        if (logFiles != null) {
-            for (File logFile : logFiles) {
-                try {
-                    String content = FileUtil.readUtf8String(logFile);
-                    if (content.contains("error") || content.contains("Error")) {
-                        errors.append("日志文件: ").append(logFile.getName()).append("\n");
-                        errors.append(content, 0, Math.min(content.length(), 2000));
-                        errors.append("\n\n");
-                    }
-                } catch (Exception e) {
-                    log.warn("读取日志文件失败: {}", logFile.getName());
-                }
-            }
-        }
-
-        // 如果没有日志文件，返回通用错误信息
-        if (errors.length() == 0) {
-            errors.append("构建失败，可能是代码语法错误或依赖问题。");
-            errors.append("\n项目目录结构: ");
-            File[] files = projectDir.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    errors.append(file.getName()).append(" ");
-                }
-            }
-        }
-
-        return errors.toString();
     }
 
     /**

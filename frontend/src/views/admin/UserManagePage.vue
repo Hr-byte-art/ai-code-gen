@@ -39,6 +39,7 @@ import { message } from 'ant-design-vue'
 import { PlusOutlined, UserOutlined } from '@ant-design/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getUserList, createUser, deleteUser } from '@/api/user'
+import { formatDateTime as ft } from '@/utils/time'
 
 const loading = ref(false)
 const addVisible = ref(false)
@@ -53,7 +54,6 @@ const columns = [
   { title: '操作', key: 'action', width: 100 },
 ]
 const userList = ref<any[]>([])
-const ft = (t: string) => t ? new Date(t).toLocaleString('zh-CN') : ''
 const fetchUserList = async () => { loading.value = true; try { const r: any = await getUserList({ pageNum: pagination.current, pageSize: pagination.pageSize, userName: filter.userName || undefined, userAccount: filter.userAccount || undefined, userRole: filter.userRole || undefined }); userList.value = r.data?.records || []; pagination.total = r.data?.totalRow || 0 } catch (e) {} finally { loading.value = false } }
 const showAdd = () => { addForm.userName = ''; addForm.userAccount = ''; addForm.userRole = 'user'; addVisible.value = true }
 const handleAdd = async () => { if (!addForm.userName || !addForm.userAccount) { message.warning('请填写完整'); return }; try { await createUser(addForm); message.success('添加成功'); addVisible.value = false; fetchUserList() } catch (e) { message.error('添加失败') } }

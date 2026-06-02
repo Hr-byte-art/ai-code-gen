@@ -14,7 +14,12 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.Resource;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 代码审查工作流
@@ -29,13 +34,15 @@ import java.util.UUID;
 @Component
 public class ReviewWorkflow {
 
+    private static final Pattern CODE_FENCE_PATTERN = Pattern.compile("```(?:[a-zA-Z0-9_+-]+)?\\n([\\s\\S]*?)\\n```", Pattern.MULTILINE);
+    private static final List<String> VALID_SEVERITIES = List.of("critical", "warning", "info");
+    private static final int MAX_RETRIES = 3;
+
     private final ReviewAgent reviewAgent;
     private final CodeOptimizerAgent codeOptimizerAgent;
 
     @Resource
     private AgentTraceService agentTraceService;
-
-    private static final int MAX_RETRIES = 3;
 
     public ReviewWorkflow(@Lazy ReviewAgent reviewAgent, @Lazy CodeOptimizerAgent codeOptimizerAgent) {
         this.reviewAgent = reviewAgent;
@@ -106,13 +113,18 @@ public class ReviewWorkflow {
         ReviewResult result = null;
 
         try {
-            result = reviewAgent.reviewCode(code);
+            result = sanitizeReviewResult(reviewAgent.reviewCode(code));
+            if (result == null) {
+                log.warn("Reviewer 节点返回空或不完整结果，按严重问题处理: appId={}", appId);
+                result = buildFallbackReviewResult("审查结果为空或字段缺失，按严重问题处理");
+            }
             return result;
         } catch (Exception e) {
             status = "error";
-            errorMsg = e.getMessage();
-            log.error("Reviewer 节点异常: appId={}, error={}", appId, e.getMessage());
-            throw e;
+            errorMsg = safeErrorMessage(e);
+            log.error("Reviewer 节点异常: appId={}, error={}", appId, errorMsg);
+            result = buildFallbackReviewResult("Reviewer 节点异常，按严重问题处理: " + errorMsg);
+            return result;
         } finally {
             long duration = System.currentTimeMillis() - startMs;
             saveTrace(AgentTrace.builder()
@@ -145,13 +157,17 @@ public class ReviewWorkflow {
 
         try {
             String prompt = buildOptimizationPrompt(code, reviewResult);
-            result = codeOptimizerAgent.optimizeCode(prompt);
+            result = sanitizeOptimizedCode(codeOptimizerAgent.optimizeCode(prompt));
+            if (result == null) {
+                log.warn("Optimizer 节点返回空或不合法结果，保留原始代码: appId={}", appId);
+                return code;
+            }
             return result;
         } catch (Exception e) {
             status = "error";
-            errorMsg = e.getMessage();
-            log.error("Optimizer 节点异常: appId={}, error={}", appId, e.getMessage());
-            throw e;
+            errorMsg = safeErrorMessage(e);
+            log.error("Optimizer 节点异常: appId={}, error={}", appId, errorMsg);
+            return code;
         } finally {
             long duration = System.currentTimeMillis() - startMs;
             saveTrace(AgentTrace.builder()
@@ -167,6 +183,63 @@ public class ReviewWorkflow {
                     .errorMessage(errorMsg)
                     .build());
         }
+    }
+
+    private ReviewResult sanitizeReviewResult(ReviewResult result) {
+        if (result == null) {
+            return null;
+        }
+        if (result.getPassed() == null || result.getSeverity() == null || result.getSeverity().isBlank()
+                || result.getScore() == null || result.getSummary() == null || result.getSummary().isBlank()) {
+            return null;
+        }
+
+        String severity = result.getSeverity().trim().toLowerCase();
+        if (!VALID_SEVERITIES.contains(severity)) {
+            return null;
+        }
+
+        result.setSeverity(severity);
+        if (result.getIssues() == null) {
+            result.setIssues(Collections.emptyList());
+        }
+        if (result.getSuggestions() == null) {
+            result.setSuggestions(Collections.emptyList());
+        }
+        return result;
+    }
+
+    private ReviewResult buildFallbackReviewResult(String summary) {
+        return ReviewResult.builder()
+                .passed(false)
+                .severity("critical")
+                .score(0)
+                .summary(summary)
+                .issues(List.of(summary))
+                .suggestions(List.of("请检查审查 Agent / 优化 Agent 的输出格式后重新生成"))
+                .build();
+    }
+
+    private String sanitizeOptimizedCode(String rawOutput) {
+        if (rawOutput == null || rawOutput.isBlank()) {
+            return null;
+        }
+
+        String trimmed = rawOutput.trim();
+        Matcher matcher = CODE_FENCE_PATTERN.matcher(trimmed);
+        List<String> blocks = new ArrayList<>();
+        while (matcher.find()) {
+            String block = matcher.group(1);
+            if (block != null && !block.isBlank()) {
+                blocks.add(block.trim());
+            }
+        }
+
+        if (!blocks.isEmpty()) {
+            return String.join("\n\n", blocks).trim();
+        }
+
+        return trimmed;
     }
 
     private String buildOptimizationPrompt(String code, ReviewResult reviewResult) {
@@ -186,8 +259,16 @@ public class ReviewWorkflow {
                 prompt.append("- ").append(suggestion).append("\n");
             }
         }
-        prompt.append("\n请根据以上审查结果，修复代码中的问题。");
+        prompt.append("\n请直接输出修复后的完整代码，只保留代码内容，不要输出解释、说明、Markdown 代码块或额外文本。");
         return prompt.toString();
+    }
+
+    private String safeErrorMessage(Exception e) {
+        String message = e.getMessage();
+        if (message == null || message.isBlank()) {
+            return e.getClass().getSimpleName();
+        }
+        return message;
     }
 
     private void saveTrace(AgentTrace trace) {

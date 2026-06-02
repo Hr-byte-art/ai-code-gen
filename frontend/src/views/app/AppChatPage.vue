@@ -144,6 +144,7 @@ import {
 import { useChatStore } from '@/stores/chat'
 import { getAppById, deployApp, hasActiveGenerationStream } from '@/api/app'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
+import { formatDateTime as formatTime } from '@/utils/time'
 
 const route = useRoute()
 const router = useRouter()
@@ -298,15 +299,6 @@ const sendMessage = async (presetContent?: string) => {
     )
     bindGenerationStream(es)
   } catch (e) { sending.value = false; message.error('发送失败') }
-}
-
-const formatTime = (t: string) => {
-  if (!t) return ''
-  const diff = Date.now() - new Date(t).getTime()
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
-  return new Date(t).toLocaleDateString('zh-CN')
 }
 
 const scrollToBottom = () => {

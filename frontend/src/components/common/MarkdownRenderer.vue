@@ -30,14 +30,24 @@ hljs.registerLanguage('shell', bash)
 hljs.registerLanguage('python', python)
 hljs.registerLanguage('java', java)
 
-marked.setOptions({
+const renderCodeBlock = (code: string, lang?: string) => {
+  const language = lang?.trim()
+  const hasLanguage = !!language && hljs.getLanguage(language)
+  const highlighted = hasLanguage
+    ? hljs.highlight(code, { language }).value
+    : hljs.highlightAuto(code).value
+  const languageClass = hasLanguage ? ` class="language-${language}"` : ''
+
+  return `<pre><code${languageClass}>${highlighted}</code></pre>`
+}
+
+marked.use({
   gfm: true,
   breaks: true,
-  highlight(code: string, lang: string) {
-    if (lang && hljs.getLanguage(lang)) {
-      return hljs.highlight(code, { language: lang }).value
-    }
-    return hljs.highlightAuto(code).value
+  renderer: {
+    code({ text, lang }) {
+      return renderCodeBlock(text, lang)
+    },
   },
 })
 

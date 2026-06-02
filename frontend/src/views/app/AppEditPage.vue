@@ -96,7 +96,7 @@ import {
 } from '@ant-design/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { getAppById, updateApp, deployApp, getAppBuildStatus } from '@/api/app'
+import { getAppById, updateApp, deployApp, getAppBuildStatus, getDeployedAppUrl } from '@/api/app'
 
 const route = useRoute()
 const router = useRouter()
@@ -151,12 +151,12 @@ const fetchAppInfo = async () => {
     const statusRes = await getAppBuildStatus(appId)
     buildStatus.value = statusRes.data || {}
 
-    // 全栈项目：自动获取 Express URL
+    // 全栈项目：只查询当前运行地址，不在页面加载时触发部署
     if (appForm.codeGenType === 'fullstack' && appForm.deployKey) {
       try {
-        const url = await deployApp(appId)
+        const url = await getDeployedAppUrl(appId)
         if (url) expressDeployUrl.value = url
-      } catch (e) { /* Express 启动失败不影响页面加载 */ }
+      } catch (e) { /* 服务未运行时保持静默，用户可手动点击部署 */ }
     }
   } catch (e) {
     message.error('应用不存在或已被删除')
@@ -168,10 +168,15 @@ const goBack = () => router.back()
 const goToChat = () => router.push(`/app/chat/${appId}`)
 const handlePreview = async () => {
   if (!appForm.deployKey) { message.info('请先部署应用'); return }
-  // 全栈项目需要通过 deployApp 获取 Express URL
   if (appForm.codeGenType === 'fullstack' && !expressDeployUrl.value) {
-    const url = await deployApp(appId)
-    if (url) expressDeployUrl.value = url
+    try {
+      const url = await getDeployedAppUrl(appId)
+      if (url) expressDeployUrl.value = url
+    } catch (e) { /* 查询失败后沿用当前地址 */ }
+  }
+  if (appForm.codeGenType === 'fullstack' && !expressDeployUrl.value) {
+    message.info('全栈服务未运行，请先点击部署')
+    return
   }
   window.open(deployUrl.value, '_blank')
 }

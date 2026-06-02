@@ -57,6 +57,12 @@ export async function deployApp(appId: string): Promise<string | null> {
   return res?.data || null
 }
 
+// 查询已部署访问地址，不触发构建或启动
+export async function getDeployedAppUrl(appId: string): Promise<string | null> {
+  const res: any = await request.get<ApiResponse<string>>('/app/deploy/url', { params: { appId } })
+  return res?.data || null
+}
+
 // 取消应用代码生成任务
 export function cancelApp(appId: string) {
   return request.post<ApiResponse<boolean>>(`/app/cancel/${appId}`)

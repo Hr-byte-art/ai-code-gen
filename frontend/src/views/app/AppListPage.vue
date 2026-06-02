@@ -145,6 +145,7 @@ const goToPreview = async (app: any) => {
 const handleDeploy = async (id: string) => {
   try {
     const url = await deployApp(id)
+    await fetchMyApps()
     if (url) window.open(url, '_blank')
   } catch (e) { message.error('部署失败') }
 }

@@ -333,34 +333,53 @@ public class AiCodeGeneratorFacade {
      */
     private String detectBuildStrategy(Long appId) {
         String outputDir = AppConstant.CODE_OUTPUT_ROOT_DIR;
-        // 检查可能的目录名
         String[] possibleDirs = {"fullstack_" + appId, "vue_project_" + appId, "react_ts_" + appId, "nextjs_" + appId};
         for (String dirName : possibleDirs) {
             File dir = new File(outputDir, dirName);
             if (dir.exists() && dir.isDirectory()) {
-                if (new File(dir, "schema.sql").exists() || new File(dir, "server").exists()) {
+                if (new File(dir, "schema.sql").exists() || new File(dir, "server").exists() || new File(dir, "frontend").exists()) {
                     return "fullstack";
                 }
-                if (new File(dir, "package.json").exists()) {
-                    // 检查是否是 Next.js
-                    if (new File(dir, "next.config.js").exists() || new File(dir, "next.config.mjs").exists()) {
+                File packageJson = new File(dir, "package.json");
+                if (packageJson.exists()) {
+                    String packageContent = readFileLowerCase(packageJson);
+                    if (new File(dir, "next.config.js").exists()
+                            || new File(dir, "next.config.mjs").exists()
+                            || new File(dir, "next.config.ts").exists()
+                            || packageContent.contains("\"next\"")
+                            || packageContent.contains("'next'")) {
                         return "nextjs";
                     }
-                    // 检查是否是 React
-                    if (new File(dir, "src/main.tsx").exists() || new File(dir, "vite.config.ts").exists()) {
+                    if (packageContent.contains("@vitejs/plugin-react")
+                            || packageContent.contains("react")
+                            || new File(dir, "src/main.tsx").exists()
+                            || new File(dir, "src/main.jsx").exists()) {
                         return "react";
                     }
-                    // 默认是 Vue
+                    if (packageContent.contains("@vitejs/plugin-vue")
+                            || packageContent.contains("vue")
+                            || new File(dir, "src/main.ts").exists()
+                            || new File(dir, "src/App.vue").exists()) {
+                        return "vue";
+                    }
                     return "vue";
                 }
             }
         }
-        // 检查 html 类型
         File htmlDir = new File(outputDir, "html_" + appId);
         if (htmlDir.exists()) {
             return "none";
         }
         return "none";
+    }
+
+    private String readFileLowerCase(File file) {
+        try {
+            return Files.readString(file.toPath()).toLowerCase();
+        } catch (Exception e) {
+            log.warn("读取文件失败: {}", file.getAbsolutePath(), e);
+            return "";
+        }
     }
 
     /**
