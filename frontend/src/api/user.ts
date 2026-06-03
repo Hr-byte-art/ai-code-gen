@@ -26,12 +26,12 @@ export function register(data: UserRegisterRequest) {
 
 // 用户登出
 export function logout() {
-  return request.post<ApiResponse<boolean>>('/user/logout')
+  return request.post<ApiResponse<boolean>>('/user/logout', undefined, { silentAuth: true } as any)
 }
 
 // 获取当前登录用户
 export function getLoginUser() {
-  return request.get<ApiResponse<LoginUser>>('/user/get/loginUser')
+  return request.get<ApiResponse<LoginUser>>('/user/get/loginUser', { silentAuth: true } as any)
 }
 
 // ==================== 用户信息接口 ====================

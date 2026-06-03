@@ -92,9 +92,10 @@ const handleMenuClick = ({ key }: { key: string }) => {
 
 <style scoped>
 .wb-layout {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--bg-body);
 }
 
@@ -234,6 +235,7 @@ const handleMenuClick = ({ key }: { key: string }) => {
   flex: 1;
   display: flex;
   min-height: 0;
+  overflow: hidden;
 }
 
 .wb-sidebar {

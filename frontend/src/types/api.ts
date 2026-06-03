@@ -98,6 +98,7 @@ export interface AppVO {
   cover: string
   initPrompt: string
   codeGenType: string
+  designKey?: string
   deployKey: string
   deployedTime: string
   priority: number

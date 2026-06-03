@@ -184,7 +184,7 @@ const openDeploy = () => window.open(deployUrl.value, '_blank')
 const handleSave = async () => {
   saving.value = true
   try { await updateApp({ id: appId, appName: appForm.appName }); message.success('保存成功') }
-  catch (e) { message.error('保存失败') }
+  catch (e) {}
   finally { saving.value = false }
 }
 const handleDeploy = async () => {
@@ -195,7 +195,7 @@ const handleDeploy = async () => {
     message.success('部署成功')
     subscribeBuildEvents()
   }
-  catch (e) { message.error('部署失败') }
+  catch (e) {}
   finally { deploying.value = false }
 }
 

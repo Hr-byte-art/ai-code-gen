@@ -104,7 +104,6 @@ export const useAppStore = defineStore('app', () => {
       message.success('应用创建成功')
       return res.data
     } catch (error) {
-      message.error('创建应用失败')
       return null
     } finally {
       loading.value = false
@@ -123,7 +122,6 @@ export const useAppStore = defineStore('app', () => {
       }
       return res.data
     } catch (error) {
-      message.error('更新失败')
       return null
     } finally {
       loading.value = false
@@ -141,7 +139,6 @@ export const useAppStore = defineStore('app', () => {
       goodAppList.value = goodAppList.value.filter(app => app.id !== id)
       return true
     } catch (error) {
-      message.error('删除失败')
       return false
     } finally {
       loading.value = false
@@ -157,7 +154,6 @@ export const useAppStore = defineStore('app', () => {
       message.success('部署成功')
       return deployUrl
     } catch (error) {
-      message.error('部署失败')
       return null
     } finally {
       loading.value = false

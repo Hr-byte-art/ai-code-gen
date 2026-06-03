@@ -4,9 +4,6 @@ import com.wjh.aicodegen.service.DesignTemplateService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -29,6 +26,20 @@ public class DesignTemplateServiceImpl implements DesignTemplateService {
     @Value("${design.template.dir:design-templates/design-md}")
     private String templateDir;
 
+    private static final List<String> COMMON_TEMPLATE_KEYS = List.of(
+        "apple",
+        "stripe",
+        "notion",
+        "linear.app",
+        "vercel",
+        "figma",
+        "airbnb",
+        "shopify",
+        "intercom"
+    );
+
+    private static final Set<String> COMMON_TEMPLATE_KEY_SET = new HashSet<>(COMMON_TEMPLATE_KEYS);
+
     private final Map<String, String> templateCache = new ConcurrentHashMap<>();
 
     @PostConstruct
@@ -46,6 +57,7 @@ public class DesignTemplateServiceImpl implements DesignTemplateService {
 
             Files.list(basePath)
                 .filter(Files::isDirectory)
+                .filter(dir -> COMMON_TEMPLATE_KEY_SET.contains(dir.getFileName().toString()))
                 .forEach(dir -> {
                     String key = dir.getFileName().toString();
                     Path designFile = dir.resolve("DESIGN.md");
@@ -68,15 +80,14 @@ public class DesignTemplateServiceImpl implements DesignTemplateService {
 
     @Override
     public List<DesignTemplateInfo> listAvailableTemplates() {
-        return templateCache.entrySet().stream()
-            .map(entry -> {
-                String key = entry.getKey();
-                String content = entry.getValue();
+        return COMMON_TEMPLATE_KEYS.stream()
+            .filter(templateCache::containsKey)
+            .map(key -> {
+                String content = templateCache.get(key);
                 String name = extractName(key, content);
                 String description = extractDescription(content);
                 return new DesignTemplateInfo(key, name, description);
             })
-            .sorted(Comparator.comparing(DesignTemplateInfo::name))
             .collect(Collectors.toList());
     }
 

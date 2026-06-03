@@ -92,6 +92,12 @@ const router = createRouter({
       meta: { title: '聊天管理', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
     },
     {
+      path: '/admin/chatManage/:appId',
+      name: 'chatDetail',
+      component: () => import('@/views/admin/ChatDetailPage.vue'),
+      meta: { title: '聊天详情', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
+    },
+    {
       path: '/admin/userManage',
       name: 'userManage',
       component: () => import('@/views/admin/UserManagePage.vue'),

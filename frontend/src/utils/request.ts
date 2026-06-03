@@ -1,6 +1,47 @@
-import axios from 'axios'
+import axios, { type AxiosRequestConfig } from 'axios'
 import { message } from 'ant-design-vue'
 import router from '@/router'
+
+type RequestConfig = AxiosRequestConfig & {
+  silent?: boolean
+  silentAuth?: boolean
+}
+
+const AUTH_ERROR_CODES = new Set([40100, 401])
+const SILENT_AUTH_URLS = new Set(['/user/get/loginUser', '/user/logout'])
+
+const getResponseMessage = (data: any, fallback: string) => {
+  if (!data) return fallback
+  if (typeof data === 'string') return data || fallback
+  return data.message || data.msg || data.error || data.detail || fallback
+}
+
+const shouldSuppressMessage = (config: RequestConfig | undefined, code?: number, url?: string) => {
+  if (config?.silent) return true
+  if (config?.silentAuth && AUTH_ERROR_CODES.has(Number(code))) return true
+  if (url && SILENT_AUTH_URLS.has(url) && AUTH_ERROR_CODES.has(Number(code))) return true
+  return false
+}
+
+const shouldSkipAuthRedirect = (config: RequestConfig | undefined, url?: string) => {
+  if (config?.silentAuth) return true
+  if (url && SILENT_AUTH_URLS.has(url)) return true
+  return false
+}
+
+const notifyError = (content: string, key = 'global-request-error') => {
+  message.error({ content, key })
+}
+
+const redirectToLogin = () => {
+  if (router.currentRoute.value.path !== '/user/login') {
+    router.push({ path: '/user/login', query: { redirect: router.currentRoute.value.fullPath } })
+  }
+}
+
+export const getErrorMessage = (error: any, fallback = '请求失败，请稍后重试') => {
+  return error?.message || error?.response?.data?.message || error?.response?.data?.msg || fallback
+}
 
 // 处理大数字精度丢失：将超过安全整数范围的数字转为字符串
 const jsonBigIntReviver = (_key: string, value: any) => {
@@ -41,43 +82,57 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response) => {
-    const { data } = response
+    const { data, config } = response
+    const requestConfig = config as RequestConfig
 
-    // 如果响应成功（code为0表示成功）
-    if (data.code === 0) {
+    if (data?.code === 0) {
       return data
     }
 
-    // 显示错误消息
-    message.error(data.message || '请求失败')
-    return Promise.reject(new Error(data.message || '请求失败'))
+    const code = Number(data?.code)
+    const errorMessage = getResponseMessage(data, '请求失败')
+    const error = new Error(errorMessage) as Error & { code?: number; response?: typeof response }
+    error.code = code
+    error.response = response
+
+    if (AUTH_ERROR_CODES.has(code)) {
+      if (!shouldSuppressMessage(requestConfig, code, config.url)) {
+        notifyError('登录状态已失效，请重新登录', 'auth-error')
+      }
+      if (!shouldSkipAuthRedirect(requestConfig, config.url)) {
+        redirectToLogin()
+      }
+      return Promise.reject(error)
+    }
+
+    if (!shouldSuppressMessage(requestConfig, code, config.url)) {
+      notifyError(errorMessage)
+    }
+    return Promise.reject(error)
   },
   (error) => {
-    // 处理HTTP错误状态码
-    if (error.response) {
-      const { status } = error.response
+    const requestConfig = error.config as RequestConfig | undefined
+    const status = Number(error.response?.status)
+    const errorMessage = error.response
+      ? getResponseMessage(error.response.data, status === 500 ? '服务器内部错误，请稍后重试' : `请求失败：${status}`)
+      : error.message?.includes('timeout')
+        ? '请求超时，请稍后重试'
+        : '网络连接失败，请检查网络后重试'
 
-      switch (status) {
-        case 401:
-          message.error('请先登录')
-          router.push('/user/login')
-          break
-        case 403:
-          message.error('没有权限访问')
-          break
-        case 404:
-          message.error('请求的资源不存在')
-          break
-        case 500:
-          message.error('服务器内部错误')
-          break
-        default:
-          message.error(`请求失败: ${status}`)
+    error.message = errorMessage
+
+    if (status === 401) {
+      if (!shouldSuppressMessage(requestConfig, status, error.config?.url)) {
+        notifyError('登录状态已失效，请重新登录', 'auth-error')
       }
-    } else if (error.message?.includes('timeout')) {
-      message.error('请求超时，请稍后重试')
-    } else {
-      message.error('网络连接失败')
+      if (!shouldSkipAuthRedirect(requestConfig, error.config?.url)) {
+        redirectToLogin()
+      }
+      return Promise.reject(error)
+    }
+
+    if (!shouldSuppressMessage(requestConfig, status, error.config?.url)) {
+      notifyError(errorMessage)
     }
 
     return Promise.reject(error)

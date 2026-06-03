@@ -75,7 +75,7 @@ const handleLogin = async () => {
   try {
     const success = await userStore.login({ userAccount: formState.userAccount, userPassword: formState.userPassword })
     if (success) router.push((route.query.redirect as string) || '/app')
-  } catch (e) { message.error('登录失败，请检查用户名和密码') }
+  } catch (e) {}
   finally { loading.value = false }
 }
 

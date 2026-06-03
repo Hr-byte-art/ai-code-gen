@@ -59,8 +59,8 @@ const columns = [
 const appList = ref<any[]>([])
 const fetchAppList = async () => { loading.value = true; try { const r: any = await getAdminAppList({ pageNum: pagination.current, pageSize: pagination.pageSize, appName: filter.appName || undefined, userId: filter.userId || undefined }); appList.value = r.data?.records || []; pagination.total = r.data?.totalRow || 0 } catch (e) {} finally { loading.value = false } }
 const handleEdit = (r: any) => { editForm.id = String(r.id); editForm.appName = r.appName; editForm.priority = r.priority || 0; editVisible.value = true }
-const handleUpdate = async () => { try { await adminUpdateApp(editForm); message.success('更新成功'); editVisible.value = false; fetchAppList() } catch (e) { message.error('更新失败') } }
-const handleDelete = async (r: any) => { try { await adminDeleteApp(r.id); message.success('删除成功'); fetchAppList() } catch (e) { message.error('删除失败') } }
+const handleUpdate = async () => { try { await adminUpdateApp(editForm); message.success('更新成功'); editVisible.value = false; fetchAppList() } catch (e) {} }
+const handleDelete = async (r: any) => { try { await adminDeleteApp(r.id); message.success('删除成功'); fetchAppList() } catch (e) {} }
 const handleSearch = () => { pagination.current = 1; fetchAppList() }
 const handleReset = () => { filter.appName = ''; filter.userId = ''; handleSearch() }
 const handleTableChange = (p: any) => { pagination.current = p.current; pagination.pageSize = p.pageSize; fetchAppList() }

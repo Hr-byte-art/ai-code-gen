@@ -16,7 +16,7 @@
           <router-link to="/admin/userManage" :class="['admin-nav-link', { active: route.path === '/admin/userManage' }]">
             {{ $t('sidebar.userManage') }}
           </router-link>
-          <router-link to="/admin/chatManage" :class="['admin-nav-link', { active: route.path === '/admin/chatManage' }]">
+          <router-link to="/admin/chatManage" :class="['admin-nav-link', { active: route.path.startsWith('/admin/chatManage') }]">
             {{ $t('sidebar.chatManage') }}
           </router-link>
           <router-link to="/admin/skillManage" :class="['admin-nav-link', { active: route.path === '/admin/skillManage' }]">

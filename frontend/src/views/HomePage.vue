@@ -57,7 +57,7 @@
                 </button>
               </div>
               <div class="choice-list" v-else>
-                <button v-for="t in scenarioTemplates" :key="t.name" class="choice-btn scenario" @click="useTemplate(t.name)">
+                <button v-for="t in scenarioTemplates" :key="t.key" class="choice-btn scenario" @click="useTemplate(t.key)">
                   <component :is="t.icon" class="tpl-icon" />
                   {{ t.label }}
                 </button>
@@ -74,9 +74,9 @@
                   <span>自动推荐</span>
                   <small>AI 判断</small>
                 </button>
-                <template v-if="skills.length > 0">
+                <template v-if="homepageSkills.length > 0">
                   <button
-                    v-for="s in skills"
+                    v-for="s in homepageSkills"
                     :key="s.skillKey"
                     class="choice-btn mode"
                     :class="{ active: selectedCodeGenType === s.codeGenType }"
@@ -191,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -224,6 +224,14 @@ const routingRecommendation = ref<RoutingRecommendation | null>(null)
 const showRoutingModal = ref(false)
 const routingLoading = ref(false)
 
+const HOMEPAGE_SKILL_TYPES = ['html', 'vue_project', 'fullstack']
+const homepageSkills = computed(() => {
+  const skillMap = new Map(skills.value.map(skill => [skill.codeGenType, skill]))
+  return HOMEPAGE_SKILL_TYPES
+    .map(codeGenType => skillMap.get(codeGenType))
+    .filter((skill): skill is CodeSkill => Boolean(skill))
+})
+
 const DESIGN_STYLE_COPY: Record<string, { name: string; desc: string }> = {
   default: { name: '默认风格', desc: 'AI 自由发挥' },
   airbnb: { name: '民宿生活风', desc: '温暖卡片、图片友好' },
@@ -232,18 +240,44 @@ const DESIGN_STYLE_COPY: Record<string, { name: string; desc: string }> = {
   binance: { name: '金融科技风', desc: '高对比、数据平台感' },
   bmw: { name: '豪华汽车风', desc: '强视觉、黑白高级感' },
   'bmw-m': { name: '性能运动风', desc: '速度感、强冲击力' },
-  bug: { name: '问题追踪风', desc: '工程化、任务管理感' },
+  bugatti: { name: '超跑奢华风', desc: '强对比、顶级质感' },
+  cal: { name: '日程预约风', desc: '简洁排期、效率工具' },
+  claude: { name: 'AI 助手风', desc: '克制排版、对话友好' },
+  clay: { name: '增长工具风', desc: '数据卡片、销售线索' },
+  clickhouse: { name: '数据分析风', desc: '高性能、技术产品感' },
+  cohere: { name: 'AI 平台风', desc: '科技渐变、模型服务' },
+  coinbase: { name: '加密金融风', desc: '蓝白清爽、可信交易' },
+  composio: { name: '集成平台风', desc: '工具连接、自动化感' },
+  cursor: { name: '开发工具风', desc: '深色界面、工程质感' },
+  elevenlabs: { name: '语音 AI 风', desc: '音频波形、未来感' },
+  expo: { name: '开发平台风', desc: '文档清晰、产品工具' },
+  ferrari: { name: '豪华性能风', desc: '红黑冲击、速度感' },
+  figma: { name: '设计协作风', desc: '彩色模块、创作工具' },
+  framer: { name: '动效建站风', desc: '现代视觉、作品展示' },
+  hashicorp: { name: '基础设施风', desc: '企业级、云原生工具' },
+  ibm: { name: '企业科技风', desc: '理性网格、专业可信' },
+  intercom: { name: '客服产品风', desc: '消息沟通、服务台感' },
+  kraken: { name: '交易平台风', desc: '深色金融、数据密集' },
+  lamborghini: { name: '超跑运动风', desc: '锐利线条、强冲击' },
+  linear: { name: '项目管理风', desc: '极简深色、效率产品' },
+  notion: { name: '知识库风', desc: '文档卡片、轻量协作' },
+  shopify: { name: 'Shopify', desc: '电商展示、转化友好' },
+  stripe: { name: '支付科技风', desc: '渐变科技、商业转化' },
+  vercel: { name: '云部署风', desc: '黑白极简、开发者产品' },
 }
 
 const normalizeDesignKey = (template: DesignTemplateInfo) => {
   const raw = `${template.key || template.name || ''}`.toLowerCase()
+  const compact = raw.replace(/[^a-z0-9]/g, '')
   if (raw.includes('bmw-m') || raw.includes('bmw m')) return 'bmw-m'
   if (raw.includes('airbnb')) return 'airbnb'
   if (raw.includes('airtable')) return 'airtable'
   if (raw.includes('apple')) return 'apple'
   if (raw.includes('binance')) return 'binance'
   if (raw === 'bmw' || raw.includes('bmw version')) return 'bmw'
-  if (raw.includes('bug')) return 'bug'
+  if (raw.includes('bugatti')) return 'bugatti'
+  if (compact.includes('calcom') || raw === 'cal' || raw.includes('cal ')) return 'cal'
+  if (raw.includes('linear')) return 'linear'
   if (raw.includes('default')) return 'default'
   return raw.replace(/[^a-z0-9-]/g, '')
 }
@@ -269,12 +303,28 @@ const formatDesignDesc = (template: DesignTemplateInfo) => {
   return cleanDesc ? cleanDesc.slice(0, 14) : '视觉参考风格'
 }
 
+const scenarioPrompts: Record<string, string> = {
+  ecommerce: '请帮我生成一个电商商品展示与下单页面应用。面向需要展示商品和引导购买的商家，页面需要包含首页横幅、商品分类、商品卡片、价格与库存信息、商品详情展示、购物车入口、下单流程引导和售后/联系方式区域。整体风格要清爽、有商业质感，重点突出商品卖点、购买路径和转化效率。',
+  blog: '请帮我生成一个内容博客与分类归档页面应用。面向个人创作者或内容团队，页面需要包含文章列表、分类筛选、标签、精选文章、文章详情、作者信息、阅读量/发布时间展示和搜索入口。整体风格要适合长期内容沉淀，阅读体验清晰，结构层级明确。',
+  taskBoard: '请帮我生成一个团队任务看板页面应用。面向项目协作团队，页面需要包含待办、进行中、已完成等任务分组，任务卡片需要展示标题、优先级、负责人、截止时间和进度状态，并提供新增任务、筛选、搜索和状态切换的交互。整体风格要偏效率工具，信息密度适中，操作路径清楚。',
+  customerService: '请帮我生成一个客服对话页面应用。面向在线客服和用户沟通场景，页面需要包含会话列表、当前聊天窗口、消息气泡、用户资料卡、快捷回复、问题分类、工单状态、输入框和发送按钮。需要区分客服与用户消息，支持展示未读提醒、在线状态和常见问题入口。整体风格要专业、稳定、适合客服工作台使用。',
+}
+
 const scenarioTemplates = [
-  { name: '电商展示与下单', label: '电商展示', icon: ShoppingOutlined },
-  { name: '内容博客与分类归档', label: '内容博客', icon: ReadOutlined },
-  { name: '团队任务看板', label: '任务看板', icon: CheckSquareOutlined },
-  { name: '客服对话页面', label: '客服对话', icon: MessageOutlined },
+  { key: 'ecommerce', label: '电商展示', icon: ShoppingOutlined },
+  { key: 'blog', label: '内容博客', icon: ReadOutlined },
+  { key: 'taskBoard', label: '任务看板', icon: CheckSquareOutlined },
+  { key: 'customerService', label: '客服对话', icon: MessageOutlined },
 ]
+
+const resolveScenarioPrompt = (templateName = '', templateKey = '') => {
+  const raw = `${templateKey} ${templateName}`.toLowerCase()
+  if (raw.includes('ecommerce') || raw.includes('shop') || raw.includes('电商')) return scenarioPrompts.ecommerce
+  if (raw.includes('blog') || raw.includes('content') || raw.includes('博客') || raw.includes('内容')) return scenarioPrompts.blog
+  if (raw.includes('task') || raw.includes('todo') || raw.includes('board') || raw.includes('任务') || raw.includes('看板')) return scenarioPrompts.taskBoard
+  if (raw.includes('chat') || raw.includes('customer') || raw.includes('service') || raw.includes('客服') || raw.includes('对话')) return scenarioPrompts.customerService
+  return `请帮我生成一个${templateName || '业务'}页面应用。请补充清晰的信息架构、核心模块、主要交互、视觉风格和适用场景，让页面具备真实可用的产品完成度。`
+}
 
 const fallbackModes = [
   { codeGenType: 'html', label: '单页 HTML', desc: '轻量页面' },
@@ -356,15 +406,14 @@ const useAutoMode = () => {
   selectedCodeGenType.value = null
   selectedTemplateKey.value = null
 }
-const useTemplate = (t: string) => { prompt.value = `请帮我生成一个${t}应用`; selectedTemplateKey.value = null }
+const useTemplate = (key: string) => { prompt.value = resolveScenarioPrompt('', key); selectedTemplateKey.value = null }
 const useApiTemplate = (key: string) => {
   selectedTemplateKey.value = key
   selectedCodeGenType.value = null
   const tpl = apiTemplates.value.find(t => t.templateKey === key)
-  if (tpl) { prompt.value = `请帮我生成一个${tpl.templateName}` }
+  if (tpl) { prompt.value = resolveScenarioPrompt(tpl.templateName, tpl.templateKey) }
 }
 const useSkill = (skill: CodeSkill) => {
-  prompt.value = prompt.value.trim() || `请帮我生成一个${skill.name}`
   selectedCodeGenType.value = skill.codeGenType
   selectedTemplateKey.value = null
 }

@@ -92,7 +92,7 @@ const handleRegister = async () => {
     await register({ userAccount: formState.userAccount, userPassword: formState.userPassword, checkPassword: formState.checkPassword, shareCode: formState.shareCode || undefined })
     message.success('注册成功！请登录')
     router.push('/user/login')
-  } catch (e) { message.error('注册失败，请重试') }
+  } catch (e) {}
   finally { loading.value = false }
 }
 </script>

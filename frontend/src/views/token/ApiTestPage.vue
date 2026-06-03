@@ -54,8 +54,19 @@ const send = async () => {
     const es = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/app/chat/gen/code?appId=${form.appId}&message=${encodeURIComponent(form.message)}`, { withCredentials: true })
     let full = ''
     es.onmessage = (e) => { if (e.data === '[DONE]') { es.close(); result.value.time = Date.now() - t0; loading.value = false; return }; full += e.data; result.value.content = full }
-    es.onerror = () => { es.close(); result.value.status = 'error'; result.value.time = Date.now() - t0; loading.value = false; message.error('请求失败') }
-  } catch (e) { result.value = { status: 'error', time: Date.now() - t0, content: '请求失败' }; loading.value = false }
+    es.onerror = () => {
+      const errorMessage = '流式连接失败，请确认应用 ID、登录状态和后端服务是否正常'
+      es.close()
+      result.value.status = 'error'
+      result.value.time = Date.now() - t0
+      result.value.content = errorMessage
+      loading.value = false
+      message.error(errorMessage)
+    }
+  } catch (e) {
+    result.value = { status: 'error', time: Date.now() - t0, content: '创建流式连接失败，请稍后重试' }
+    loading.value = false
+  }
 }
 </script>
 

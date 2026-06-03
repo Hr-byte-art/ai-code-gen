@@ -24,7 +24,6 @@ export const useUserStore = defineStore('user', () => {
       message.success('登录成功')
       return true
     } catch (error) {
-      message.error('登录失败')
       return false
     }
   }

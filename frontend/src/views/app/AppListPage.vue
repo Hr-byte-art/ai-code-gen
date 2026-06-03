@@ -147,14 +147,14 @@ const handleDeploy = async (id: string) => {
     const url = await deployApp(id)
     await fetchMyApps()
     if (url) window.open(url, '_blank')
-  } catch (e) { message.error('部署失败') }
+  } catch (e) {}
 }
 const handleDelete = async (id: string) => {
   try {
     await deleteApp(id)
     message.success('删除成功')
     fetchMyApps()
-  } catch (e) { message.error('删除失败') }
+  } catch (e) {}
 }
 const handlePageChange = (page: number) => { currentPage.value = page; fetchMyApps() }
 onMounted(() => fetchMyApps())

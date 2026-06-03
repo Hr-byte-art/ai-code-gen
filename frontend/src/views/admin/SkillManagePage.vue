@@ -184,12 +184,12 @@ const handleSave = async () => {
     }
     modalVisible.value = false
     fetchList()
-  } catch (e) { message.error('操作失败') }
+  } catch (e) {}
 }
 
 const handleDelete = async (record: CodeSkill) => {
   try { await deleteSkill(record.id); message.success('删除成功'); fetchList() }
-  catch (e) { message.error('删除失败') }
+  catch (e) {}
 }
 
 onMounted(() => fetchList())

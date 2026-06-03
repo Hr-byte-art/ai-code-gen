@@ -149,9 +149,7 @@ const handleSave = async () => {
     message.success('添加成功')
     modalVisible.value = false
     fetchList()
-  } catch (e: any) {
-    message.error(e?.response?.data?.message || '添加失败')
-  }
+  } catch (e) {}
 }
 
 const handleDelete = async (record: McpServer) => {
@@ -159,7 +157,7 @@ const handleDelete = async (record: McpServer) => {
     await request.post('/mcp/admin/delete', null, { params: { id: record.id } })
     message.success('删除成功')
     fetchList()
-  } catch (e) { message.error('删除失败') }
+  } catch (e) {}
 }
 
 const handleRefresh = async (record: McpServer) => {
@@ -167,7 +165,7 @@ const handleRefresh = async (record: McpServer) => {
     const res: any = await request.post('/mcp/admin/refresh', null, { params: { id: record.id } })
     message.success(`刷新成功，发现 ${res.data} 个工具`)
     fetchList()
-  } catch (e) { message.error('刷新失败') }
+  } catch (e) {}
 }
 
 const viewTools = async (record: McpServer) => {
@@ -176,7 +174,7 @@ const viewTools = async (record: McpServer) => {
     const res: any = await request.get('/mcp/admin/tools')
     toolList.value = (res.data || []).filter((t: McpTool) => t.serverName === record.name)
     toolsModalVisible.value = true
-  } catch (e) { message.error('获取工具列表失败') }
+  } catch (e) {}
 }
 
 onMounted(() => fetchList())

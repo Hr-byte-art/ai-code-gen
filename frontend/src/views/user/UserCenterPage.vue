@@ -85,12 +85,15 @@ const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPasswor
 const invitedUsers = ref<any[]>([])
 const showEditModal = () => { editForm.userName = userStore.userInfo?.userName || ''; editForm.userProfile = userStore.userInfo?.userProfile || ''; editModalVisible.value = true }
 const showPasswordModal = () => { passwordForm.oldPassword = ''; passwordForm.newPassword = ''; passwordForm.confirmPassword = ''; passwordModalVisible.value = true }
-const handleUpdateInfo = async () => { try { await updateMyInfo({ id: userStore.userId!, userName: editForm.userName, userProfile: editForm.userProfile }); message.success('更新成功'); editModalVisible.value = false; await userStore.fetchUserInfo() } catch (e) { message.error('更新失败') } }
-const handleChangePassword = async () => { if (passwordForm.newPassword !== passwordForm.confirmPassword) { message.error('两次密码不一致'); return }; try { await changePassword(passwordForm); message.success('密码修改成功'); passwordModalVisible.value = false } catch (e) { message.error('修改失败') } }
-const handleSignIn = async () => { signInLoading.value = true; try { const res = await signIn(); message.success(`签到成功，获得 ${res.data} 积分`); await userStore.fetchUserInfo() } catch (e) { message.error('签到失败') } finally { signInLoading.value = false } }
+const handleUpdateInfo = async () => { try { await updateMyInfo({ id: userStore.userId!, userName: editForm.userName, userProfile: editForm.userProfile }); message.success('更新成功'); editModalVisible.value = false; await userStore.fetchUserInfo() } catch (e) {} }
+const handleChangePassword = async () => { if (passwordForm.newPassword !== passwordForm.confirmPassword) { message.error('两次密码不一致'); return }; try { await changePassword(passwordForm); message.success('密码修改成功'); passwordModalVisible.value = false } catch (e) {} }
+const handleSignIn = async () => { signInLoading.value = true; try { const res = await signIn(); message.success(`签到成功，获得 ${res.data} 积分`); await userStore.fetchUserInfo() } catch (e) {} finally { signInLoading.value = false } }
 const fetchInvitedUsers = async () => { invitedLoading.value = true; try { const res: any = await getMyInvited(); invitedUsers.value = res.data || [] } catch (e) {} finally { invitedLoading.value = false } }
 const handleLogout = async () => { await userStore.logout(); router.push('/user/login') }
-onMounted(() => fetchInvitedUsers())
+onMounted(() => {
+  userStore.fetchUserInfo()
+  fetchInvitedUsers()
+})
 </script>
 
 <style scoped>

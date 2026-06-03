@@ -329,8 +329,7 @@ const handleDeploy = async () => {
     if (url) expressDeployUrl.value = url
     message.success('部署成功！')
     await fetchAppInfo()
-  } catch (e: any) {
-    message.error(e?.response?.data?.message || '部署失败，请重试')
+  } catch {
   } finally { deploying.value = false }
 }
 
