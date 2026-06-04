@@ -280,7 +280,9 @@ public class AppController {
         long pageNum = appQueryRequest.getPageNum();
         // 只查询精选的应用
         appQueryRequest.setPriority(AppConstant.GOOD_APP_PRIORITY);
-        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest);
+        QueryWrapper queryWrapper = appService.getQueryWrapper(appQueryRequest)
+                .and("deployedTime IS NOT NULL")
+                .and("deployKey IS NOT NULL AND deployKey <> ''");
         // 分页查询
         Page<App> appPage = appService.page(Page.of(pageNum, pageSize), queryWrapper);
         // 数据封装
@@ -330,6 +332,10 @@ public class AppController {
         // 判断是否存在
         App oldApp = appService.getById(id);
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
+        if (AppConstant.GOOD_APP_PRIORITY.equals(appAdminUpdateRequest.getPriority())
+                && (oldApp.getDeployedTime() == null || StrUtil.isBlank(oldApp.getDeployKey()))) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "未上线或不可预览的应用不能设为首页公开样本");
+        }
         App app = appConverter.toApp(appAdminUpdateRequest);
         // 设置编辑时间
         app.setEditTime(LocalDateTime.now());
@@ -551,9 +557,20 @@ public class AppController {
     @Operation(summary = "查询应用已部署访问地址")
     public BaseResponse<String> getDeployedAppUrl(@RequestParam Long appId, HttpServletRequest request) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
-        User loginUser = userService.getLoginUser(request);
+        User loginUser = getLoginUserIfPresent(request);
         String deployUrl = appService.getDeployedAppUrl(appId, loginUser);
         return ResultUtils.success(deployUrl);
+    }
+
+    private User getLoginUserIfPresent(HttpServletRequest request) {
+        try {
+            return userService.getLoginUser(request);
+        } catch (BusinessException e) {
+            if (ErrorCode.NOT_LOGIN_ERROR.getCode() == e.getCode()) {
+                return null;
+            }
+            throw e;
+        }
     }
 
     /**

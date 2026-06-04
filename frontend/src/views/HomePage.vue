@@ -178,7 +178,14 @@
         </div>
         <a-spin :spinning="loading">
           <div class="app-grid" v-if="appList.length > 0">
-            <AppCard v-for="app in appList" :key="app.id" :app="app" @click="goToApp(app.id)" />
+            <AppCard
+              v-for="app in appList"
+              :key="app.id"
+              :app="app"
+              action-mode="previewOnly"
+              @click="goToPreview(app)"
+              @preview="goToPreview(app)"
+            />
           </div>
           <EmptyState v-if="!loading && appList.length === 0" title="还没有公开样本" description="创建并部署应用后，可以在这里看到可复用的案例资产。" />
         </a-spin>
@@ -200,7 +207,7 @@ import {
 import AppCard from '@/components/AppCard.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import workflowPreview from '@/assets/workflow-preview.webp'
-import { getGoodAppList, createApp, getRoutingRecommendation } from '@/api/app'
+import { getGoodAppList, createApp, getRoutingRecommendation, getDeployedAppUrl } from '@/api/app'
 import { listTemplates } from '@/api/template'
 import { listSkills } from '@/api/skill'
 import { getDesignTemplateList } from '@/api/design'
@@ -261,7 +268,7 @@ const DESIGN_STYLE_COPY: Record<string, { name: string; desc: string }> = {
   lamborghini: { name: '超跑运动风', desc: '锐利线条、强冲击' },
   linear: { name: '项目管理风', desc: '极简深色、效率产品' },
   notion: { name: '知识库风', desc: '文档卡片、轻量协作' },
-  shopify: { name: 'Shopify', desc: '电商展示、转化友好' },
+  shopify: { name: '电商平台风', desc: '电商展示、转化友好' },
   stripe: { name: '支付科技风', desc: '渐变科技、商业转化' },
   vercel: { name: '云部署风', desc: '黑白极简、开发者产品' },
 }
@@ -422,7 +429,16 @@ const useFallbackMode = (codeGenType: string) => {
   selectedTemplateKey.value = null
 }
 const formatSkillCost = (skill: CodeSkill) => skill.pointCost ? `${skill.pointCost} 积分` : '生成模式'
-const goToApp = (id: string) => router.push(`/app/chat/${id}`)
+const goToPreview = async (app: any) => {
+  if (!app?.deployedTime || !app?.deployKey) {
+    message.warning('该应用还没有可访问的线上地址')
+    return
+  }
+  const url = await getDeployedAppUrl(app.id)
+  if (url) {
+    window.open(url, '_blank')
+  }
+}
 const handlePageChange = (page: number) => { currentPage.value = page; fetchAppList() }
 
 const fetchTemplates = async () => {

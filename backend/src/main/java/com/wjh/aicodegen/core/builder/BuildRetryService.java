@@ -29,6 +29,7 @@ public class BuildRetryService {
 
     /** 最大重试次数 */
     private static final int MAX_BUILD_RETRIES = 3;
+    private static final String INTERNAL_BUILD_FIX_MARKER = "## INTERNAL_BUILD_FIX_TASK";
 
     /**
      * 带重试的构建
@@ -123,6 +124,7 @@ public class BuildRetryService {
 
             // 构建修复提示词（转义 {{...}} 防止 LangChain4j 误解析）
             String fixPrompt = String.format(
+                INTERNAL_BUILD_FIX_MARKER + "\n\n" +
                 "以下 Vue 项目构建失败，请分析错误并修复代码。\n\n" +
                 "## 构建错误信息\n```\n%s\n```\n\n" +
                 "## 项目代码\n%s\n\n" +

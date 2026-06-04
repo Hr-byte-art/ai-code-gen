@@ -122,6 +122,18 @@ public class JsonMessageStreamHandler {
                     chatHistoryStringBuilder.append(outPut);
                     return outPut;
                 }
+                case REVIEW_RESULT: {
+                    JSONObject reviewResult = JSONUtil.parseObj(chunk);
+                    boolean passed = reviewResult.getBool("passed", false);
+                    int score = reviewResult.getInt("score", 0);
+                    String summary = reviewResult.getStr("summary", "");
+                    String outPut = String.format("\n\n---\n**代码审查** — %s（%d分）%s\n---\n\n",
+                            passed ? "通过" : "未通过",
+                            score,
+                            StrUtil.isNotBlank(summary) ? "：" + summary : "");
+                    chatHistoryStringBuilder.append(outPut);
+                    return outPut;
+                }
                 default: {
                     log.error("不支持的消息类型: {}", typeEnum);
                     return "";

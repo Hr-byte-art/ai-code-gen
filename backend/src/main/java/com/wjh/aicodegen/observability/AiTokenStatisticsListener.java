@@ -191,13 +191,15 @@ public class AiTokenStatisticsListener implements ChatModelListener {
                 context.getUserId(), context.getAppId(), context.getAiCallPurpose());
 
         // 验证上下文数据有效性
-        if ("unknown".equals(context.getUserId()) || "unknown".equals(context.getAppId())) {
+        if (isInvalidMonitorId(context.getUserId()) || isInvalidMonitorId(context.getAppId())) {
             log.warn("MonitorContext包含无效数据 userId={}, appId={}, 尝试从全局存储恢复",
                     context.getUserId(), context.getAppId());
 
             // 尝试从全局存储恢复（解决跨线程上下文丢失问题）
             MonitorContext globalContext = GlobalContextStorage.getLatestContext();
-            if (globalContext != null && !"unknown".equals(globalContext.getUserId())) {
+            if (globalContext != null
+                    && !isInvalidMonitorId(globalContext.getUserId())
+                    && !isInvalidMonitorId(globalContext.getAppId())) {
                 context = globalContext;
                 log.info("从全局存储恢复MonitorContext成功: userId={}, appId={}",
                         context.getUserId(), context.getAppId());
@@ -205,7 +207,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
         }
 
         // 再次验证，如果仍然无效则使用兜底
-        if ("unknown".equals(context.getUserId()) || "unknown".equals(context.getAppId())) {
+        if (isInvalidMonitorId(context.getUserId()) || isInvalidMonitorId(context.getAppId())) {
             // 尝试兜底处理：使用system用户ID记录统计，至少不丢失token信息
             TokenUsage fallbackTokenUsage = new TokenUsage();
             fallbackTokenUsage.setUserId(0L);
@@ -375,6 +377,18 @@ public class AiTokenStatisticsListener implements ChatModelListener {
             log.debug("🧹 错误情况下完整清理上下文完成: requestId={}", requestId);
         } catch (Exception e) {
             log.warn("清理错误上下文时发生异常: {}", e.getMessage());
+        }
+    }
+
+    private boolean isInvalidMonitorId(String value) {
+        if (value == null || value.isBlank() || "unknown".equalsIgnoreCase(value)) {
+            return true;
+        }
+        try {
+            Long.parseLong(value);
+            return false;
+        } catch (NumberFormatException e) {
+            return true;
         }
     }
 

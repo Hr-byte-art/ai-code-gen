@@ -2,6 +2,7 @@ package com.wjh.aicodegen.agent;
 
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 代码优化 Agent
@@ -10,5 +11,6 @@ import dev.langchain4j.service.UserMessage;
 public interface CodeOptimizerAgent {
 
     @SystemMessage(fromResource = "prompt/code-optimizer-agent-system-prompt.txt")
-    String optimizeCode(@UserMessage String prompt);
+    @UserMessage("{{prompt}}")
+    String optimizeCode(@V("prompt") String prompt);
 }

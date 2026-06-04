@@ -20,12 +20,18 @@
 
     <p class="card-desc">{{ app.description || app.initPrompt || '还没有补充应用说明' }}</p>
 
-    <div class="next-step">
+    <div class="next-step" v-if="props.actionMode !== 'previewOnly'">
       <span class="next-label">下一步</span>
       <span class="next-text">{{ nextStep }}</span>
     </div>
 
-    <div class="card-actions">
+    <div class="card-actions" v-if="props.actionMode === 'previewOnly'">
+      <a-button size="small" type="primary" class="primary-action" @click.stop="$emit('preview')" :disabled="!app.deployedTime">
+        <EyeOutlined /> 预览
+      </a-button>
+    </div>
+
+    <div class="card-actions" v-else>
       <a-button size="small" type="primary" class="primary-action" @click.stop="$emit('chat')">
         <MessageOutlined /> 继续迭代
       </a-button>
@@ -87,7 +93,11 @@ interface AppInfo {
   deployKey?: string
 }
 
-const props = defineProps<{ app: AppInfo }>()
+type CardActionMode = 'full' | 'previewOnly'
+
+const props = withDefaults(defineProps<{ app: AppInfo; actionMode?: CardActionMode }>(), {
+  actionMode: 'full',
+})
 const emit = defineEmits<{ click: []; chat: []; edit: []; preview: []; deploy: []; delete: [] }>()
 
 const STATUS_COVER_MARKERS = {

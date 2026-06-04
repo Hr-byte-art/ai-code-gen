@@ -3,6 +3,7 @@ package com.wjh.aicodegen.agent;
 import com.wjh.aicodegen.agent.model.ReviewResult;
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 代码审查 Agent
@@ -11,5 +12,6 @@ import dev.langchain4j.service.UserMessage;
 public interface ReviewAgent {
 
     @SystemMessage(fromResource = "prompt/review-agent-system-prompt.txt")
-    ReviewResult reviewCode(@UserMessage String codeContent);
+    @UserMessage("{{codeContent}}")
+    ReviewResult reviewCode(@V("codeContent") String codeContent);
 }

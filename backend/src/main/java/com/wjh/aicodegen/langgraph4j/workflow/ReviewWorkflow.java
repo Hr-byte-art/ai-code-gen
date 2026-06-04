@@ -37,6 +37,8 @@ public class ReviewWorkflow {
     private static final Pattern CODE_FENCE_PATTERN = Pattern.compile("```(?:[a-zA-Z0-9_+-]+)?\\n([\\s\\S]*?)\\n```", Pattern.MULTILINE);
     private static final List<String> VALID_SEVERITIES = List.of("critical", "warning", "info");
     private static final int MAX_RETRIES = 3;
+    private static final String INTERNAL_REVIEW_MARKER = "## INTERNAL_CODE_REVIEW_TASK";
+    private static final String INTERNAL_OPTIMIZATION_MARKER = "## INTERNAL_CODE_OPTIMIZATION_TASK";
 
     private final ReviewAgent reviewAgent;
     private final CodeOptimizerAgent codeOptimizerAgent;
@@ -113,7 +115,7 @@ public class ReviewWorkflow {
         ReviewResult result = null;
 
         try {
-            result = sanitizeReviewResult(reviewAgent.reviewCode(code));
+            result = sanitizeReviewResult(reviewAgent.reviewCode(buildReviewPrompt(code)));
             if (result == null) {
                 log.warn("Reviewer 节点返回空或不完整结果，按严重问题处理: appId={}", appId);
                 result = buildFallbackReviewResult("审查结果为空或字段缺失，按严重问题处理");
@@ -242,8 +244,13 @@ public class ReviewWorkflow {
         return trimmed;
     }
 
+    private String buildReviewPrompt(String code) {
+        return INTERNAL_REVIEW_MARKER + "\n\n" + code;
+    }
+
     private String buildOptimizationPrompt(String code, ReviewResult reviewResult) {
         StringBuilder prompt = new StringBuilder();
+        prompt.append(INTERNAL_OPTIMIZATION_MARKER).append("\n\n");
         prompt.append("## 原始代码\n\n").append(code);
         prompt.append("\n\n## 审查结果\n\n");
 

@@ -2,7 +2,7 @@ spring:
   application:
     name: ai-code-gen-backend
   profiles:
-    active: local
+    active: prod
   session:
     store-type: redis
     timeout: 2592000
@@ -53,17 +53,17 @@ agent:
     # model-name: deepseek-chat
     max-tokens: 4096
     temperature: 0.3
-    base-url: https://token-plan-cn.xiaomimimo.com/v1
-    api-key: tp-cugqw3dsx8bogxhyt5nangl92bn2yakf213kr5r6g012pn14
-    model-name: mimo-v2.5-pro
+    base-url: https://api.deepseek.com
+    api-key: sk-02e5cc8d4d9346fdae531cd4fbbae152
+    model-name: deepseek-v4-flash
   optimizer:
     # base-url: https://api.deepseek.com
     # model-name: deepseek-chat
     max-tokens: 8192
     temperature: 0.5
-    base-url: https://token-plan-cn.xiaomimimo.com/v1
-    api-key: tp-cugqw3dsx8bogxhyt5nangl92bn2yakf213kr5r6g012pn14
-    model-name: mimo-v2.5-pro
+    base-url: https://api.deepseek.com
+    api-key: sk-02e5cc8d4d9346fdae531cd4fbbae152
+    model-name: deepseek-v4-flash
 langchain4j:
   open-ai:
     chat-model:

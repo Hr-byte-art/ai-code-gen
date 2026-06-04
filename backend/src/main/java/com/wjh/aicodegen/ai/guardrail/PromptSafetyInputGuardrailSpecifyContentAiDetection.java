@@ -23,6 +23,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class PromptSafetyInputGuardrailSpecifyContentAiDetection implements InputGuardrail {
 
+    private static final String INTERNAL_REVIEW_MARKER = "## INTERNAL_CODE_REVIEW_TASK";
+    private static final String INTERNAL_OPTIMIZATION_MARKER = "## INTERNAL_CODE_OPTIMIZATION_TASK";
+    private static final String INTERNAL_BUILD_FIX_MARKER = "## INTERNAL_BUILD_FIX_TASK";
+
     @Resource
     private AiInputPromptDetectionServiceFactory aiInputPromptDetectionServiceFactory;
 
@@ -38,7 +42,7 @@ public class PromptSafetyInputGuardrailSpecifyContentAiDetection implements Inpu
             // 【细粒度分类】为护轨机制设置安全检查上下文
             setupSafetyCheckContext();
 
-            String input = userMessage.singleText();
+            String input = extractUserInputForSafety(userMessage.singleText());
             // 检查输入长度
             if (input.length() > 1000) {
                 return fatal("输入内容过长，不要超过 1000 字");
@@ -102,5 +106,25 @@ public class PromptSafetyInputGuardrailSpecifyContentAiDetection implements Inpu
             log.info("护轨机制创建默认安全检查上下文: aiCallPurpose={}",
                     AiCallPurposeEnum.INPUT_SAFETY_CHECK.getCode());
         }
+    }
+
+    private String extractUserInputForSafety(String input) {
+        if (input == null) {
+            return "";
+        }
+        if (input.startsWith(INTERNAL_REVIEW_MARKER)) {
+            return "内部代码审查任务";
+        }
+        if (input.startsWith(INTERNAL_OPTIMIZATION_MARKER)) {
+            return "内部代码优化任务";
+        }
+        if (input.startsWith(INTERNAL_BUILD_FIX_MARKER)) {
+            return "内部构建修复任务";
+        }
+        int designSectionIndex = input.indexOf("## 设计风格要求");
+        if (designSectionIndex < 0) {
+            return input;
+        }
+        return input.substring(0, designSectionIndex).trim();
     }
 }

@@ -44,6 +44,11 @@
           <a-select-option value="deployed">已上线</a-select-option>
           <a-select-option value="draft">草稿</a-select-option>
         </a-select>
+        <a-select v-model:value="sortMode" style="width: 148px" @change="handleSortChange">
+          <a-select-option value="createTime-descend">最新创建</a-select-option>
+          <a-select-option value="createTime-ascend">最早创建</a-select-option>
+          <a-select-option value="updateTime-descend">最近更新</a-select-option>
+        </a-select>
       </div>
     </section>
 
@@ -98,6 +103,7 @@ const total = ref(0)
 const myAppList = ref<any[]>([])
 const searchText = ref('')
 const statusFilter = ref('all')
+const sortMode = ref('createTime-descend')
 
 const deployedCount = computed(() => myAppList.value.filter(a => a.deployedTime).length)
 const draftCount = computed(() => myAppList.value.filter(a => !a.deployedTime).length)
@@ -120,7 +126,13 @@ const filteredApps = computed(() => {
 const fetchMyApps = async () => {
   loading.value = true
   try {
-    const res: any = await getMyAppList({ pageNum: currentPage.value, pageSize: pageSize.value })
+    const [sortField, sortOrder] = sortMode.value.split('-')
+    const res: any = await getMyAppList({
+      pageNum: currentPage.value,
+      pageSize: pageSize.value,
+      sortField,
+      sortOrder,
+    })
     myAppList.value = (res.data?.records || []).map((a: any) => ({
       ...a,
       title: a.appName || a.title,
@@ -157,6 +169,7 @@ const handleDelete = async (id: string) => {
   } catch (e) {}
 }
 const handlePageChange = (page: number) => { currentPage.value = page; fetchMyApps() }
+const handleSortChange = () => { currentPage.value = 1; fetchMyApps() }
 onMounted(() => fetchMyApps())
 </script>
 

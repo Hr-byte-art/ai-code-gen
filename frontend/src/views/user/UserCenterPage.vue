@@ -50,6 +50,25 @@
 
     <a-modal v-model:open="editModalVisible" title="编辑资料" @ok="handleUpdateInfo">
       <a-form :model="editForm" layout="vertical">
+        <a-form-item label="头像">
+          <div class="avatar-editor">
+            <a-avatar :size="72" :src="editForm.userAvatar" class="avatar-preview">
+              <template #icon><UserOutlined /></template>
+            </a-avatar>
+            <div class="avatar-editor-actions">
+              <a-upload
+                accept="image/*"
+                :show-upload-list="false"
+                :before-upload="handleAvatarBeforeUpload"
+              >
+                <a-button :loading="avatarUploading">
+                  <UploadOutlined /> 上传头像
+                </a-button>
+              </a-upload>
+              <div class="avatar-help">支持 JPG / PNG / WebP，建议使用方形图片。</div>
+            </div>
+          </div>
+        </a-form-item>
         <a-form-item label="用户名"><a-input v-model:value="editForm.userName" /></a-form-item>
         <a-form-item label="简介"><a-textarea v-model:value="editForm.userProfile" :rows="3" /></a-form-item>
       </a-form>
@@ -68,9 +87,9 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { UserOutlined, EditOutlined, LockOutlined, CalendarOutlined, LogoutOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, EditOutlined, LockOutlined, CalendarOutlined, LogoutOutlined, UploadOutlined } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { updateMyInfo, changePassword, signIn, getMyInvited } from '@/api/user'
+import { updateMyInfo, changePassword, signIn, getMyInvited, uploadAvatar } from '@/api/user'
 import { formatDateTime } from '@/utils/time'
 
 const router = useRouter()
@@ -80,12 +99,35 @@ const editModalVisible = ref(false)
 const passwordModalVisible = ref(false)
 const signInLoading = ref(false)
 const invitedLoading = ref(false)
-const editForm = reactive({ userName: '', userProfile: '' })
+const avatarUploading = ref(false)
+const editForm = reactive({ userName: '', userProfile: '', userAvatar: '' })
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
 const invitedUsers = ref<any[]>([])
-const showEditModal = () => { editForm.userName = userStore.userInfo?.userName || ''; editForm.userProfile = userStore.userInfo?.userProfile || ''; editModalVisible.value = true }
+const showEditModal = () => { editForm.userName = userStore.userInfo?.userName || ''; editForm.userProfile = userStore.userInfo?.userProfile || ''; editForm.userAvatar = userStore.userInfo?.userAvatar || ''; editModalVisible.value = true }
 const showPasswordModal = () => { passwordForm.oldPassword = ''; passwordForm.newPassword = ''; passwordForm.confirmPassword = ''; passwordModalVisible.value = true }
-const handleUpdateInfo = async () => { try { await updateMyInfo({ id: userStore.userId!, userName: editForm.userName, userProfile: editForm.userProfile }); message.success('更新成功'); editModalVisible.value = false; await userStore.fetchUserInfo() } catch (e) {} }
+const handleAvatarBeforeUpload = async (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    message.warning('请上传图片文件')
+    return false
+  }
+  if (file.size > 2 * 1024 * 1024) {
+    message.warning('头像图片不能超过 2MB')
+    return false
+  }
+  avatarUploading.value = true
+  try {
+    const res: any = await uploadAvatar(file)
+    const avatarUrl = res.data
+    editForm.userAvatar = avatarUrl
+    userStore.updateUserInfo({ userAvatar: avatarUrl })
+    message.success('头像上传成功')
+  } catch (e) {
+  } finally {
+    avatarUploading.value = false
+  }
+  return false
+}
+const handleUpdateInfo = async () => { try { await updateMyInfo({ id: userStore.userId!, userName: editForm.userName, userProfile: editForm.userProfile, userAvatar: editForm.userAvatar }); message.success('更新成功'); editModalVisible.value = false; await userStore.fetchUserInfo() } catch (e) {} }
 const handleChangePassword = async () => { if (passwordForm.newPassword !== passwordForm.confirmPassword) { message.error('两次密码不一致'); return }; try { await changePassword(passwordForm); message.success('密码修改成功'); passwordModalVisible.value = false } catch (e) {} }
 const handleSignIn = async () => { signInLoading.value = true; try { const res = await signIn(); message.success(`签到成功，获得 ${res.data} 积分`); await userStore.fetchUserInfo() } catch (e) {} finally { signInLoading.value = false } }
 const fetchInvitedUsers = async () => { invitedLoading.value = true; try { const res: any = await getMyInvited(); invitedUsers.value = res.data || [] } catch (e) {} finally { invitedLoading.value = false } }
@@ -112,5 +154,9 @@ onMounted(() => {
 .profile-actions { display: flex; flex-direction: column; gap: 8px; }
 .sign-btn { background: var(--c-primary-50) !important; border-color: var(--c-primary-200) !important; color: var(--c-primary) !important; }
 .content-card { background: var(--bg-card); border-radius: var(--r-xl); padding: 20px; border: 1px solid var(--border-light); }
+.avatar-editor { display: flex; align-items: center; gap: 16px; }
+.avatar-preview { flex-shrink: 0; border: 1px solid var(--border-light); background: var(--bg-soft); }
+.avatar-editor-actions { display: flex; flex-direction: column; gap: 6px; }
+.avatar-help { font-size: 12px; color: var(--t-light); }
 @media (max-width: 768px) { .page { padding: 20px 16px; } .profile-card { margin-bottom: 16px; } }
 </style>

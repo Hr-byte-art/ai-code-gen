@@ -576,15 +576,18 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     @Override
     public String getDeployedAppUrl(Long appId, User loginUser) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
-        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
-
         App app = this.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
-        if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
-        }
         ThrowUtils.throwIf(StrUtil.isBlank(app.getDeployKey()) || app.getDeployedTime() == null,
                 ErrorCode.NOT_FOUND_ERROR, "应用尚未部署");
+
+        boolean publicSample = AppConstant.GOOD_APP_PRIORITY.equals(app.getPriority());
+        if (!publicSample) {
+            ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+            if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+            }
+        }
 
         CodeSkill skill = codeSkillService.getByCodeGenTypeCached(app.getCodeGenType());
         String buildStrategy = skill != null ? skill.getBuildStrategy() : "none";
