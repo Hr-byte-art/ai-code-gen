@@ -1,0 +1,93 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/ai_code_gen?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&allowPublicKeyRetrieval=true&useSSL=false}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:your_mysql_password}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      ttl: ${REDIS_TTL:3600}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:1}
+
+langchain4j:
+  open-ai:
+    chat-model:
+      base-url: ${AI_BASE_URL:https://api.deepseek.com}
+      api-key: ${AI_API_KEY:your_ai_api_key}
+      model-name: ${AI_MODEL_NAME:deepseek-chat}
+      log-requests: true
+      log-responses: true
+      max-tokens: 8192
+    streaming-chat-model:
+      base-url: ${AI_STREAMING_BASE_URL:https://api.deepseek.com}
+      api-key: ${AI_STREAMING_API_KEY:your_ai_api_key}
+      model-name: ${AI_STREAMING_MODEL_NAME:deepseek-chat}
+      max-tokens: 8192
+      timeout: 300
+      log-requests: true
+      log-responses: true
+    reasoning-streaming-chat-model:
+      base-url: ${AI_REASONING_BASE_URL:https://api.deepseek.com}
+      api-key: ${AI_REASONING_API_KEY:your_ai_api_key}
+      model-name: ${AI_REASONING_MODEL_NAME:deepseek-chat}
+      max-tokens: 32768
+      temperature: 0.1
+      timeout: 300
+      log-requests: true
+      log-responses: true
+    routing-chat-model:
+      base-url: ${AI_ROUTING_BASE_URL:https://api.deepseek.com}
+      api-key: ${AI_ROUTING_API_KEY:your_ai_api_key}
+      model-name: ${AI_ROUTING_MODEL_NAME:deepseek-chat}
+      log-requests: true
+      log-responses: true
+    detection-chat-model:
+      base-url: ${AI_DETECTION_BASE_URL:https://api.deepseek.com}
+      api-key: ${AI_DETECTION_API_KEY:your_ai_api_key}
+      model-name: ${AI_DETECTION_MODEL_NAME:deepseek-chat}
+      log-requests: true
+      log-responses: true
+    generation-appName-model:
+      base-url: ${AI_APP_NAME_BASE_URL:https://api.deepseek.com}
+      api-key: ${AI_APP_NAME_API_KEY:your_ai_api_key}
+      model-name: ${AI_APP_NAME_MODEL_NAME:deepseek-chat}
+      log-requests: true
+      log-responses: true
+
+cos:
+  client:
+    host: ${COS_HOST:https://example.cos.region.myqcloud.com}
+    secretId: ${COS_SECRET_ID:your_cos_secret_id}
+    secretKey: ${COS_SECRET_KEY:your_cos_secret_key}
+    region: ${COS_REGION:ap-chengdu}
+    bucket: ${COS_BUCKET:your_cos_bucket}
+
+picture:
+  search:
+    api-key: ${PEXELS_API_KEY:your_picture_search_api_key}
+
+code:
+  deploy-host: ${CODE_DEPLOY_HOST:http://localhost}
+  deploy-port: ${CODE_DEPLOY_PORT:8123}
+  deploy-path: ${CODE_DEPLOY_PATH:api/code_deploy}
+
+dashscope:
+  api-key: ${DASHSCOPE_API_KEY:your_dashscope_api_key}
+  image-model: ${DASHSCOPE_IMAGE_MODEL:wan2.2-t2i-flash}
+
+agent:
+  review:
+    base-url: ${AI_REVIEW_BASE_URL:https://api.deepseek.com}
+    api-key: ${AI_REVIEW_API_KEY:your_ai_api_key}
+    model-name: ${AI_REVIEW_MODEL_NAME:deepseek-chat}
+    max-tokens: 4096
+    temperature: 0.3
+  optimizer:
+    base-url: ${AI_OPTIMIZER_BASE_URL:https://api.deepseek.com}
+    api-key: ${AI_OPTIMIZER_API_KEY:your_ai_api_key}
+    model-name: ${AI_OPTIMIZER_MODEL_NAME:deepseek-chat}
+    max-tokens: 8192
+    temperature: 0.5

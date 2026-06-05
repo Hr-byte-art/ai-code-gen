@@ -2,7 +2,7 @@ spring:
   application:
     name: ai-code-gen-backend
   profiles:
-    active: prod
+    active: dev
   session:
     store-type: redis
     timeout: 2592000
@@ -49,21 +49,17 @@ design:
 # 多 Agent 配置（默认值）
 agent:
   review:
-    # base-url: https://api.deepseek.com
-    # model-name: deepseek-chat
     max-tokens: 4096
     temperature: 0.3
-    base-url: https://api.deepseek.com
-    api-key: sk-02e5cc8d4d9346fdae531cd4fbbae152
-    model-name: deepseek-v4-flash
+    base-url: ${AI_REVIEW_BASE_URL:https://api.deepseek.com}
+    api-key: ${AI_REVIEW_API_KEY:your_ai_api_key}
+    model-name: ${AI_REVIEW_MODEL_NAME:deepseek-chat}
   optimizer:
-    # base-url: https://api.deepseek.com
-    # model-name: deepseek-chat
     max-tokens: 8192
     temperature: 0.5
-    base-url: https://api.deepseek.com
-    api-key: sk-02e5cc8d4d9346fdae531cd4fbbae152
-    model-name: deepseek-v4-flash
+    base-url: ${AI_OPTIMIZER_BASE_URL:https://api.deepseek.com}
+    api-key: ${AI_OPTIMIZER_API_KEY:your_ai_api_key}
+    model-name: ${AI_OPTIMIZER_MODEL_NAME:deepseek-chat}
 langchain4j:
   open-ai:
     chat-model:
