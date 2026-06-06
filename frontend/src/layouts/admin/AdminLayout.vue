@@ -39,6 +39,7 @@
     </header>
     <main class="admin-main">
       <router-view />
+      <LegalFooter variant="compact" />
     </main>
   </div>
 </template>
@@ -47,6 +48,7 @@
 import { useRoute } from 'vue-router'
 import { ArrowLeftOutlined } from '@ant-design/icons-vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import LegalFooter from '@/components/common/LegalFooter.vue'
 
 const route = useRoute()
 </script>

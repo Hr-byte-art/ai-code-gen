@@ -46,13 +46,7 @@
     <main class="brand-main">
       <router-view />
     </main>
-    <footer class="brand-footer">
-      <div class="brand-footer-inner">
-        <span class="footer-brand">{{ $t('brand.name') }}</span>
-        <span class="footer-text">需求、生成、迭代、部署，放在同一个工作流。</span>
-        <span class="footer-copy">© 2026</span>
-      </div>
-    </footer>
+    <LegalFooter />
   </div>
 </template>
 
@@ -64,6 +58,7 @@ import {
   UserOutlined, LogoutOutlined
 } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
+import LegalFooter from '@/components/common/LegalFooter.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -203,33 +198,9 @@ const handleMenuClick = ({ key }: { key: string }) => {
   flex: 1;
 }
 
-.brand-footer {
-  border-top: 1px solid var(--border-light);
-  background: var(--bg-card);
-  padding: 18px 0;
-}
-
-.brand-footer-inner {
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 0 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: var(--t-light);
-}
-
-.footer-brand {
-  font-weight: 750;
-  color: var(--t-secondary);
-}
-
 @media (max-width: 768px) {
   .brand-header-inner { padding: 0 16px; }
   .brand-nav { gap: 0; }
   .brand-nav-link { padding: 5px 8px; font-size: 12px; }
-  .brand-footer-inner { align-items: flex-start; flex-direction: column; }
 }
 </style>

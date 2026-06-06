@@ -2,10 +2,8 @@ package com.wjh.aicodegen.core;
 
 import cn.hutool.json.JSONUtil;
 import com.wjh.aicodegen.agent.AgentOrchestrator;
-import com.wjh.aicodegen.agent.model.ReviewResult;
 import com.wjh.aicodegen.ai.factory.AiCodeGeneratorServiceFactory;
 import com.wjh.aicodegen.ai.model.message.AiResponseMessage;
-import com.wjh.aicodegen.ai.model.message.ReviewResultMessage;
 import com.wjh.aicodegen.ai.model.message.ToolExecutedMessage;
 import com.wjh.aicodegen.ai.model.message.ToolRequestMessage;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
@@ -159,17 +157,10 @@ public class AiCodeGeneratorFacade {
                     try {
                         if (!taskCancellationManager.isTaskCancelled(appId)) {
                             String completeCode = codeBuilder.toString();
-
-                            // 审查工作流：reviewer → (pass | fail → optimizer → reviewer)
-                            log.info("启动审查工作流，应用ID: {}", appId);
-                            var reviewResult = reviewWorkflow.execute(completeCode, appId);
-                            String reviewedCode = reviewResult.getFinalCode();
-                            log.info("审查工作流完成: appId={}, status={}, retryCount={}",
-                                    appId, reviewResult.getStatus(), reviewResult.getRetryCount());
-
-                            Object parsedResult = CodeParserExecutor.executeParser(reviewedCode, codeGenType);
+                            Object parsedResult = CodeParserExecutor.executeParser(completeCode, codeGenType);
                             File savedDir = CodeFileSaverExecutor.executeSaver(parsedResult, codeGenType, appId);
                             log.info("保存成功，路径为：" + savedDir.getAbsolutePath());
+                            runReviewWorkflowAsync(completeCode, appId);
                         } else {
                             log.info("应用 {} 的任务已被取消，跳过文件保存", appId);
                         }
@@ -206,24 +197,9 @@ public class AiCodeGeneratorFacade {
                         // 清理全局上下文，防止内存泄漏
                         GlobalContextStorage.removeContext(String.valueOf(appId));
 
-                        // 审查工作流：读取生成的代码文件，运行 reviewer → optimizer 循环
+                        // 后台审查不影响用户侧生成完成状态
                         if (!taskCancellationManager.isTaskCancelled(appId)) {
-                            try {
-                                String generatedCode = collectGeneratedCode(appId);
-                                if (generatedCode != null && !generatedCode.isBlank()) {
-                                    var workflowResult = reviewWorkflow.execute(generatedCode, appId);
-                                    ReviewResult reviewResult = workflowResult.getReviewResult();
-                                    if (reviewResult != null) {
-                                        ReviewResultMessage reviewMsg = new ReviewResultMessage(reviewResult);
-                                        sink.next(JSONUtil.toJsonStr(reviewMsg));
-                                        log.info("审查工作流完成: appId={}, status={}, score={}, retryCount={}",
-                                                appId, workflowResult.getStatus(),
-                                                reviewResult.getScore(), workflowResult.getRetryCount());
-                                    }
-                                }
-                            } catch (Exception e) {
-                                log.warn("审查工作流异常，跳过: appId={}, error={}", appId, e.getMessage());
-                            }
+                            runGeneratedProjectReviewAsync(appId);
 
                             // 执行 afterGenerate 钩子（如果有）
                             if (skill.getHooks() != null && !skill.getHooks().isBlank()) {
@@ -408,6 +384,39 @@ public class AiCodeGeneratorFacade {
             if (dir.exists()) return dir;
         }
         return null;
+    }
+
+    private void runReviewWorkflowAsync(String generatedCode, Long appId) {
+        if (generatedCode == null || generatedCode.isBlank()) {
+            return;
+        }
+        Thread.ofVirtual().name("review-workflow-" + appId).start(() -> {
+            try {
+                log.info("启动后台审查工作流，应用ID: {}", appId);
+                var reviewResult = reviewWorkflow.execute(generatedCode, appId);
+                log.info("后台审查工作流完成: appId={}, status={}, retryCount={}",
+                        appId, reviewResult.getStatus(), reviewResult.getRetryCount());
+            } catch (Exception e) {
+                log.warn("后台审查工作流异常，跳过: appId={}, error={}", appId, e.getMessage());
+            }
+        });
+    }
+
+    private void runGeneratedProjectReviewAsync(Long appId) {
+        Thread.ofVirtual().name("review-generated-project-" + appId).start(() -> {
+            try {
+                String generatedCode = collectGeneratedCode(appId);
+                if (generatedCode == null || generatedCode.isBlank()) {
+                    return;
+                }
+                log.info("启动后台项目审查工作流，应用ID: {}", appId);
+                var workflowResult = reviewWorkflow.execute(generatedCode, appId);
+                log.info("后台项目审查工作流完成: appId={}, status={}, retryCount={}",
+                        appId, workflowResult.getStatus(), workflowResult.getRetryCount());
+            } catch (Exception e) {
+                log.warn("后台项目审查工作流异常，跳过: appId={}, error={}", appId, e.getMessage());
+            }
+        });
     }
 
     /**

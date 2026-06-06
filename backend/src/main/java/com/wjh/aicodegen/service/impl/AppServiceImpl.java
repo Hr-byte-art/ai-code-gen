@@ -468,9 +468,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             sourceDir = resolveFullstackProjectDir(appId, sourceDir);
             sourceDirPath = sourceDir.getAbsolutePath();
             if (StrUtil.isNotBlank(app.getDeployKey()) && app.getDeployedTime() != null && nodeProcessManager.isReady(appId)) {
-                String expressUrl = nodeProcessManager.getUrl(appId);
-                log.info("全栈应用已部署且服务可用，直接复用现有地址: appId={}, url={}", appId, expressUrl);
-                return expressUrl;
+                String fullstackUrl = buildFullstackDeployUrl(appId);
+                log.info("全栈应用已部署且服务可用，直接复用现有地址: appId={}, url={}", appId, fullstackUrl);
+                return fullstackUrl;
             }
         }
         // 6. 检查源目录是否存在
@@ -517,11 +517,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             updateApp.setDeployedTime(LocalDateTime.now());
             this.updateById(updateApp);
 
-            // 返回 Express 服务 URL
-            String expressUrl = nodeProcessManager.getUrl(appId);
-            log.info("全栈项目部署成功: appId={}, url={}", appId, expressUrl);
-            generateAppScreenshotAsync(appId, expressUrl);
-            return expressUrl;
+            // 返回公网代理 URL
+            String fullstackUrl = buildFullstackDeployUrl(appId);
+            log.info("全栈项目部署成功: appId={}, url={}", appId, fullstackUrl);
+            generateAppScreenshotAsync(appId, fullstackUrl);
+            return fullstackUrl;
         }
         // 8. 复制文件到部署目录（先清空再复制，避免旧文件残留）
         String deployDirPath = AppConstant.CODE_DEPLOY_ROOT_DIR + File.separator + deployKey;
@@ -593,14 +593,16 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         String buildStrategy = skill != null ? skill.getBuildStrategy() : "none";
         if ("fullstack".equals(buildStrategy)) {
             if (nodeProcessManager.isReady(appId)) {
-                String expressUrl = nodeProcessManager.getUrl(appId);
-                ThrowUtils.throwIf(StrUtil.isBlank(expressUrl), ErrorCode.SYSTEM_ERROR, "全栈服务地址不存在");
-                return expressUrl;
+                return buildFullstackDeployUrl(appId);
             }
             return null;
         }
 
         return String.format("%s:%s/%s/%s/index.html", deployHost, deployPort, deployPath, app.getDeployKey());
+    }
+
+    private String buildFullstackDeployUrl(Long appId) {
+        return String.format("%s:%s/api/fullstack/%s/", deployHost, deployPort, appId);
     }
 
     private File resolveFullstackProjectDir(Long appId, File defaultDir) {

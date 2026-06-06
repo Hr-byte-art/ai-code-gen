@@ -1,5 +1,6 @@
 <template>
-  <div class="markdown-body" v-html="renderedHtml" />
+  <pre v-if="usePlainText" class="markdown-plain">{{ content }}</pre>
+  <div v-else class="markdown-body" v-html="renderedHtml" />
 </template>
 
 <script setup lang="ts">
@@ -52,9 +53,12 @@ marked.use({
 })
 
 const props = defineProps<{ content: string }>()
+const PLAIN_TEXT_THRESHOLD = 40000
+
+const usePlainText = computed(() => props.content.length > PLAIN_TEXT_THRESHOLD)
 
 const renderedHtml = computed(() => {
-  if (!props.content) return ''
+  if (!props.content || usePlainText.value) return ''
   return marked.parse(props.content) as string
 })
 </script>
@@ -64,6 +68,22 @@ const renderedHtml = computed(() => {
   font-size: 14px;
   line-height: 1.75;
   color: var(--t-primary);
+  word-break: break-word;
+}
+
+.markdown-plain {
+  max-height: 58vh;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
+  background: var(--bg-soft);
+  color: var(--t-primary);
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  white-space: pre-wrap;
   word-break: break-word;
 }
 .markdown-body h1, .markdown-body h2, .markdown-body h3,

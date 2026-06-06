@@ -59,7 +59,7 @@
       </aside>
 
       <main class="conversation-panel">
-        <div class="messages" ref="messagesContainer">
+        <div class="messages" ref="messagesContainer" @scroll="handleMessagesScroll">
           <div class="messages-inner">
             <div v-if="chatStore.messages.length === 0 && !sending" class="chat-empty">
               <div class="empty-icon"><RobotOutlined /></div>
@@ -72,7 +72,7 @@
               <a-button type="link" size="small" @click="loadMore">加载更早记录</a-button>
             </div>
 
-            <div v-for="msg in chatStore.messages" :key="msg.id" :class="['msg', msg.messageType]">
+            <div v-for="(msg, index) in chatStore.messages" :key="msg.id" :class="['msg', msg.messageType]">
               <div :class="['msg-rail', msg.messageType]">
                 <UserOutlined v-if="msg.messageType === 'user'" />
                 <RobotOutlined v-else />
@@ -82,7 +82,8 @@
                   <span class="msg-name">{{ msg.messageType === 'user' ? '你提交的修改' : '生成反馈' }}</span>
                   <span class="msg-time">{{ formatTime(msg.createTime) }}</span>
                 </div>
-                <MarkdownRenderer v-if="msg.messageType === 'ai'" :content="msg.message" />
+                <div v-if="isStreamingMessage(msg, index)" class="msg-text stream-text">{{ msg.message }}</div>
+                <MarkdownRenderer v-else-if="msg.messageType === 'ai'" :content="msg.message" />
                 <div v-else class="msg-text">{{ msg.message }}</div>
               </div>
             </div>
@@ -142,7 +143,7 @@ import {
   UserOutlined, RobotOutlined, SendOutlined
 } from '@ant-design/icons-vue'
 import { useChatStore } from '@/stores/chat'
-import { getAppById, deployApp, hasActiveGenerationStream } from '@/api/app'
+import { getAppById, deployApp, getDeployedAppUrl, hasActiveGenerationStream } from '@/api/app'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import { formatDateTime as formatTime } from '@/utils/time'
 
@@ -159,6 +160,10 @@ const deploying = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const inputTextareaRef = ref()
 let activeStream: EventSource | null = null
+let pendingStreamContent = ''
+let streamFlushTimer: number | null = null
+let scrollFrame: number | null = null
+let shouldStickToBottom = true
 
 const promptHints = [
   '把首页首屏改得更像真实产品官网',
@@ -172,12 +177,12 @@ const fetchAppInfo = async () => {
     const res = await getAppById(appId)
     appInfo.value = res.data
 
-    // 全栈项目：自动获取 Express URL
+    // 全栈项目：只查询当前公网代理地址，不在页面加载时触发部署
     if (appInfo.value?.codeGenType === 'fullstack' && appInfo.value?.deployKey) {
       try {
-        const url = await deployApp(appId)
+        const url = await getDeployedAppUrl(appId)
         if (url) expressDeployUrl.value = url
-      } catch (e) { /* Express 启动失败不影响页面加载 */ }
+      } catch (e) { /* 服务未运行时保持静默，用户可手动点击部署 */ }
     }
   } catch (e) {
     message.error('应用不存在或已被删除')
@@ -200,12 +205,9 @@ const normalizeStreamChunk = (data: string) => {
     if (type === 'ai_response') {
       return typeof parsed?.data === 'string' ? parsed.data : ''
     }
-    // 代码审查结果：格式化显示
+    // 代码审查结果只保留在管理员 agent 追踪中，用户聊天流不展示
     if (type === 'review_result') {
-      const passed = parsed.passed ? '通过' : '未通过'
-      const score = parsed.score ?? 0
-      const summary = parsed.summary || ''
-      return `\n\n---\n**代码审查** — ${passed}（${score}分）${summary ? '：' + summary : ''}\n---\n\n`
+      return ''
     }
     // 工具请求/执行：不显示在聊天中
     if (type === 'tool_request' || type === 'tool_executed') {
@@ -227,12 +229,33 @@ const parseStreamErrorMessage = (data: string) => {
   }
 }
 
+const isNearBottom = () => {
+  const el = messagesContainer.value
+  if (!el) return true
+  return el.scrollHeight - el.scrollTop - el.clientHeight < 120
+}
+
+const flushStreamContent = (force = false) => {
+  if (streamFlushTimer !== null) {
+    window.clearTimeout(streamFlushTimer)
+    streamFlushTimer = null
+  }
+  if (!pendingStreamContent && !force) return
+  chatStore.updateLastMessage(pendingStreamContent)
+  scheduleScrollToBottom()
+}
+
+const queueStreamContentFlush = () => {
+  if (streamFlushTimer !== null) return
+  streamFlushTimer = window.setTimeout(() => flushStreamContent(), 120)
+}
+
 const appendStreamChunk = (rawData: string, currentContent: string) => {
   const chunk = normalizeStreamChunk(rawData)
   if (!chunk) return currentContent
   const nextContent = currentContent + chunk
-  chatStore.updateLastMessage(nextContent)
-  scrollToBottom()
+  pendingStreamContent = nextContent
+  queueStreamContentFlush()
   return nextContent
 }
 
@@ -247,6 +270,7 @@ const bindGenerationStream = (es: EventSource, initialContent = '', showErrorToa
   es.addEventListener('message', handleChunk)
   es.addEventListener('chunk', handleChunk)
   es.addEventListener('bizError', (e) => {
+    flushStreamContent(true)
     const errorMessage = parseStreamErrorMessage((e as MessageEvent).data)
     es.close()
     if (activeStream === es) activeStream = null
@@ -255,11 +279,13 @@ const bindGenerationStream = (es: EventSource, initialContent = '', showErrorToa
     finishSending()
   })
   es.addEventListener('done', () => {
+    flushStreamContent(true)
     es.close()
     if (activeStream === es) activeStream = null
     finishSending()
   })
   es.onerror = () => {
+    flushStreamContent(true)
     es.close()
     if (activeStream === es) activeStream = null
     finishSending()
@@ -301,8 +327,25 @@ const sendMessage = async (presetContent?: string) => {
   } catch (e) { sending.value = false; message.error('发送失败') }
 }
 
-const scrollToBottom = () => {
-  if (messagesContainer.value) messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+const scheduleScrollToBottom = (force = false) => {
+  if (!force && !shouldStickToBottom) return
+  if (scrollFrame !== null) return
+  scrollFrame = window.requestAnimationFrame(() => {
+    scrollFrame = null
+    const el = messagesContainer.value
+    if (!el) return
+    el.scrollTop = el.scrollHeight
+  })
+}
+
+const scrollToBottom = () => scheduleScrollToBottom(true)
+
+const handleMessagesScroll = () => {
+  shouldStickToBottom = isNearBottom()
+}
+
+const isStreamingMessage = (msg: any, index: number) => {
+  return sending.value && msg.messageType === 'ai' && index === chatStore.messages.length - 1
 }
 
 const useHint = (hint: string) => { inputMessage.value = hint }
@@ -311,10 +354,11 @@ const goToPreview = async () => {
   if (expressDeployUrl.value) {
     window.open(expressDeployUrl.value, '_blank')
   } else if (appInfo.value.deployKey) {
-    // 全栈项目需要通过 deployApp 获取 Express URL
     if (appInfo.value.codeGenType === 'fullstack') {
-      const url = await deployApp(appId)
+      const url = await getDeployedAppUrl(appId)
       if (url) { expressDeployUrl.value = url; window.open(url, '_blank'); return }
+      message.info('全栈服务未运行，请先点击部署')
+      return
     }
     window.open(`/api/code_deploy/${appInfo.value.deployKey}/index.html`, '_blank')
   } else {
@@ -360,7 +404,7 @@ const resumeActiveGenerationStream = async () => {
   }
 }
 
-watch(() => chatStore.messages, () => nextTick(scrollToBottom), { deep: true })
+watch(() => chatStore.messages.length, () => nextTick(() => scheduleScrollToBottom()))
 onMounted(async () => {
   await fetchAppInfo()
   await fetchChatHistory()
@@ -371,6 +415,14 @@ onMounted(async () => {
 onUnmounted(() => {
   activeStream?.close()
   activeStream = null
+  if (streamFlushTimer !== null) {
+    window.clearTimeout(streamFlushTimer)
+    streamFlushTimer = null
+  }
+  if (scrollFrame !== null) {
+    window.cancelAnimationFrame(scrollFrame)
+    scrollFrame = null
+  }
 })
 </script>
 
@@ -697,6 +749,18 @@ onUnmounted(() => {
 
 .msg.assistant .msg-text {
   background: var(--bg-card);
+}
+
+.stream-text {
+  display: block;
+  width: 100%;
+  max-height: 46vh;
+  overflow: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+  word-break: break-word;
+  contain: content;
 }
 
 .msg-text.typing {

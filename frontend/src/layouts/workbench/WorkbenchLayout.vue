@@ -53,6 +53,7 @@
       </aside>
       <main class="wb-main">
         <router-view />
+        <LegalFooter variant="compact" />
       </main>
     </div>
   </div>
@@ -69,6 +70,7 @@ import {
 import { useUserStore } from '@/stores/user'
 import WorkbenchSidebar from '@/components/workbench/WorkbenchSidebar.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import LegalFooter from '@/components/common/LegalFooter.vue'
 
 const route = useRoute()
 const router = useRouter()
