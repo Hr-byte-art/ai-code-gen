@@ -1,3 +1,15 @@
 /tmp/**
 backend/src/main/resources/application-local.yml
 backend/src/main/resources/application-prod.yml
+
+# 本地协作与过程文档
+.claude/
+CLAUDE.md
+CODE_GENERATION_ISSUES.md
+PRODUCT_DESIGN_DOC.md
+PUBLIC_API_CATALOG.md
+PUBLIC_API_INTEGRATION_DESIGN.md
+SKILL_FILE_DESIGN.md
+api-raw.txt
+server.log
+test_cat.png
