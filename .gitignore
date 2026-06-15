@@ -1,15 +1,56 @@
 /tmp/**
-backend/src/main/resources/application-local.yml
-backend/src/main/resources/application-prod.yml
+/backend/target/
+/backend/BOOT-INF/
+/backend/server.log
+/backend/test_cat.png
+/backend/src/main/resources/chromedriver-win64/
+/backend/src/main/resources/doc/
+/backend/src/main/resources/application-local.yml
+/backend/src/main/resources/application-prod.yml
 
-# 本地协作与过程文档
+# IDE
+.idea/
+.cursor/
+.vscode/
+
+# AI 工具
 .claude/
+.codex/
 CLAUDE.md
+backend/CLAUDE.md
+
+# 本地文档与过程文件
 CODE_GENERATION_ISSUES.md
 PRODUCT_DESIGN_DOC.md
 PUBLIC_API_CATALOG.md
 PUBLIC_API_INTEGRATION_DESIGN.md
 SKILL_FILE_DESIGN.md
-api-raw.txt
-server.log
-test_cat.png
+api-raw.*
+design-templates/
+
+# 构建产物
+target/
+*.class
+
+# 测试图片
+ai-model-catgirls.png
+
+# 备份文件
+*_bak
+*.bak
+
+# 前端
+frontend/.env
+frontend/dist/
+frontend/bundle-info.json
+frontend/node_modules/
+
+# 其他
+*.sw?
+*.swo
+*.orig
+*.tmp
+*.temp
+*.log
+.opencode/
+opencode.json
