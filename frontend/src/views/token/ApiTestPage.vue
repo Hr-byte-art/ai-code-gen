@@ -40,6 +40,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { ArrowLeftOutlined, SendOutlined } from '@ant-design/icons-vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import { buildApiUrl } from '@/utils/apiBase'
 
 const router = useRouter()
 const loading = ref(false)
@@ -51,7 +52,7 @@ const send = async () => {
   loading.value = true; const t0 = Date.now()
   try {
     result.value = { status: 'success', time: 0, content: '' }
-    const es = new EventSource(`${import.meta.env.VITE_API_BASE_URL}/app/chat/gen/code?appId=${form.appId}&message=${encodeURIComponent(form.message)}`, { withCredentials: true })
+    const es = new EventSource(buildApiUrl(`/app/chat/gen/code?appId=${form.appId}&message=${encodeURIComponent(form.message)}`), { withCredentials: true })
     let full = ''
     es.onmessage = (e) => { if (e.data === '[DONE]') { es.close(); result.value.time = Date.now() - t0; loading.value = false; return }; full += e.data; result.value.content = full }
     es.onerror = () => {

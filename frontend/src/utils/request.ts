@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig } from 'axios'
 import { message } from 'ant-design-vue'
 import router from '@/router'
+import { API_BASE_URL } from '@/utils/apiBase'
 
 type RequestConfig = AxiosRequestConfig & {
   silent?: boolean
@@ -53,7 +54,7 @@ const jsonBigIntReviver = (_key: string, value: any) => {
 
 // 创建axios实例
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: API_BASE_URL,
   timeout: 30000,
   withCredentials: true,
   headers: {

@@ -146,13 +146,13 @@ import { useChatStore } from '@/stores/chat'
 import { getAppById, deployApp, getDeployedAppUrl, hasActiveGenerationStream } from '@/api/app'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import { formatDateTime as formatTime } from '@/utils/time'
+import { buildApiUrl } from '@/utils/apiBase'
 
 const route = useRoute()
 const router = useRouter()
 const chatStore = useChatStore()
 
 const appId = route.params.id as string
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
 const appInfo = ref<any>({})
 const inputMessage = ref('')
 const sending = ref(false)
@@ -320,7 +320,7 @@ const sendMessage = async (presetContent?: string) => {
   try {
     chatStore.addAiMessage('')
     const es = new EventSource(
-      `${apiBaseUrl}/app/chat/gen/code?appId=${appId}&message=${encodeURIComponent(content)}`,
+      buildApiUrl(`/app/chat/gen/code?appId=${appId}&message=${encodeURIComponent(content)}`),
       { withCredentials: true }
     )
     bindGenerationStream(es)
@@ -395,7 +395,7 @@ const resumeActiveGenerationStream = async () => {
     await nextTick()
     scrollToBottom()
     const es = new EventSource(
-      `${apiBaseUrl}/app/chat/gen/stream?appId=${appId}`,
+      buildApiUrl(`/app/chat/gen/stream?appId=${appId}`),
       { withCredentials: true }
     )
     bindGenerationStream(es, '', false)
