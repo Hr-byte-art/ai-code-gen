@@ -207,16 +207,13 @@ const subscribeBuildEvents = () => {
   es.onmessage = (e) => {
     try {
       const event = JSON.parse(e.data)
-      if (event.type === 'build_success') {
+      if (event.type !== 'build_status') return
+      if (event.status === 'success') {
         message.success('构建完成')
         fetchAppInfo()
         es.close()
-      } else if (event.type === 'build_fail') {
+      } else if (event.status === 'failed') {
         message.error('构建失败: ' + (event.message || '未知错误'))
-        es.close()
-      } else if (event.type === 'deploy_success') {
-        message.success('部署成功')
-        fetchAppInfo()
         es.close()
       }
     } catch {}
