@@ -50,6 +50,36 @@ public class AppVO implements Serializable {
     private LocalDateTime deployedTime;
 
     /**
+     * 构建状态：none / pending / building / success / failed
+     */
+    private String buildStatus;
+
+    /**
+     * 构建状态说明
+     */
+    private String buildMessage;
+
+    /**
+     * 构建错误摘要
+     */
+    private String buildError;
+
+    /**
+     * 构建重试次数
+     */
+    private Integer buildRetryCount;
+
+    /**
+     * 构建开始时间
+     */
+    private LocalDateTime buildStartedTime;
+
+    /**
+     * 构建完成时间
+     */
+    private LocalDateTime buildFinishedTime;
+
+    /**
      * 优先级
      */
     private Integer priority;

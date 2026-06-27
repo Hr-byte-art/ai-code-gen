@@ -92,6 +92,33 @@ export interface UserQueryRequest extends PageRequest {
 
 // ==================== 应用相关类型 ====================
 
+export type BuildStatus = 'none' | 'pending' | 'building' | 'success' | 'failed'
+
+export interface AppBuildStatus {
+  appId: string
+  status: BuildStatus
+  message?: string
+  error?: string
+  retryCount: number
+  projectExists: boolean
+  distExists: boolean
+  buildStartedTime?: string
+  buildFinishedTime?: string
+  buildTime?: number
+}
+
+export interface AppReviewReport {
+  appId: string
+  status: 'PASSED' | 'PASSED_WITH_WARNINGS' | 'FAILED' | 'UNKNOWN'
+  score?: number
+  result?: string
+  issues: string[]
+  errorMessage?: string
+  retryCount: number
+  traceId?: string
+  updatedTime?: string
+}
+
 export interface AppVO {
   id: string
   appName: string
@@ -101,6 +128,12 @@ export interface AppVO {
   designKey?: string
   deployKey: string
   deployedTime: string
+  buildStatus: BuildStatus
+  buildMessage?: string
+  buildError?: string
+  buildRetryCount: number
+  buildStartedTime?: string
+  buildFinishedTime?: string
   priority: number
   userId: string
   createTime: string

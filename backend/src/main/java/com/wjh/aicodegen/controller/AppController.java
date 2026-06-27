@@ -19,6 +19,7 @@ import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
 import com.wjh.aicodegen.ai.service.AiCodeGenTypeRoutingService;
+import com.wjh.aicodegen.model.vo.app.AppReviewReportVO;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.reteLimit.annotation.RateLimit;
 import com.wjh.aicodegen.reteLimit.enums.RateLimitType;
@@ -627,6 +628,22 @@ public class AppController {
     public BaseResponse<Map<String, Object>> getBuildStatus(@PathVariable Long appId, HttpServletRequest request) {
         Map<String, Object> buildStatus = appService.getBuildStatus(appId, request);
         return ResultUtils.success(buildStatus);
+    }
+
+    @Operation(summary = "重新构建应用")
+    @PostMapping("/build/rebuild/{appId}")
+    public BaseResponse<Map<String, Object>> rebuildApp(@PathVariable Long appId, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        Map<String, Object> buildStatus = appService.rebuildApp(appId, loginUser);
+        return ResultUtils.success(buildStatus);
+    }
+
+    @Operation(summary = "获取应用代码审查报告")
+    @GetMapping("/review/report/{appId}")
+    public BaseResponse<AppReviewReportVO> getReviewReport(@PathVariable Long appId, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        AppReviewReportVO reviewReport = appService.getReviewReport(appId, loginUser);
+        return ResultUtils.success(reviewReport);
     }
 
     @Operation(summary = "构建事件SSE流", description = "订阅应用构建状态的实时事件")

@@ -37,10 +37,11 @@ public class BuildRetryService {
      * @param projectPath   项目路径
      * @param buildStrategy 构建策略
      * @param appId         应用ID
-     * @return 是否构建成功
+     * @return 构建结果
      */
-    public boolean buildWithRetry(String projectPath, String buildStrategy, Long appId) {
+    public BuildRetryResult buildWithRetry(String projectPath, String buildStrategy, Long appId) {
         int retryCount = 0;
+        String lastErrorInfo = "";
 
         while (retryCount < MAX_BUILD_RETRIES) {
             log.info("开始构建，应用ID: {}, 第 {} 次尝试", appId, retryCount + 1);
@@ -49,19 +50,19 @@ public class BuildRetryService {
 
             if (buildResult.isSuccess()) {
                 log.info("构建成功，应用ID: {}, 第 {} 次尝试", appId, retryCount + 1);
-                return true;
+                return BuildRetryResult.success(retryCount + 1, buildResult);
             }
 
             log.warn("构建失败，应用ID: {}, 第 {} 次尝试", appId, retryCount + 1);
-            String errorInfo = buildResult.toErrorSummary();
-            log.info("构建错误信息: {}", errorInfo);
+            lastErrorInfo = buildResult.toErrorSummary();
+            log.info("构建错误信息: {}", lastErrorInfo);
 
             if (retryCount < MAX_BUILD_RETRIES - 1) {
                 log.info("尝试使用 AI 修复构建错误，应用ID: {}", appId);
-                boolean fixed = fixBuildErrors(projectPath, errorInfo, appId);
+                boolean fixed = fixBuildErrors(projectPath, lastErrorInfo, appId);
                 if (!fixed) {
                     log.warn("AI 无法修复构建错误，应用ID: {}", appId);
-                    return false;
+                    return BuildRetryResult.failed(retryCount + 1, lastErrorInfo);
                 }
             }
 
@@ -69,7 +70,7 @@ public class BuildRetryService {
         }
 
         log.error("构建重试次数已达上限，应用ID: {}", appId);
-        return false;
+        return BuildRetryResult.failed(retryCount, lastErrorInfo);
     }
 
     /**

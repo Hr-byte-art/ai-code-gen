@@ -7,6 +7,7 @@ import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
 import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.entity.User;
+import com.wjh.aicodegen.model.vo.app.AppReviewReportVO;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -128,6 +129,24 @@ public interface AppService extends IService<App> {
      * @return map
      */
     Map<String, Object> getBuildStatus(Long appId , HttpServletRequest request);
+
+    /**
+     * 重新构建应用
+     *
+     * @param appId 应用ID
+     * @param loginUser 登录用户
+     * @return 构建状态
+     */
+    Map<String, Object> rebuildApp(Long appId, User loginUser);
+
+    /**
+     * 获取应用审查报告
+     *
+     * @param appId 应用ID
+     * @param loginUser 登录用户
+     * @return 审查报告
+     */
+    AppReviewReportVO getReviewReport(Long appId, User loginUser);
 
     /**
      * 获取构建事件 SSE 流

@@ -79,6 +79,42 @@ public class App implements Serializable {
     private LocalDateTime deployedTime;
 
     /**
+     * 构建状态：none / pending / building / success / failed
+     */
+    @Column("buildStatus")
+    private String buildStatus;
+
+    /**
+     * 构建状态说明
+     */
+    @Column("buildMessage")
+    private String buildMessage;
+
+    /**
+     * 构建错误摘要
+     */
+    @Column("buildError")
+    private String buildError;
+
+    /**
+     * 构建重试次数
+     */
+    @Column("buildRetryCount")
+    private Integer buildRetryCount;
+
+    /**
+     * 构建开始时间
+     */
+    @Column("buildStartedTime")
+    private LocalDateTime buildStartedTime;
+
+    /**
+     * 构建完成时间
+     */
+    @Column("buildFinishedTime")
+    private LocalDateTime buildFinishedTime;
+
+    /**
      * 优先级
      */
     private Integer priority;

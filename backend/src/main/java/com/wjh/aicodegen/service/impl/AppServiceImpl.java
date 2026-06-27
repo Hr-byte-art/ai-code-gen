@@ -5,6 +5,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.UUID;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.wjh.aicodegen.ai.factory.AiCodeGenTypeRoutingServiceFactory;
@@ -27,6 +28,7 @@ import com.wjh.aicodegen.manager.TaskCancellationManager;
 import com.wjh.aicodegen.mapper.AppMapper;
 import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
+import com.wjh.aicodegen.model.entity.AgentTrace;
 import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.model.entity.CodeTemplate;
@@ -34,6 +36,7 @@ import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.ChatHistoryMessageTypeEnum;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
 import com.wjh.aicodegen.model.enums.UserRoleEnum;
+import com.wjh.aicodegen.model.vo.app.AppReviewReportVO;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import com.wjh.aicodegen.model.vo.user.UserVO;
 import com.wjh.aicodegen.model.enums.AiCallPurposeEnum;
@@ -161,6 +164,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private UserQuotaService userQuotaService;
+
+    @Resource
+    private AgentTraceService agentTraceService;
 
     @Resource
     private CodeTemplateService codeTemplateService;
@@ -303,6 +309,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             log.info("为应用 {} 设置默认封面", appId);
         }
         String generationMessage = buildGenerationMessage(message, app.getDesignKey());
+        markBuildPending(app, skill);
 
         // 9. 调用 AI 生成代码（流式）- 由后端后台订阅，不再绑定页面 SSE 连接生命周期
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(generationMessage, skill, appId)
@@ -868,6 +875,126 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
+    public Map<String, Object> rebuildApp(Long appId, User loginUser) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限重新构建该应用");
+        }
+        if ("building".equals(app.getBuildStatus())) {
+            Map<String, Object> status = new HashMap<>();
+            status.put("appId", appId);
+            status.put("status", "building");
+            status.put("message", StrUtil.blankToDefault(app.getBuildMessage(), "构建中"));
+            status.put("retryCount", app.getBuildRetryCount() == null ? 0 : app.getBuildRetryCount());
+            status.put("isBuilding", true);
+            return status;
+        }
+        File projectDir = resolveGeneratedProjectDir(appId, app.getCodeGenType());
+        ThrowUtils.throwIf(projectDir == null || !projectDir.exists(), ErrorCode.NOT_FOUND_ERROR, "未找到可构建的项目目录");
+        CodeSkill skill = codeSkillService.getByCodeGenTypeCached(app.getCodeGenType());
+        String buildStrategy = skill != null ? skill.getBuildStrategy() : detectBuildStrategy(projectDir);
+        ThrowUtils.throwIf("none".equals(buildStrategy), ErrorCode.OPERATION_ERROR, "该应用无需构建");
+        aiCodeGeneratorFacade.rebuildGeneratedProject(appId, buildStrategy);
+        Map<String, Object> status = new HashMap<>();
+        status.put("appId", appId);
+        status.put("status", "building");
+        status.put("message", "已开始重新构建");
+        status.put("retryCount", 0);
+        status.put("projectExists", true);
+        status.put("isBuilding", true);
+        return status;
+    }
+
+    private String detectBuildStrategy(File projectDir) {
+        if (projectDir == null || !projectDir.exists()) {
+            return "none";
+        }
+        if (new File(projectDir, "schema.sql").exists()
+                || new File(projectDir, "server").exists()
+                || new File(projectDir, "frontend").exists()) {
+            return "fullstack";
+        }
+        File packageJson = new File(projectDir, "package.json");
+        if (!packageJson.exists()) {
+            return "none";
+        }
+        String packageContent = FileUtil.readUtf8String(packageJson).toLowerCase();
+        if (new File(projectDir, "next.config.js").exists()
+                || new File(projectDir, "next.config.mjs").exists()
+                || packageContent.contains("\"next\"")) {
+            return "nextjs";
+        }
+        if (packageContent.contains("react") || new File(projectDir, "src/main.tsx").exists()) {
+            return "react";
+        }
+        return "vue";
+    }
+
+    @Override
+    public AppReviewReportVO getReviewReport(Long appId, User loginUser) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限查看该应用审查报告");
+        }
+        List<AgentTrace> traces = agentTraceService.getByAppId(appId);
+        if (CollUtil.isEmpty(traces)) {
+            return AppReviewReportVO.builder()
+                    .appId(appId)
+                    .status("UNKNOWN")
+                    .result("none")
+                    .issues(List.of())
+                    .retryCount(0)
+                    .build();
+        }
+        AgentTrace latestReviewTrace = traces.stream()
+                .filter(trace -> "reviewer".equals(trace.getAgentName()))
+                .findFirst()
+                .orElse(traces.get(0));
+        long retryCount = traces.stream()
+                .filter(trace -> "optimizer".equals(trace.getAgentName()))
+                .filter(trace -> latestReviewTrace.getTraceId() != null && latestReviewTrace.getTraceId().equals(trace.getTraceId()))
+                .count();
+        return AppReviewReportVO.builder()
+                .appId(appId)
+                .status(resolveReviewStatus(latestReviewTrace))
+                .score(latestReviewTrace.getReviewScore())
+                .result(latestReviewTrace.getReviewResult())
+                .issues(parseIssueList(latestReviewTrace.getIssues()))
+                .errorMessage(latestReviewTrace.getErrorMessage())
+                .retryCount((int) retryCount)
+                .traceId(latestReviewTrace.getTraceId())
+                .updatedTime(latestReviewTrace.getEndTime() != null ? latestReviewTrace.getEndTime() : latestReviewTrace.getCreateTime())
+                .build();
+    }
+
+    private String resolveReviewStatus(AgentTrace trace) {
+        if (trace == null || StrUtil.isBlank(trace.getReviewResult())) {
+            return "UNKNOWN";
+        }
+        if (!"success".equals(trace.getStatus())) {
+            return "FAILED";
+        }
+        return "passed".equals(trace.getReviewResult()) ? "PASSED" : "FAILED";
+    }
+
+    private List<String> parseIssueList(String issuesJson) {
+        if (StrUtil.isBlank(issuesJson)) {
+            return List.of();
+        }
+        try {
+            return JSONUtil.parseArray(issuesJson).toList(String.class);
+        } catch (Exception e) {
+            return List.of(issuesJson);
+        }
+    }
+
+    @Override
     public Map<String, Object> getBuildStatus(Long appId, HttpServletRequest request) {
         // 参数校验和权限检查
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
@@ -878,28 +1005,84 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         if (!app.getUserId().equals(loginUser.getId()) && !UserConstant.ADMIN_ROLE.equals(loginUser.getUserRole())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限查询构建状态");
         }
-        // 检查构建状态
-        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
-        File projectDir = new File(projectPath);
-        File distDir = new File(projectDir, "dist");
+        File projectDir = resolveGeneratedProjectDir(appId, app.getCodeGenType());
+        File distDir = resolveBuildDistDir(projectDir);
+        String status = resolveBuildStatus(app, projectDir, distDir);
         Map<String, Object> buildStatus = new HashMap<>();
         buildStatus.put("appId", appId);
-        buildStatus.put("projectExists", projectDir.exists());
-        buildStatus.put("distExists", distDir.exists());
-        // 同步构建模式下总是false
-        buildStatus.put("isBuilding", false);
-        if (distDir.exists()) {
-            buildStatus.put("status", "completed");
-            buildStatus.put("message", "构建已完成");
+        buildStatus.put("status", status);
+        buildStatus.put("message", StrUtil.blankToDefault(app.getBuildMessage(), defaultBuildMessage(status)));
+        buildStatus.put("error", app.getBuildError());
+        buildStatus.put("retryCount", app.getBuildRetryCount() == null ? 0 : app.getBuildRetryCount());
+        buildStatus.put("projectExists", projectDir != null && projectDir.exists());
+        buildStatus.put("distExists", distDir != null && distDir.exists());
+        buildStatus.put("isBuilding", "building".equals(status));
+        buildStatus.put("buildStartedTime", app.getBuildStartedTime());
+        buildStatus.put("buildFinishedTime", app.getBuildFinishedTime());
+        if (distDir != null && distDir.exists()) {
             buildStatus.put("buildTime", distDir.lastModified());
-        } else if (projectDir.exists()) {
-            buildStatus.put("status", "pending");
-            buildStatus.put("message", "项目已生成，等待构建");
-        } else {
-            buildStatus.put("status", "not_found");
-            buildStatus.put("message", "项目不存在");
         }
         return buildStatus;
+    }
+
+    private File resolveGeneratedProjectDir(Long appId, String codeGenType) {
+        if (StrUtil.isNotBlank(codeGenType)) {
+            File typedDir = new File(AppConstant.CODE_OUTPUT_ROOT_DIR, codeGenType + "_" + appId);
+            if (typedDir.exists()) {
+                return typedDir;
+            }
+        }
+        String[] possibleDirNames = {
+                "fullstack_" + appId,
+                "vue_project_" + appId,
+                "react_ts_" + appId,
+                "nextjs_" + appId,
+                "multi_file_" + appId,
+                "html_" + appId
+        };
+        for (String dirName : possibleDirNames) {
+            File dir = new File(AppConstant.CODE_OUTPUT_ROOT_DIR, dirName);
+            if (dir.exists()) {
+                return dir;
+            }
+        }
+        return null;
+    }
+
+    private File resolveBuildDistDir(File projectDir) {
+        if (projectDir == null) {
+            return null;
+        }
+        File frontendDist = new File(projectDir, "frontend" + File.separator + "dist");
+        if (frontendDist.exists()) {
+            return frontendDist;
+        }
+        File dist = new File(projectDir, "dist");
+        return dist.exists() ? dist : dist;
+    }
+
+    private String resolveBuildStatus(App app, File projectDir, File distDir) {
+        String status = app.getBuildStatus();
+        if (StrUtil.isNotBlank(status) && !"none".equals(status)) {
+            return status;
+        }
+        if (distDir != null && distDir.exists()) {
+            return "success";
+        }
+        if (projectDir != null && projectDir.exists()) {
+            return "pending";
+        }
+        return StrUtil.blankToDefault(status, "none");
+    }
+
+    private String defaultBuildMessage(String status) {
+        return switch (status) {
+            case "building" -> "构建中";
+            case "success" -> "构建成功";
+            case "failed" -> "构建失败";
+            case "pending" -> "项目已生成，等待构建";
+            default -> "无需构建";
+        };
     }
 
     @Override
@@ -943,6 +1126,21 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return message + "\n\n## 设计风格要求\n\n"
                 + "请严格按照以下 DESIGN.md 的设计规范生成代码：\n\n"
                 + escapedContent;
+    }
+
+    private void markBuildPending(App app, CodeSkill skill) {
+        if (app == null || skill == null || "none".equals(skill.getBuildStrategy())) {
+            return;
+        }
+        App updateApp = new App();
+        updateApp.setId(app.getId());
+        updateApp.setBuildStatus("pending");
+        updateApp.setBuildMessage("代码生成中，等待构建");
+        updateApp.setBuildError(null);
+        updateApp.setBuildRetryCount(0);
+        updateApp.setBuildStartedTime(null);
+        updateApp.setBuildFinishedTime(null);
+        updateById(updateApp);
     }
 
     /**

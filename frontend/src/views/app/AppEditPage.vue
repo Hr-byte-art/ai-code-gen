@@ -149,7 +149,7 @@ const fetchAppInfo = async () => {
     const res = await getAppById(appId)
     Object.assign(appForm, res.data)
     const statusRes = await getAppBuildStatus(appId)
-    buildStatus.value = statusRes.data || {}
+    buildStatus.value = statusRes || {}
 
     // 全栈项目：只查询当前运行地址，不在页面加载时触发部署
     if (appForm.codeGenType === 'fullstack' && appForm.deployKey) {

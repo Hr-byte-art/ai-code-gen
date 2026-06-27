@@ -8,6 +8,8 @@ import type {
   AppDeployRequest,
   AppQueryRequest,
   RoutingRecommendation,
+  AppBuildStatus,
+  AppReviewReport,
   PageResponse
 } from '@/types'
 
@@ -63,14 +65,27 @@ export async function getDeployedAppUrl(appId: string): Promise<string | null> {
   return res?.data || null
 }
 
+// 获取应用代码审查报告
+export async function getAppReviewReport(appId: string): Promise<AppReviewReport> {
+  const res: any = await request.get<ApiResponse<AppReviewReport>>(`/app/review/report/${appId}`)
+  return res.data
+}
+
 // 取消应用代码生成任务
 export function cancelApp(appId: string) {
   return request.post<ApiResponse<boolean>>(`/app/cancel/${appId}`)
 }
 
 // 获取应用构建状态（轮询查询）
-export function getAppBuildStatus(appId: string) {
-  return request.get<ApiResponse<Record<string, any>>>(`/app/build/status/${appId}`)
+export async function getAppBuildStatus(appId: string): Promise<AppBuildStatus> {
+  const res: any = await request.get<ApiResponse<AppBuildStatus>>(`/app/build/status/${appId}`)
+  return res.data
+}
+
+// 重新构建应用
+export async function rebuildApp(appId: string): Promise<AppBuildStatus> {
+  const res: any = await request.post<ApiResponse<AppBuildStatus>>(`/app/build/rebuild/${appId}`)
+  return res.data
 }
 
 // 查询是否存在运行中的代码生成流

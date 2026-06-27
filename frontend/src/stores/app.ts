@@ -163,8 +163,7 @@ export const useAppStore = defineStore('app', () => {
   // 获取构建状态
   async function fetchBuildStatus(appId: string) {
     try {
-      const res = await getAppBuildStatus(appId)
-      return res.data
+      return await getAppBuildStatus(appId)
     } catch (error) {
       console.error('获取构建状态失败:', error)
       return null

@@ -48,6 +48,34 @@
               <span>部署交付</span>
             </div>
           </div>
+          <div :class="['build-card', buildStatusClass]">
+            <div class="build-card-head">
+              <span>构建状态</span>
+              <strong>{{ buildStatusText }}</strong>
+            </div>
+            <p class="build-message">{{ buildStatusMessage }}</p>
+            <pre v-if="buildErrorText" class="build-error">{{ buildErrorText }}</pre>
+            <a-button
+              v-if="canRebuild"
+              size="small"
+              block
+              :loading="rebuilding"
+              @click="handleRebuild"
+            >重新构建</a-button>
+          </div>
+          <div :class="['review-card', reviewStatusClass]">
+            <div class="build-card-head">
+              <span>代码审查</span>
+              <strong>{{ reviewStatusText }}</strong>
+            </div>
+            <p class="build-message">
+              <template v-if="reviewReport?.score !== undefined">评分 {{ reviewReport.score }} 分</template>
+              <template v-else>后台审查完成后会显示报告</template>
+            </p>
+            <ul v-if="reviewReport?.issues?.length" class="review-issues">
+              <li v-for="issue in reviewReport.issues.slice(0, 3)" :key="issue">{{ issue }}</li>
+            </ul>
+          </div>
         </div>
 
         <div class="panel-section">
@@ -135,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -143,7 +171,8 @@ import {
   UserOutlined, RobotOutlined, SendOutlined
 } from '@ant-design/icons-vue'
 import { useChatStore } from '@/stores/chat'
-import { getAppById, deployApp, getDeployedAppUrl, hasActiveGenerationStream } from '@/api/app'
+import { getAppById, deployApp, getDeployedAppUrl, hasActiveGenerationStream, getAppBuildStatus, rebuildApp, getAppReviewReport } from '@/api/app'
+import type { AppBuildStatus, AppReviewReport, BuildStatus } from '@/types'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import { formatDateTime as formatTime } from '@/utils/time'
 import { buildApiUrl } from '@/utils/apiBase'
@@ -154,12 +183,16 @@ const chatStore = useChatStore()
 
 const appId = route.params.id as string
 const appInfo = ref<any>({})
+const buildStatus = ref<AppBuildStatus | null>(null)
+const reviewReport = ref<AppReviewReport | null>(null)
 const inputMessage = ref('')
 const sending = ref(false)
 const deploying = ref(false)
+const rebuilding = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const inputTextareaRef = ref()
 let activeStream: EventSource | null = null
+let buildEventStream: EventSource | null = null
 let pendingStreamContent = ''
 let streamFlushTimer: number | null = null
 let scrollFrame: number | null = null
@@ -171,6 +204,109 @@ const promptHints = [
   '调整移动端布局，优先保证可读性',
   '把按钮和表单文案改得更具体',
 ]
+
+const buildStatusLabelMap: Record<BuildStatus, string> = {
+  none: '无需构建',
+  pending: '等待构建',
+  building: '构建中',
+  success: '构建成功',
+  failed: '构建失败',
+}
+
+const buildStatusText = computed(() => {
+  const status = buildStatus.value?.status || appInfo.value?.buildStatus || 'none'
+  return buildStatusLabelMap[status as BuildStatus] || '未知状态'
+})
+
+const buildStatusClass = computed(() => buildStatus.value?.status || appInfo.value?.buildStatus || 'none')
+
+const buildStatusMessage = computed(() => buildStatus.value?.message || appInfo.value?.buildMessage || buildStatusText.value)
+
+const buildErrorText = computed(() => buildStatus.value?.error || appInfo.value?.buildError || '')
+
+const canRebuild = computed(() => {
+  const status = buildStatus.value?.status || appInfo.value?.buildStatus
+  return status === 'failed' || status === 'pending'
+})
+
+const fetchBuildStatus = async () => {
+  try {
+    buildStatus.value = await getAppBuildStatus(appId)
+  } catch {
+    // 构建状态不影响主工作台
+  }
+}
+
+const fetchReviewReport = async () => {
+  try {
+    reviewReport.value = await getAppReviewReport(appId)
+  } catch {
+    // 审查报告不影响主工作台
+  }
+}
+
+const reviewStatusText = computed(() => {
+  if (!reviewReport.value || reviewReport.value.status === 'UNKNOWN') return '暂无报告'
+  if (reviewReport.value.status === 'PASSED') return '审查通过'
+  if (reviewReport.value.status === 'PASSED_WITH_WARNINGS') return '有轻微问题'
+  return '需要关注'
+})
+
+const reviewStatusClass = computed(() => {
+  if (!reviewReport.value || reviewReport.value.status === 'UNKNOWN') return 'unknown'
+  if (reviewReport.value.status === 'PASSED') return 'success'
+  if (reviewReport.value.status === 'PASSED_WITH_WARNINGS') return 'warning'
+  return 'failed'
+})
+
+const applyBuildEvent = (rawData: string) => {
+  try {
+    const event = JSON.parse(rawData)
+    if (event?.type !== 'build_status') return
+    buildStatus.value = {
+      appId,
+      status: event.status,
+      message: event.message,
+      error: event.error,
+      retryCount: event.retryCount || 0,
+      projectExists: true,
+      distExists: event.status === 'success',
+      buildFinishedTime: event.timestamp,
+    }
+    if (event.status === 'success') {
+      message.success('构建成功')
+      fetchAppInfo()
+    } else if (event.status === 'failed') {
+      message.error('构建失败，可查看错误并重新构建')
+    }
+  } catch {
+    // 忽略非 JSON 构建事件
+  }
+}
+
+const subscribeBuildEvents = () => {
+  buildEventStream?.close()
+  buildEventStream = new EventSource(buildApiUrl(`/app/build/events/${appId}`), { withCredentials: true })
+  buildEventStream.onmessage = (event) => applyBuildEvent(event.data)
+  buildEventStream.onerror = () => {
+    buildEventStream?.close()
+    buildEventStream = null
+  }
+}
+
+const handleRebuild = async () => {
+  if (rebuilding.value) return
+  rebuilding.value = true
+  try {
+    buildStatus.value = await rebuildApp(appId)
+    message.success('已开始重新构建')
+    subscribeBuildEvents()
+  } catch {
+    message.error('重新构建失败')
+  } finally {
+    rebuilding.value = false
+  }
+}
 
 const fetchAppInfo = async () => {
   try {
@@ -296,6 +432,8 @@ const bindGenerationStream = (es: EventSource, initialContent = '', showErrorToa
 const finishSending = async () => {
   sending.value = false
   await fetchAppInfo()
+  await fetchBuildStatus()
+  await fetchReviewReport()
 }
 
 const clearInputMessage = async () => {
@@ -407,6 +545,9 @@ const resumeActiveGenerationStream = async () => {
 watch(() => chatStore.messages.length, () => nextTick(() => scheduleScrollToBottom()))
 onMounted(async () => {
   await fetchAppInfo()
+  await fetchBuildStatus()
+  await fetchReviewReport()
+  subscribeBuildEvents()
   await fetchChatHistory()
   await autoGenerateFromInitPrompt()
   await resumeActiveGenerationStream()
@@ -415,6 +556,8 @@ onMounted(async () => {
 onUnmounted(() => {
   activeStream?.close()
   activeStream = null
+  buildEventStream?.close()
+  buildEventStream = null
   if (streamFlushTimer !== null) {
     window.clearTimeout(streamFlushTimer)
     streamFlushTimer = null
@@ -592,6 +735,94 @@ onUnmounted(() => {
   color: var(--t-light);
   font-size: 11px;
   font-weight: 850;
+}
+
+.build-card {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+}
+
+.build-card.success {
+  border-color: #cfe5d8;
+  background: #f0f8f3;
+}
+
+.build-card.failed {
+  border-color: #f1c9c9;
+  background: #fff3f3;
+}
+
+.review-card {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-md);
+  background: var(--bg-soft);
+}
+
+.review-card.success {
+  border-color: #cfe5d8;
+  background: #f0f8f3;
+}
+
+.review-card.warning {
+  border-color: #e8d4bb;
+  background: #fff8ee;
+}
+
+.review-card.failed {
+  border-color: #f1c9c9;
+  background: #fff3f3;
+}
+
+.build-card.building {
+  border-color: var(--c-primary-200);
+  background: var(--c-primary-50);
+}
+
+.build-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--t-secondary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.build-card-head strong {
+  color: var(--t-primary);
+}
+
+.build-message {
+  margin: 8px 0 0;
+  color: var(--t-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.build-error {
+  max-height: 132px;
+  margin: 10px 0;
+  padding: 9px;
+  overflow: auto;
+  border-radius: var(--r-sm);
+  background: rgba(90, 33, 33, 0.06);
+  color: #8f2a2a;
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.review-issues {
+  margin: 10px 0 0;
+  padding-left: 16px;
+  color: var(--t-muted);
+  font-size: 12px;
+  line-height: 1.65;
 }
 
 .hint-btn {

@@ -1,6 +1,7 @@
 package com.wjh.aicodegen.core;
 
 import cn.hutool.json.JSONUtil;
+import com.mybatisflex.core.update.UpdateChain;
 import com.wjh.aicodegen.agent.AgentOrchestrator;
 import com.wjh.aicodegen.ai.factory.AiCodeGeneratorServiceFactory;
 import com.wjh.aicodegen.ai.model.message.AiResponseMessage;
@@ -8,6 +9,7 @@ import com.wjh.aicodegen.ai.model.message.ToolExecutedMessage;
 import com.wjh.aicodegen.ai.model.message.ToolRequestMessage;
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import com.wjh.aicodegen.constant.AppConstant;
+import com.wjh.aicodegen.core.builder.BuildRetryResult;
 import com.wjh.aicodegen.core.builder.BuildRetryService;
 import com.wjh.aicodegen.core.builder.FullstackProjectBuilder;
 import com.wjh.aicodegen.core.builder.VueProjectBuilder;
@@ -15,7 +17,9 @@ import com.wjh.aicodegen.core.parser.CodeParserExecutor;
 import com.wjh.aicodegen.core.saver.CodeFileSaverExecutor;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
+import com.wjh.aicodegen.manager.BuildEventSinkManager;
 import com.wjh.aicodegen.manager.TaskCancellationManager;
+import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.skill.SkillHookExecutor;
 import com.wjh.aicodegen.model.enums.AiCallPurposeEnum;
@@ -38,8 +42,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 /**
@@ -70,6 +77,8 @@ public class AiCodeGeneratorFacade {
     private com.wjh.aicodegen.langgraph4j.workflow.ReviewWorkflow reviewWorkflow;
     @Resource
     private BuildRetryService buildRetryService;
+    @Resource
+    private BuildEventSinkManager buildEventSinkManager;
 
     /**
      * 统一入口：根据 CodeSkill 生成并保存代码（流式）
@@ -238,6 +247,13 @@ public class AiCodeGeneratorFacade {
     }
 
     /**
+     * 手动触发已有项目重新构建
+     */
+    public void rebuildGeneratedProject(Long appId, String buildStrategy) {
+        triggerBuild(appId, buildStrategy);
+    }
+
+    /**
      * 根据 build_strategy 触发构建
      */
     private void triggerBuild(Long appId, String buildStrategy) {
@@ -249,7 +265,9 @@ public class AiCodeGeneratorFacade {
         switch (buildStrategy) {
             case "landing_page":
             case "skill_manager":
+            case "none":
                 log.info("应用 {} 生成完成，无需构建", appId);
+                updateBuildStatus(appId, "none", "无需构建", null, 0);
                 break;
             case "vue":
             case "react":
@@ -259,49 +277,93 @@ public class AiCodeGeneratorFacade {
                 File fullstackDir = new File(projectPath);
                 File projectDir;
                 if (fullstackDir.exists() && new File(fullstackDir, "frontend").exists()) {
-                    // 全栈项目，构建前端
                     projectDir = new File(fullstackDir, "frontend");
                 } else {
-                    // 单项目，直接构建
                     projectDir = findProjectDir(appId);
                 }
                 if (projectDir != null && projectDir.exists()) {
-                    // 使用重试服务进行构建
-                    final String finalBuildStrategy = buildStrategy;
-                    final File finalProjectDir = projectDir;
-                    Thread.ofVirtual().name("build-retry-" + appId).start(() -> {
-                        boolean success = buildRetryService.buildWithRetry(
-                                finalProjectDir.getAbsolutePath(), finalBuildStrategy, appId);
-                        if (success) {
-                            log.info("应用 {} 构建成功", appId);
-                        } else {
-                            log.error("应用 {} 构建失败（已重试）", appId);
-                        }
-                    });
+                    runBuildAsync(appId, buildStrategy, projectDir, "应用");
+                } else {
+                    log.warn("应用 {} 未找到项目目录，跳过构建", appId);
+                    updateBuildStatus(appId, "failed", "未找到项目目录", "未找到可构建的项目目录", 0);
                 }
                 break;
             case "fullstack":
                 File fullstackProjectDir = findFullstackProjectDir(appId);
                 if (fullstackProjectDir == null) {
                     log.warn("应用 {} 未找到全栈项目目录，跳过构建", appId);
+                    updateBuildStatus(appId, "failed", "未找到全栈项目目录", "未找到 server/ 和 frontend/ 目录", 0);
                     return;
                 }
-                // 使用重试服务进行构建
-                final File finalFullstackDir = fullstackProjectDir;
-                Thread.ofVirtual().name("build-retry-fullstack-" + appId).start(() -> {
-                    boolean success = buildRetryService.buildWithRetry(
-                            finalFullstackDir.getAbsolutePath(), "fullstack", appId);
-                    if (success) {
-                        log.info("应用 {} 全栈构建成功", appId);
-                    } else {
-                        log.error("应用 {} 全栈构建失败（已重试）", appId);
-                    }
-                });
+                runBuildAsync(appId, "fullstack", fullstackProjectDir, "全栈应用");
                 break;
             default:
                 log.info("应用 {} 构建策略为 {}，跳过构建", appId, buildStrategy);
+                updateBuildStatus(appId, "none", "无需构建", null, 0);
                 break;
         }
+    }
+
+    private void runBuildAsync(Long appId, String buildStrategy, File projectDir, String label) {
+        updateBuildStatus(appId, "building", "构建中", null, 0);
+        Thread.ofVirtual().name("build-retry-" + appId).start(() -> {
+            BuildRetryResult result = buildRetryService.buildWithRetry(
+                    projectDir.getAbsolutePath(), buildStrategy, appId);
+            if (result.isSuccess()) {
+                log.info("{} {} 构建成功", label, appId);
+                updateBuildStatus(appId, "success", "构建成功", null, result.getRetryCount());
+            } else {
+                log.error("{} {} 构建失败（已重试）", label, appId);
+                updateBuildStatus(appId, "failed", "构建失败", result.getErrorSummary(), result.getRetryCount());
+            }
+        });
+    }
+
+    private void updateBuildStatus(Long appId, String status, String message, String error, Integer retryCount) {
+        LocalDateTime now = LocalDateTime.now();
+        String safeError = normalizeBuildError(error);
+        UpdateChain<App> update = UpdateChain.of(App.class)
+                .set(App::getBuildStatus, status)
+                .set(App::getBuildMessage, message)
+                .set(App::getBuildError, safeError)
+                .set(App::getBuildRetryCount, retryCount == null ? 0 : retryCount);
+
+        if ("building".equals(status)) {
+            update.set(App::getBuildStartedTime, now)
+                    .set(App::getBuildFinishedTime, null);
+        } else {
+            update.set(App::getBuildFinishedTime, now);
+        }
+
+        boolean updated = update.where(App::getId).eq(appId).update();
+        if (!updated) {
+            log.warn("更新应用构建状态失败: appId={}, status={}", appId, status);
+        }
+        emitBuildStatus(appId, status, message, safeError, retryCount == null ? 0 : retryCount);
+    }
+
+    private void emitBuildStatus(Long appId, String status, String message, String error, int retryCount) {
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("type", "build_status");
+        event.put("appId", appId);
+        event.put("status", status);
+        event.put("message", message);
+        event.put("retryCount", retryCount);
+        event.put("error", error);
+        event.put("timestamp", LocalDateTime.now().toString());
+        buildEventSinkManager.emit(appId, JSONUtil.toJsonStr(event));
+    }
+
+    private String normalizeBuildError(String error) {
+        if (error == null || error.isBlank()) {
+            return null;
+        }
+        String trimmed = error.trim();
+        int maxLength = 4000;
+        if (trimmed.length() <= maxLength) {
+            return trimmed;
+        }
+        return trimmed.substring(0, maxLength) + "\n...（错误信息已截断）";
     }
 
     /**
