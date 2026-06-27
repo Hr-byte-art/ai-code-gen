@@ -2,7 +2,7 @@ spring:
   application:
     name: ai-code-gen-backend
   profiles:
-    active: prod
+    active: local
   session:
     store-type: redis
     timeout: 2592000
