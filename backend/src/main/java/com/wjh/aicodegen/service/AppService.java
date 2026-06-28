@@ -7,6 +7,7 @@ import com.wjh.aicodegen.model.dto.app.AppAddRequest;
 import com.wjh.aicodegen.model.dto.app.AppQueryRequest;
 import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.entity.User;
+import com.wjh.aicodegen.manager.GenerationTaskState;
 import com.wjh.aicodegen.model.vo.app.AppReviewReportVO;
 import com.wjh.aicodegen.model.vo.app.AppVO;
 import jakarta.servlet.http.HttpServletRequest;
@@ -160,6 +161,11 @@ public interface AppService extends IService<App> {
      * 是否存在运行中的代码生成流
      */
     boolean hasActiveGenerationStream(Long appId, User loginUser);
+
+    /**
+     * 获取生成任务状态
+     */
+    GenerationTaskState getGenerationTaskState(Long appId, User loginUser);
 
     /**
      * 订阅运行中的代码生成流

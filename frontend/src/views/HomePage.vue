@@ -88,7 +88,7 @@
                 </template>
                 <template v-else>
                   <button
-                    v-for="m in fallbackModes"
+                    v-for="m in selectableFallbackModes"
                     :key="m.codeGenType"
                     class="choice-btn mode"
                     :class="{ active: selectedCodeGenType === m.codeGenType }"
@@ -135,10 +135,11 @@
         <h3 class="routing-title">AI 推荐：{{ routingRecommendation?.recommendedName }}</h3>
         <p class="routing-reason">{{ routingRecommendation?.reason }}</p>
         <div class="routing-options">
-          <button class="routing-btn primary" @click="confirmFullstack">
+          <button class="routing-btn primary" :disabled="!userStore.canUsePremiumGeneration" @click="confirmFullstack">
             <span class="routing-badge">推荐方案</span>
             <strong>生成全栈应用</strong>
-            <span>包含后端 API、数据能力和前端页面 · {{ routingRecommendation?.pointCost }} 积分</span>
+            <span v-if="userStore.canUsePremiumGeneration">包含后端 API、数据能力和前端页面 · {{ routingRecommendation?.pointCost }} 积分</span>
+            <span v-else>需要 VIP 权限，升级后可使用全栈生成</span>
           </button>
           <button class="routing-btn secondary" @click="chooseFrontend">
             <span class="routing-badge muted">轻量方案</span>
@@ -211,9 +212,11 @@ import { getGoodAppList, createApp, getRoutingRecommendation, getDeployedAppUrl 
 import { listTemplates } from '@/api/template'
 import { listSkills } from '@/api/skill'
 import { getDesignTemplateList } from '@/api/design'
+import { useUserStore } from '@/stores/user'
 import type { CodeTemplate, CodeSkill, RoutingRecommendation, DesignTemplateInfo } from '@/types'
 
 const router = useRouter()
+const userStore = useUserStore()
 const prompt = ref('')
 const generating = ref(false)
 const loading = ref(false)
@@ -232,12 +235,17 @@ const showRoutingModal = ref(false)
 const routingLoading = ref(false)
 
 const HOMEPAGE_SKILL_TYPES = ['html', 'vue_project', 'fullstack']
+const requiresPremiumGeneration = (skill?: Pick<CodeSkill, 'buildStrategy'> | null) =>
+  Boolean(skill && skill.buildStrategy !== 'none')
 const homepageSkills = computed(() => {
   const skillMap = new Map(skills.value.map(skill => [skill.codeGenType, skill]))
   return HOMEPAGE_SKILL_TYPES
     .map(codeGenType => skillMap.get(codeGenType))
     .filter((skill): skill is CodeSkill => Boolean(skill))
+    .filter(skill => !requiresPremiumGeneration(skill) || userStore.canUsePremiumGeneration)
 })
+const selectableFallbackModes = computed(() => fallbackModes
+  .filter(mode => !['vue_project', 'fullstack'].includes(mode.codeGenType) || userStore.canUsePremiumGeneration))
 
 const DESIGN_STYLE_COPY: Record<string, { name: string; desc: string }> = {
   default: { name: '默认风格', desc: 'AI 自由发挥' },
@@ -376,8 +384,11 @@ const handleGenerate = async () => {
       routingRecommendation.value = rec
       showRoutingModal.value = true
     } else {
-      // 推荐前端，直接创建
-      await doCreateApp(rec.recommendedType)
+      // 推荐前端，普通用户不能使用 Vue 工程时降级为多文件项目
+      const recommendedType = isPremiumCodeGenType(rec.recommendedType) && !userStore.canUsePremiumGeneration
+        ? 'multi_file'
+        : rec.recommendedType
+      await doCreateApp(recommendedType)
     }
   } catch (e) {
     // 路由失败，降级为直接创建
@@ -385,7 +396,13 @@ const handleGenerate = async () => {
   } finally { routingLoading.value = false }
 }
 
+const isPremiumCodeGenType = (codeGenType?: string | null) => ['vue_project', 'fullstack'].includes(codeGenType || '')
+
 const doCreateApp = async (codeGenType?: string) => {
+  if (isPremiumCodeGenType(codeGenType) && !userStore.canUsePremiumGeneration) {
+    message.warning('Vue 项目和全栈应用生成需要 VIP 权限')
+    return
+  }
   generating.value = true
   try {
     const params: any = { initPrompt: prompt.value }
@@ -395,18 +412,23 @@ const doCreateApp = async (codeGenType?: string) => {
     const res = await createApp(params)
     message.success('应用资产已创建')
     router.push(`/app/chat/${res.data}?autoGenerate=1`)
-  } catch (e) { message.error('创建失败，请重试') }
+  } catch (e: any) { message.error(e?.message || '创建失败，请重试') }
   finally { generating.value = false; showRoutingModal.value = false }
 }
 
 const confirmFullstack = () => {
+  if (!userStore.canUsePremiumGeneration) {
+    message.warning('全栈应用生成需要 VIP 权限')
+    return
+  }
   showRoutingModal.value = false
   doCreateApp(routingRecommendation.value?.recommendedType)
 }
 
 const chooseFrontend = () => {
   showRoutingModal.value = false
-  doCreateApp(routingRecommendation.value?.alternativeType || 'vue_project')
+  const alternativeType = routingRecommendation.value?.alternativeType
+  doCreateApp(userStore.canUsePremiumGeneration ? (alternativeType || 'vue_project') : 'multi_file')
 }
 
 const useAutoMode = () => {
@@ -871,5 +893,13 @@ onMounted(() => { fetchAppList(); fetchTemplates(); fetchSkills(); fetchDesignTe
 }
 .routing-btn.primary strong { color: var(--c-primary); }
 .routing-btn.primary:hover { background: var(--c-primary-100); transform: translateY(-1px); }
+.routing-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+.routing-btn:disabled:hover {
+  transform: none;
+  background: linear-gradient(135deg, var(--c-primary-50), var(--bg-card));
+}
 .routing-btn.secondary:hover { border-color: var(--c-primary-200); background: var(--c-primary-50); transform: translateY(-1px); }
 </style>

@@ -162,7 +162,7 @@ public class FullstackProxyController {
         String prefix = "/api/fullstack/" + appId;
         return "<script>(function(){" +
                 "var p='" + prefix + "';" +
-                "function r(u){if(typeof u!=='string')return u;var o=location.origin;if(u.indexOf(p+'/api/')===0||u.indexOf(o+p+'/api/')===0)return u;if(u.indexOf('/api/')===0)return p+u.slice(4);if(u.indexOf(o+'/api/')===0)return o+p+u.slice(o.length+4);return u}" +
+                "function r(u){if(typeof u!=='string')return u;var o=location.origin;if(u.indexOf(p+'/api/')===0||u.indexOf(o+p+'/api/')===0)return u;if(u.indexOf('/api/')===0)return p+u;if(u.indexOf(o+'/api/')===0)return o+p+u.slice(o.length);return u}" +
                 "var f=window.fetch;" +
                 "if(f){window.fetch=function(u,o){if(u instanceof Request){var n=r(u.url);if(n!==u.url)u=new Request(n,u)}else{u=r(u)}return f.call(this,u,o)}}" +
                 "var x=window.XMLHttpRequest&&window.XMLHttpRequest.prototype.open;" +

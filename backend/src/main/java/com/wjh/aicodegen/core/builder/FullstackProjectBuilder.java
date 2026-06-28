@@ -200,7 +200,11 @@ public class FullstackProjectBuilder {
 
             Path envPath = Paths.get(projectPath, ".env");
             Files.write(envPath, envContent.getBytes());
-            log.info(".env 文件已写入: {}", envPath);
+            Path serverEnvPath = Paths.get(projectPath, "server", ".env");
+            if (Files.exists(serverEnvPath.getParent())) {
+                Files.write(serverEnvPath, envContent.getBytes());
+            }
+            log.info(".env 文件已写入: {}, {}", envPath, serverEnvPath);
         } catch (IOException e) {
             log.error("写入 .env 文件失败: {}", e.getMessage());
         }

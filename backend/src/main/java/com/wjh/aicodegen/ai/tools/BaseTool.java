@@ -2,6 +2,7 @@ package com.wjh.aicodegen.ai.tools;
 
 import cn.hutool.json.JSONObject;
 import com.wjh.aicodegen.constant.AppConstant;
+import com.wjh.aicodegen.core.saver.GeneratedProjectWorkspace;
 import com.wjh.aicodegen.manager.SpringContextUtil;
 import com.wjh.aicodegen.model.entity.App;
 import com.wjh.aicodegen.model.enums.AiCallPurposeEnum;
@@ -14,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 工具基类
@@ -24,6 +27,25 @@ import java.nio.file.Paths;
 @Slf4j
 public abstract class BaseTool {
 
+    private static final Pattern WHOLE_FILE_MARKDOWN_FENCE = Pattern.compile(
+            "\\A[\\s\\uFEFF]*```[\\w.+-]*\\s*\\R([\\s\\S]*?)\\R?```[\\s\\uFEFF]*\\z");
+
+    /**
+     * 清理模型误加的整文件 Markdown 代码围栏，避免 ```tsx 这类标记被写入真实源码。
+     */
+    protected String normalizeGeneratedFileContent(String relativeFilePath, String content) {
+        if (content == null) {
+            return "";
+        }
+        Matcher matcher = WHOLE_FILE_MARKDOWN_FENCE.matcher(content);
+        if (!matcher.matches()) {
+            return content;
+        }
+        String normalizedContent = matcher.group(1);
+        log.info("清理整文件 Markdown 代码围栏: path={}, 原始长度={}, 清理后长度={}",
+                relativeFilePath, content.length(), normalizedContent.length());
+        return normalizedContent;
+    }
     /**
      * 工具执行前设置MonitorContext
      * 用于解决工具调用时上下文丢失的问题
@@ -70,7 +92,7 @@ public abstract class BaseTool {
         String[] candidates = {"landing_page_" + appId, "vue_project_" + appId, "fullstack_" + appId,
                 "react_ts_" + appId, "nextjs_" + appId, "html_" + appId, "multi_file_" + appId};
         for (String dir : candidates) {
-            if (new File(AppConstant.CODE_OUTPUT_ROOT_DIR, dir).exists()) {
+            if (GeneratedProjectWorkspace.stagingDir(dir).exists() || GeneratedProjectWorkspace.finalDir(dir).exists()) {
                 return dir;
             }
         }
@@ -88,7 +110,11 @@ public abstract class BaseTool {
     }
 
     protected Path resolveProjectRoot(Long appId) {
-        return Paths.get(AppConstant.CODE_OUTPUT_ROOT_DIR, resolveProjectDirName(appId));
+        return GeneratedProjectWorkspace.resolveReadableDir(resolveProjectDirName(appId)).toPath();
+    }
+
+    protected Path resolveWritableProjectRoot(Long appId) {
+        return GeneratedProjectWorkspace.resolveWritableDir(resolveProjectDirName(appId)).toPath();
     }
 
     /**

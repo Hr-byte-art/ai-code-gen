@@ -110,6 +110,12 @@ const router = createRouter({
       meta: { title: '技能管理', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
     },
     {
+      path: '/admin/vipCodeManage',
+      name: 'vipCodeManage',
+      component: () => import('@/views/admin/VipCodeManagePage.vue'),
+      meta: { title: '会员码管理', requiresAuth: true, requiresAdmin: true, layout: 'admin' }
+    },
+    {
       path: '/admin/agentTrace',
       name: 'agentTrace',
       component: () => import('@/views/admin/AgentTracePage.vue'),

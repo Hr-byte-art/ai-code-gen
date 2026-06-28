@@ -13,6 +13,8 @@ export const useUserStore = defineStore('user', () => {
   const username = computed(() => userInfo.value?.userName || userInfo.value?.userAccount || '')
   const userAvatar = computed(() => userInfo.value?.userAvatar || '')
   const isAdmin = computed(() => userInfo.value?.userRole === 'admin')
+  const isVip = computed(() => userInfo.value?.userRole === 'vip')
+  const canUsePremiumGeneration = computed(() => isVip.value || isAdmin.value)
   const userId = computed(() => userInfo.value?.id)
 
   // 登录
@@ -85,6 +87,8 @@ export const useUserStore = defineStore('user', () => {
     username,
     userAvatar,
     isAdmin,
+    isVip,
+    canUsePremiumGeneration,
     userId,
     login,
     fetchUserInfo,

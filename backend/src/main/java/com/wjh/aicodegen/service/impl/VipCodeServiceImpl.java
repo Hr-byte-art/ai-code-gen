@@ -79,6 +79,7 @@ public class VipCodeServiceImpl extends ServiceImpl<VipCodeMapper, VipCode>  imp
         }
 
         VipCode vipCodeEntity = vipCodeConverter.toEntity(vipCodeAddRequest);
+        vipCodeEntity.setUseNum(0);
         vipCodeEntity.setCreateUser(userService.getLoginUser(request).getId());
         this.save(vipCodeEntity);
         return vipCodeEntity.getId();

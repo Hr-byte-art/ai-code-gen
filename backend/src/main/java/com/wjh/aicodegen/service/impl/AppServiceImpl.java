@@ -18,11 +18,14 @@ import com.wjh.aicodegen.convert.AppConverter;
 import com.wjh.aicodegen.core.AiCodeGeneratorFacade;
 import com.wjh.aicodegen.core.builder.VueProjectBuilder;
 import com.wjh.aicodegen.core.handler.StreamHandlerExecutor;
+import com.wjh.aicodegen.core.saver.GeneratedProjectWorkspace;
 import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.manager.BuildEventSinkManager;
 import com.wjh.aicodegen.manager.CosManager;
 import com.wjh.aicodegen.manager.GenerationStreamManager;
+import com.wjh.aicodegen.manager.GenerationTaskManager;
+import com.wjh.aicodegen.manager.GenerationTaskState;
 
 import com.wjh.aicodegen.manager.TaskCancellationManager;
 import com.wjh.aicodegen.mapper.AppMapper;
@@ -83,6 +86,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppService {
 
+    private static final String PREMIUM_GENERATION_PERMISSION_MESSAGE = "Vue 项目和全栈应用生成需要 VIP 权限";
+
     // 部署所需
     @Value("${code.deploy-host:http://localhost}")
     private String deployHost;
@@ -135,6 +140,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
     @Resource
     private GenerationStreamManager generationStreamManager;
+
+    @Resource
+    private GenerationTaskManager generationTaskManager;
 
     @Resource
     private AiGenerateAppNameServiceFactory aiGenerateAppNameServiceFactory;
@@ -261,15 +269,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         }
         Integer requiredPoints = skill.getPointCost();
         // 工具增强模式（Vue/全栈）需要VIP或ADMIN权限
-        if (!"none".equals(skill.getBuildStrategy())) {
-            if (!loginUser.getUserRole().equals(UserRoleEnum.VIP.getValue()) &&
-                    !loginUser.getUserRole().equals(UserRoleEnum.ADMIN.getValue())) {
-                AppServiceImpl proxy = applicationContext.getBean(AppServiceImpl.class);
-                proxy.updateAppCoverInNewTransaction(appId,
-                        "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/noPermission.png");
-                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
-            }
-        }
+        validatePremiumGenerationPermission(skill, loginUser, appId);
         // 检查用户配额（每日/每月生成次数和 Token 消耗）
         if (!userQuotaService.checkQuota(loginUser.getId(), loginUser.getUserRole())) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "已达到今日或本月使用上限，请升级 VIP 或等待额度刷新");
@@ -309,12 +309,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             log.info("为应用 {} 设置默认封面", appId);
         }
         String generationMessage = buildGenerationMessage(message, app.getDesignKey());
+        log.info("生成提示词全文 appId={}：\n{}", appId, generationMessage);
         markBuildPending(app, skill);
 
         // 9. 调用 AI 生成代码（流式）- 由后端后台订阅，不再绑定页面 SSE 连接生命周期
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(generationMessage, skill, appId)
                 .doOnCancel(() -> {
                     try {
+                        generationStreamManager.emit(appId, generationTaskManager.toStateEvent(
+                                generationTaskManager.cancel(appId, "任务已被取消")));
                         String cancelCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/userCancel.png";
                         app.setCover(cancelCover);
                         updateById(app);
@@ -331,6 +334,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 })
                 .doOnError(error -> {
                     try {
+                        generationStreamManager.emit(appId, generationTaskManager.toStateEvent(
+                                generationTaskManager.fail(appId, "生成失败", normalizeGenerationErrorMessage(error))));
                         String failedCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/createFailed.png";
                         app.setCover(failedCover);
                         updateById(app);
@@ -351,34 +356,58 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
 
         // 10. 收集 AI 响应内容并在完成后记录到对话历史。后台订阅独立于页面连接。
         generationStreamManager.start(appId);
+        GeneratedProjectWorkspace.resetStaging(app.getCodeGenType() + "_" + appId);
+        generationStreamManager.emit(appId, generationTaskManager.toStateEvent(generationTaskManager.start(appId)));
         Disposable generationTask = streamHandlerExecutor
                 .doExecute(codeStream, chatHistoryService, appId, loginUser, skill.getBuildStrategy())
                 .doOnNext(chunk -> generationStreamManager.emit(appId, chunk))
                 .doOnComplete(() -> {
                     try {
-                        log.info("用户 {} 代码生成完成，已预扣减{}个积分", loginUser.getId(), requiredPoints);
+                        log.info("用户 {} 代码生成流处理完成，已预扣减{}个积分", loginUser.getId(), requiredPoints);
                         String successCover = "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/defaultAppCover.jpg";
                         app.setCover(successCover);
                         updateById(app);
-                        log.info("应用 {} AI代码生成完成，已更新为成功状态", appId);
+                        log.info("应用 {} AI代码生成流处理完成", appId);
                     } catch (Exception e) {
                         log.error("处理任务完成时发生异常：应用ID {}, 用户ID {}, 错误: {}", appId, loginUser.getId(), e.getMessage(), e);
                     }
-                    generationStreamManager.complete(appId);
+                    if ("none".equals(skill.getBuildStrategy())) {
+                        generationStreamManager.complete(appId);
+                    }
                 })
-                .doOnError(error -> generationStreamManager.error(appId, "AI回复失败: " + error.getMessage()))
+                .doOnError(error -> generationStreamManager.error(appId, normalizeGenerationErrorMessage(error)))
                 .doFinally(signalType -> {
                     taskCancellationManager.unregisterTask(appId);
                     MonitorContextHolder.clearContext();
                     GlobalContextStorage.removeContext(appId.toString());
                     log.debug("🧹 应用 {} 任务资源和上下文已完整清理，结束信号: {}", appId, signalType);
                 })
-                .subscribe();
+                .subscribe(
+                        chunk -> {
+                        },
+                        error -> log.warn("应用 {} 后台AI代码生成任务已失败并完成清理: {}", appId, error.getMessage())
+                );
         taskCancellationManager.registerTask(appId, generationTask);
         log.info("应用 {} 后台AI代码生成任务已启动", appId);
 
         return generationStreamManager.subscribe(appId);
 
+    }
+
+    private void validatePremiumGenerationPermission(CodeSkill skill, User loginUser, Long appId) {
+        if (skill == null || "none".equals(skill.getBuildStrategy())) {
+            return;
+        }
+        if (UserRoleEnum.VIP.getValue().equals(loginUser.getUserRole()) ||
+                UserRoleEnum.ADMIN.getValue().equals(loginUser.getUserRole())) {
+            return;
+        }
+        if (appId != null) {
+            AppServiceImpl proxy = applicationContext.getBean(AppServiceImpl.class);
+            proxy.updateAppCoverInNewTransaction(appId,
+                    "https://ai-code-gen-1340059484.cos.ap-chengdu.myqcloud.com/noPermission.png");
+        }
+        throw new BusinessException(ErrorCode.NO_AUTH_ERROR, PREMIUM_GENERATION_PERMISSION_MESSAGE);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -514,7 +543,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             String serverPath = serverDir.getAbsolutePath();
             int port = nodeProcessManager.startServer(appId, serverPath);
             if (port <= 0) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "Express 服务启动失败");
+                String startError = nodeProcessManager.getLastStartError(appId);
+                String message = StrUtil.isBlank(startError)
+                        ? "Express 服务启动失败"
+                        : "Express 服务启动失败：" + StrUtil.maxLength(startError, 1000);
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, message);
             }
 
             // 更新应用部署信息
@@ -755,6 +788,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Long createApp(AppAddRequest appAddRequest, User loginUser, String initPrompt) {
         String originalUserPrompt = initPrompt;
         // 如果提供了模板标识，将模板内容注入到 prompt 中
@@ -768,6 +802,15 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
                 codeTemplateService.incrementUseCount(template.getId());
                 log.info("使用模板 {} 生成应用，模板ID: {}", templateKey, template.getId());
             }
+        }
+
+        String requestedCodeGenType = appAddRequest.getCodeGenType();
+        if (StrUtil.isNotBlank(requestedCodeGenType) && !"auto".equals(requestedCodeGenType)) {
+            CodeSkill requestedSkill = codeSkillService.getByCodeGenTypeCached(requestedCodeGenType);
+            if (requestedSkill == null) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + requestedCodeGenType);
+            }
+            validatePremiumGenerationPermission(requestedSkill, loginUser, null);
         }
 
         // 构造入库对象
@@ -795,7 +838,6 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         GlobalContextStorage.storeContext(monitorContext);
 
         // 确定代码生成类型
-        String requestedCodeGenType = appAddRequest.getCodeGenType();
         if (StrUtil.isNotBlank(requestedCodeGenType) && !"auto".equals(requestedCodeGenType)) {
             // 用户指定了具体类型，直接使用
             app.setCodeGenType(requestedCodeGenType);
@@ -815,6 +857,13 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             }
             app.setCodeGenType(codeGenTypeEnum.getValue());
         }
+
+        // 创建阶段提前拦截需要构建的生成模式，避免用户创建后进入聊天页才失败
+        CodeSkill selectedSkill = codeSkillService.getByCodeGenTypeCached(app.getCodeGenType());
+        if (selectedSkill == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型: " + app.getCodeGenType());
+        }
+        validatePremiumGenerationPermission(selectedSkill, loginUser, null);
 
         // 更新数据库中的codeGenType
         this.updateById(app);
@@ -1102,6 +1151,12 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         return generationStreamManager.subscribe(appId);
     }
 
+    @Override
+    public GenerationTaskState getGenerationTaskState(Long appId, User loginUser) {
+        validateGenerationStreamAccess(appId, loginUser);
+        return generationTaskManager.snapshot(appId);
+    }
+
     private void validateGenerationStreamAccess(Long appId, User loginUser) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
         ThrowUtils.throwIf(loginUser == null, ErrorCode.NOT_LOGIN_ERROR, "用户未登录");
@@ -1121,11 +1176,35 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
             log.warn("设计风格不存在或内容为空: {}", designKey);
             return message;
         }
-        String escapedContent = designContent.replace("{{", "").replace("}}", "");
+        String designBrief = compressDesignTemplate(designContent);
         log.info("应用生成注入设计风格: {}", designKey);
-        return message + "\n\n## 设计风格要求\n\n"
-                + "请严格按照以下 DESIGN.md 的设计规范生成代码：\n\n"
-                + escapedContent;
+        return "## 用户需求\n"
+                + message
+                + "\n\n## 设计风格摘要\n"
+                + designBrief
+                + "\n\n## 生成约束\n"
+                + "- 先保证结构完整，再追求视觉细节\n"
+                + "- 仅使用单一品牌交互色，不要引入第二品牌色\n"
+                + "- 不要输出与需求无关的说明文字\n"
+                + "- 如果需要图片/图标，优先使用已知可访问资源\n";
+    }
+
+    private String compressDesignTemplate(String designContent) {
+        if (StrUtil.isBlank(designContent)) {
+            return "无";
+        }
+        String normalized = designContent
+                .replace("\r\n", "\n")
+                .replaceAll("\\n{3,}", "\n\n")
+                .replaceAll("(?m)^---\\s*$", "")
+                .trim();
+        int maxLength = 2200;
+        if (normalized.length() <= maxLength) {
+            return normalized;
+        }
+        String head = normalized.substring(0, 1400);
+        String tail = normalized.substring(normalized.length() - 600);
+        return head + "\n\n...（中间内容已压缩）...\n\n" + tail;
     }
 
     private void markBuildPending(App app, CodeSkill skill) {
@@ -1141,6 +1220,23 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App> implements AppSe
         updateApp.setBuildStartedTime(null);
         updateApp.setBuildFinishedTime(null);
         updateById(updateApp);
+    }
+
+    private String normalizeGenerationErrorMessage(Throwable error) {
+        String message = error == null ? null : error.getMessage();
+        if (StrUtil.isBlank(message)) {
+            return "生成失败，请稍后重试";
+        }
+        if (message.contains("HTML 代码不完整") || message.contains("模型输出被截断")) {
+            return "生成失败：模型输出被截断，页面代码不完整，请简化描述或稍后重试";
+        }
+        if (message.contains("Too Many Requests") || message.contains("429")) {
+            return "生成失败：模型服务限流，请稍后重试";
+        }
+        if (message.contains("Read timed out") || message.contains("timeout") || message.contains("超时")) {
+            return "生成失败：模型响应超时，请稍后重试";
+        }
+        return "生成失败：" + message;
     }
 
     /**

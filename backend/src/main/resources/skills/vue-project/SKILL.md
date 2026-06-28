@@ -144,12 +144,10 @@ const router = createRouter({
 
 ## 输出要求
 
-1）使用一个完整的 Markdown 文档输出所有文件内容，格式如下：
-文件：package.json
-  文件内容
-2）在开头简单说明生成计划
-3）在结尾简单提示生成完毕
-4）不需要输出安装运行步骤、技术说明等额外内容
+1）使用 `writeFile` 工具逐个写入所有文件
+2）每个文件的路径相对于项目根目录
+3）每个文件内容必须是可直接写入磁盘的原始文件内容，不要包 Markdown 代码块，不要额外解释
+4）确保 `index.html`、`package.json`、`vite.config.js`、`src/main.js`、`src/App.vue`、`src/router/index.js` 等核心文件完整
 5）保持代码精简，避免过度复杂的实现，尽量保证使用最少的代码完成用户的需求
 
 ## 质量要求

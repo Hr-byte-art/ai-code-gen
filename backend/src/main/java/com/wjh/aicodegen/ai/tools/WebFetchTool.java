@@ -53,12 +53,19 @@ public class WebFetchTool extends BaseTool {
                 return "获取失败，状态码: " + response.statusCode();
             }
 
-            String html = response.body();
-            String text = extractText(html);
+            String contentType = response.headers().firstValue("content-type").orElse("").toLowerCase();
+            if (!isTextContent(contentType, url)) {
+                log.info("网页内容获取跳过非文本资源: url={}, contentType={}", url, contentType);
+                return "资源可访问，但这是非文本内容，不能作为网页文本读取。URL: " + url + ", Content-Type: " + contentType;
+            }
 
-            // 截断过长内容
-            if (text.length() > 8000) {
-                text = text.substring(0, 8000) + "\n\n... (内容已截断，共 " + text.length() + " 字符)";
+            String html = response.body();
+            String text = sanitizeToolResultText(extractText(html));
+
+            // 截断过长内容，工具结果进入下一轮 messages，必须控制体积和字符安全。
+            int originalLength = text.length();
+            if (text.length() > 2000) {
+                text = text.substring(0, 2000) + "\n\n... (内容已截断，共 " + originalLength + " 字符)";
             }
 
             log.info("网页内容获取成功: url={}, length={}", url, text.length());
@@ -68,6 +75,27 @@ public class WebFetchTool extends BaseTool {
             log.error("网页内容获取失败: url={}, error={}", url, e.getMessage());
             return "获取失败: " + e.getMessage();
         }
+    }
+
+    private boolean isTextContent(String contentType, String url) {
+        if (contentType == null || contentType.isBlank()) {
+            return !url.matches("(?i).+\\.(png|jpe?g|gif|webp|svg|ico|avif)(\\?.*)?$");
+        }
+        return contentType.startsWith("text/")
+                || contentType.contains("json")
+                || contentType.contains("xml")
+                || contentType.contains("javascript")
+                || contentType.contains("xhtml");
+    }
+
+    private String sanitizeToolResultText(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replaceAll("[\\p{Cntrl}&&[^\\r\\n\\t]]", " ")
+                .replace("\uFFFD", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private String extractText(String html) {

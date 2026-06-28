@@ -22,6 +22,9 @@
           <router-link to="/admin/skillManage" :class="['admin-nav-link', { active: route.path === '/admin/skillManage' }]">
             技能管理
           </router-link>
+          <router-link to="/admin/vipCodeManage" :class="['admin-nav-link', { active: route.path === '/admin/vipCodeManage' }]">
+            会员码
+          </router-link>
           <router-link to="/admin/agentTrace" :class="['admin-nav-link', { active: route.path === '/admin/agentTrace' }]">
             Agent 追踪
           </router-link>

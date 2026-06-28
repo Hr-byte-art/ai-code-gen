@@ -28,7 +28,7 @@ public class FileWriteTool extends BaseTool {
     public String writeFile(@P("文件的相对路径") String relativeFilePath, @P("要写入文件的内容") String content, @ToolMemoryId Long appId  ) {
         try {
             Path path = Paths.get(relativeFilePath);
-            Path projectRoot = resolveProjectRoot(appId);
+            Path projectRoot = resolveWritableProjectRoot(appId);
             if (!path.isAbsolute()) {
                 // 相对路径处理，创建基于 appId 的项目目录
                 path = projectRoot.resolve(relativeFilePath);
@@ -44,10 +44,11 @@ public class FileWriteTool extends BaseTool {
                 Files.createDirectories(parentDir);
             }
             // 写入文件内容
-            Files.write(path, content.getBytes(),
+            String normalizedContent = normalizeGeneratedFileContent(relativeFilePath, content);
+            Files.write(path, normalizedContent.getBytes(),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
-            log.info("成功写入文件: {} (大小: {} 字节)", path.toAbsolutePath(), content.getBytes().length);
+            log.info("成功写入文件: {} (大小: {} 字节)", path.toAbsolutePath(), normalizedContent.getBytes().length);
             
             // 如果是package.json文件，额外记录日志
             if (relativeFilePath.equals("package.json")) {

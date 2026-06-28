@@ -30,7 +30,7 @@ public class FileModifyTool extends BaseTool {
                              @ToolMemoryId Long appId) {
         try {
             Path path = Paths.get(relativeFilePath);
-            Path projectRoot = resolveProjectRoot(appId);
+            Path projectRoot = resolveWritableProjectRoot(appId);
             if (!path.isAbsolute()) {
                 path = projectRoot.resolve(relativeFilePath);
             }
@@ -41,11 +41,13 @@ public class FileModifyTool extends BaseTool {
             if (!Files.exists(path) || !Files.isRegularFile(path)) {
                 return "错误：文件不存在或不是文件 - " + relativeFilePath;
             }
+            String normalizedOldContent = normalizeGeneratedFileContent(relativeFilePath, oldContent);
+            String normalizedNewContent = normalizeGeneratedFileContent(relativeFilePath, newContent);
             String originalContent = Files.readString(path);
-            if (!originalContent.contains(oldContent)) {
+            if (!originalContent.contains(normalizedOldContent)) {
                 return "警告：文件中未找到要替换的内容，文件未修改 - " + relativeFilePath;
             }
-            String modifiedContent = originalContent.replace(oldContent, newContent);
+            String modifiedContent = originalContent.replace(normalizedOldContent, normalizedNewContent);
             if (originalContent.equals(modifiedContent)) {
                 return "信息：替换后文件内容未发生变化 - " + relativeFilePath;
             }

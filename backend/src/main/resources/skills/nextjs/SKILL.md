@@ -47,9 +47,11 @@ tailwind.config.ts
 5. 使用 TypeScript 严格模式
 
 ## 输出要求
-1. 使用 writeFile 工具逐个写入所有文件
+
+1. 使用 `writeFile` 工具逐个写入所有文件
 2. 确保 `npm install && npm run build` 能成功
-3. 保持代码精简，功能完整
+3. 每个文件内容必须是可直接写入磁盘的原始文件内容，不要包 Markdown 代码块，不要额外解释
+4. 保持代码精简，功能完整
 
 ## 修改说明
 如果用户提出修改要求，先 readFile 读取当前代码，再用 modifyFile 精确修改。

@@ -48,7 +48,7 @@ public class RequestContextManager {
             log.debug("从请求ID获取上下文: requestId={}, userId={}, appId={}, aiCallPurpose={}",
                     requestId, context.getUserId(), context.getAppId(), context.getAiCallPurpose());
         } else {
-            log.warn("未找到请求ID对应的上下文: requestId={}", requestId);
+            log.debug("未找到请求ID对应的上下文: requestId={}", requestId);
         }
         return context;
     }

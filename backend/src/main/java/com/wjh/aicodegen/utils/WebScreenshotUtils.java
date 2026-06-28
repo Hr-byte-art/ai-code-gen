@@ -93,8 +93,6 @@ public class WebScreenshotUtils {
             options.addArguments(String.format("--window-size=%d,%d", width, height));
             // 禁用扩展
             options.addArguments("--disable-extensions");
-            // 禁用图片加载（加速截图）
-            options.addArguments("--blink-settings=imagesEnabled=false");
             // 设置用户代理
             options.addArguments("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
             // 创建驱动
@@ -155,7 +153,18 @@ public class WebScreenshotUtils {
                             .equals("complete")
             );
             // 额外等待一段时间，确保动态内容加载完成
-            Thread.sleep(1000);
+            wait.until(webDriver -> {
+                Object result = ((JavascriptExecutor) webDriver).executeScript("""
+                        const body = document.body;
+                        if (!body) return false;
+                        const textReady = body.innerText && body.innerText.trim().length > 0;
+                        const visualReady = Array.from(document.images || []).some(img => img.complete && img.naturalWidth > 0)
+                            || Array.from(document.querySelectorAll('canvas, svg, video')).length > 0;
+                        return textReady || visualReady || body.children.length > 0;
+                        """);
+                return Boolean.TRUE.equals(result);
+            });
+            Thread.sleep(1500);
             log.info("页面加载完成");
         } catch (Exception e) {
             log.error("等待页面加载时出现异常，继续执行截图", e);

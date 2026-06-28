@@ -9,6 +9,7 @@ import type {
   AppQueryRequest,
   RoutingRecommendation,
   AppBuildStatus,
+  GenerationTaskState,
   AppReviewReport,
   PageResponse
 } from '@/types'
@@ -91,6 +92,12 @@ export async function rebuildApp(appId: string): Promise<AppBuildStatus> {
 // 查询是否存在运行中的代码生成流
 export function hasActiveGenerationStream(appId: string) {
   return request.get<ApiResponse<boolean>>('/app/chat/gen/active', { params: { appId } })
+}
+
+// 查询生成任务状态
+export async function getGenerationTaskState(appId: string): Promise<GenerationTaskState> {
+  const res: any = await request.get<ApiResponse<GenerationTaskState>>(`/app/generation/status/${appId}`)
+  return res.data
 }
 
 // 应用下载

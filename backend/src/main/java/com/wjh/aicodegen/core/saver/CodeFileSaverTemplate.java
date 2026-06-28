@@ -36,12 +36,30 @@ public abstract class CodeFileSaverTemplate<T> {
     public final File saveCode(T result, Long appId) {
         // 1. 验证输入
         validateInput(result);
-        // 2. 构建基于 appId 的目录
-        String baseDirPath = buildUniqueDir(appId);
-        // 3. 保存文件（具体实现由子类提供）
-        saveFiles(result, baseDirPath);
-        // 4. 返回目录文件对象
-        return new File(baseDirPath);
+        // 2. 构建正式目录和临时目录
+        String baseDirPath = buildUniqueDirPath(appId);
+        String stagingDirPath = buildStagingDirPath(appId);
+        File baseDir = new File(baseDirPath);
+        File stagingDir = new File(stagingDirPath);
+        FileUtil.del(stagingDir);
+        FileUtil.mkdir(stagingDir);
+        try {
+            // 3. 先写入临时目录，避免半截产物覆盖上一次成功版本
+            saveFiles(result, stagingDirPath);
+            validateSavedFiles(stagingDir);
+            // 4. 原子提交：同卷 rename 优先，失败时回退复制
+            FileUtil.del(baseDir);
+            boolean moved = stagingDir.renameTo(baseDir);
+            if (!moved) {
+                FileUtil.copyContent(stagingDir, baseDir, true);
+                FileUtil.del(stagingDir);
+            }
+            return baseDir;
+        } finally {
+            if (stagingDir.exists()) {
+                FileUtil.del(stagingDir);
+            }
+        }
     }
 
     /**
@@ -51,14 +69,27 @@ public abstract class CodeFileSaverTemplate<T> {
      * @return 目录路径
      */
     protected final String buildUniqueDir(Long appId) {
+        String dirPath = buildUniqueDirPath(appId);
+        FileUtil.mkdir(dirPath);
+        return dirPath;
+    }
+
+    protected final String buildUniqueDirPath(Long appId) {
         if (appId == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         }
         String codeType = getCodeType().getValue();
         String uniqueDirName = StrUtil.format("{}_{}", codeType, appId);
-        String dirPath = FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
-        FileUtil.mkdir(dirPath);
-        return dirPath;
+        return FILE_SAVE_ROOT_DIR + File.separator + uniqueDirName;
+    }
+
+    protected final String buildStagingDirPath(Long appId) {
+        if (appId == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        }
+        String codeType = getCodeType().getValue();
+        String uniqueDirName = StrUtil.format("{}_{}", codeType, appId);
+        return FILE_SAVE_ROOT_DIR + File.separator + ".staging" + File.separator + uniqueDirName;
     }
 
 
@@ -115,6 +146,13 @@ public abstract class CodeFileSaverTemplate<T> {
             String filePath = dirPath + File.separator + filename;
             FileUtil.writeString(content, filePath, StandardCharsets.UTF_8);
         }
+    }
+
+    /**
+     * 提交正式目录前校验临时目录中的实际文件。
+     */
+    protected void validateSavedFiles(File stagingDir) {
+        // 默认不做额外校验，具体类型可覆盖
     }
 
     /**

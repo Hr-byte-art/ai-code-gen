@@ -68,6 +68,10 @@ export interface UserRegisterRequest {
   shareCode?: string
 }
 
+export interface VipCodeRedemptionRequest {
+  vipCode: string
+}
+
 export interface UserUpdateRequest {
   id: string
   userName?: string
@@ -93,6 +97,22 @@ export interface UserQueryRequest extends PageRequest {
 // ==================== 应用相关类型 ====================
 
 export type BuildStatus = 'none' | 'pending' | 'building' | 'success' | 'failed'
+
+export type GenerationTaskStatus = 'idle' | 'queued' | 'generating' | 'validating' | 'building' | 'succeeded' | 'failed' | 'cancelled'
+
+export interface GenerationTaskState {
+  appId: string
+  status: GenerationTaskStatus
+  stage: string
+  message?: string
+  error?: string
+  attempt?: number
+  outputPath?: string
+  buildStatus?: string
+  startedAt?: string
+  updatedAt?: string
+  finishedAt?: string
+}
 
 export interface AppBuildStatus {
   appId: string
@@ -310,18 +330,20 @@ export interface VipCode {
 }
 
 export interface VipCodeAddRequest {
-  vipCode: string
-  effectiveDay: number
-  expDate: string
-  maxUseNum: number
-  creatorId: string
+  vipCode?: string
+  effectiveDay?: number
+  expDate?: string
+  maxUseNum?: number
+  creatorId?: string
 }
 
 export interface VipCodeUpdateRequest {
   id: string
-  expDate: string
-  maxUseNum: number
+  expDate?: string
+  maxUseNum?: number
 }
+
+export type VipCodeVO = VipCode
 
 // ==================== 配额相关类型 ====================
 

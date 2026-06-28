@@ -161,9 +161,9 @@ DB_TABLE_PREFIX=__DB_TABLE_PREFIX__
 
 ## 输出要求
 
-1. 使用 writeFile 工具逐个写入所有文件
-2. 每个文件的路径相对于项目根目录
-3. 确保 schema.sql、.env、server/、frontend/ 都生成完整
+1. 使用 `writeFile` 工具逐个写入所有文件
+2. 确保 `cd server && npm install && node index.js` 和 `cd frontend && npm install && npm run build` 都能成功
+3. 每个文件内容必须是可直接写入磁盘的原始文件内容，不要包 Markdown 代码块，不要额外解释
 4. 保持代码精简，功能完整
 
 ## 质量要求

@@ -81,6 +81,7 @@ export const useChatStore = defineStore('chat', () => {
       id: Date.now() + 1,
       message: content,
       messageType: 'ai',
+      thinking: '',
       createTime: new Date().toISOString()
     })
   }
@@ -89,6 +90,13 @@ export const useChatStore = defineStore('chat', () => {
   function updateLastMessage(content: string) {
     if (messages.value.length > 0) {
       messages.value[messages.value.length - 1].message = content
+    }
+  }
+
+  // 更新最后一条消息的思考内容
+  function updateLastThinking(content: string) {
+    if (messages.value.length > 0) {
+      messages.value[messages.value.length - 1].thinking = content
     }
   }
 
@@ -115,6 +123,7 @@ export const useChatStore = defineStore('chat', () => {
     addUserMessage,
     addAiMessage,
     updateLastMessage,
+    updateLastThinking,
     clearMessages,
     resetPagination
   }

@@ -18,9 +18,9 @@
         </div>
       </div>
       <div class="context-actions">
-        <a-button @click="goToEdit" :disabled="deploying || sending"><EditOutlined /> 交付页</a-button>
-        <a-button @click="goToPreview" :disabled="deploying || sending"><EyeOutlined /> 预览</a-button>
-        <a-button type="primary" @click="handleDeploy" :loading="deploying" :disabled="sending">
+        <a-button @click="goToEdit" :disabled="deploying || busy"><EditOutlined /> 交付页</a-button>
+        <a-button @click="goToPreview" :disabled="deploying || busy"><EyeOutlined /> 预览</a-button>
+        <a-button type="primary" @click="handleDeploy" :loading="deploying" :disabled="busy">
           <CloudUploadOutlined /> {{ deploying ? '部署中...' : (appInfo.deployedTime ? '重新部署' : '部署') }}
         </a-button>
       </div>
@@ -110,6 +110,14 @@
                   <span class="msg-name">{{ msg.messageType === 'user' ? '你提交的修改' : '生成反馈' }}</span>
                   <span class="msg-time">{{ formatTime(msg.createTime) }}</span>
                 </div>
+                <!-- 思考内容展示 -->
+                <div v-if="msg.thinking" class="thinking-section">
+                  <a-collapse :bordered="false" size="small">
+                    <a-collapse-panel key="thinking" header="AI 思考过程" :show-arrow="true">
+                      <div class="thinking-content">{{ msg.thinking }}</div>
+                    </a-collapse-panel>
+                  </a-collapse>
+                </div>
                 <div v-if="isStreamingMessage(msg, index)" class="msg-text stream-text">{{ msg.message }}</div>
                 <MarkdownRenderer v-else-if="msg.messageType === 'ai'" :content="msg.message" />
                 <div v-else class="msg-text">{{ msg.message }}</div>
@@ -148,11 +156,11 @@
               :rows="3"
               placeholder="写清楚你想改哪里、改成什么效果。"
               @keydown.enter.exact.prevent="handleSendMessage"
-              :disabled="sending"
+              :disabled="busy"
               class="input"
               ref="inputTextareaRef"
             />
-            <a-button type="primary" :loading="sending" @click="handleSendMessage" class="send-btn">
+            <a-button type="primary" :loading="sending" :disabled="busy" @click="handleSendMessage" class="send-btn">
               <SendOutlined /> 发送
             </a-button>
           </div>
@@ -171,8 +179,8 @@ import {
   UserOutlined, RobotOutlined, SendOutlined
 } from '@ant-design/icons-vue'
 import { useChatStore } from '@/stores/chat'
-import { getAppById, deployApp, getDeployedAppUrl, hasActiveGenerationStream, getAppBuildStatus, rebuildApp, getAppReviewReport } from '@/api/app'
-import type { AppBuildStatus, AppReviewReport, BuildStatus } from '@/types'
+import { getAppById, deployApp, getDeployedAppUrl, hasActiveGenerationStream, getGenerationTaskState, getAppBuildStatus, rebuildApp, getAppReviewReport } from '@/api/app'
+import type { AppBuildStatus, AppReviewReport, BuildStatus, GenerationTaskState } from '@/types'
 import MarkdownRenderer from '@/components/common/MarkdownRenderer.vue'
 import { formatDateTime as formatTime } from '@/utils/time'
 import { buildApiUrl } from '@/utils/apiBase'
@@ -184,16 +192,25 @@ const chatStore = useChatStore()
 const appId = route.params.id as string
 const appInfo = ref<any>({})
 const buildStatus = ref<AppBuildStatus | null>(null)
+const generationTaskState = ref<GenerationTaskState | null>(null)
 const reviewReport = ref<AppReviewReport | null>(null)
 const inputMessage = ref('')
 const sending = ref(false)
 const deploying = ref(false)
+const taskRunning = computed(() => {
+  const status = generationTaskState.value?.status
+  return status === 'generating' || status === 'validating' || status === 'building'
+})
+const busy = computed(() => sending.value || taskRunning.value)
 const rebuilding = ref(false)
 const messagesContainer = ref<HTMLElement>()
 const inputTextareaRef = ref()
 let activeStream: EventSource | null = null
 let buildEventStream: EventSource | null = null
 let pendingStreamContent = ''
+let pendingThinkingContent = ''
+let generationFinalToastShown = false
+let generationFinalNoticeAdded = false
 let streamFlushTimer: number | null = null
 let scrollFrame: number | null = null
 let shouldStickToBottom = true
@@ -220,14 +237,23 @@ const buildStatusText = computed(() => {
 
 const buildStatusClass = computed(() => buildStatus.value?.status || appInfo.value?.buildStatus || 'none')
 
-const buildStatusMessage = computed(() => buildStatus.value?.message || appInfo.value?.buildMessage || buildStatusText.value)
+const buildStatusMessage = computed(() => generationTaskState.value?.message || buildStatus.value?.message || appInfo.value?.buildMessage || buildStatusText.value)
 
-const buildErrorText = computed(() => buildStatus.value?.error || appInfo.value?.buildError || '')
+const buildErrorText = computed(() => generationTaskState.value?.error || buildStatus.value?.error || appInfo.value?.buildError || '')
 
 const canRebuild = computed(() => {
   const status = buildStatus.value?.status || appInfo.value?.buildStatus
   return status === 'failed' || status === 'pending'
 })
+
+const fetchGenerationTaskState = async () => {
+  try {
+    const state = await getGenerationTaskState(appId)
+    applyGenerationState(state)
+  } catch {
+    // 生成状态不影响历史消息展示
+  }
+}
 
 const fetchBuildStatus = async () => {
   try {
@@ -332,14 +358,73 @@ const fetchChatHistory = async () => {
   scrollToBottom()
 }
 
+const buildGenerationFinalNotice = (state: GenerationTaskState) => {
+  if (state.status === 'succeeded') {
+    return appInfo.value?.buildStatus === 'success' || state.buildStatus === 'success'
+      ? '生成完成，项目已构建成功。现在可以点击「预览」或「部署」。'
+      : '生成完成，代码已保存。现在可以点击「预览」或「部署」。'
+  }
+  if (state.status === 'failed') {
+    return `生成失败：${state.error || state.message || '请稍后重试'}`
+  }
+  if (state.status === 'cancelled') {
+    return '生成任务已取消。'
+  }
+  return state.message || ''
+}
+
+const showGenerationFinalFeedback = (state: GenerationTaskState) => {
+  const finalStatus = state.status === 'succeeded' || state.status === 'failed' || state.status === 'cancelled'
+  if (!finalStatus) return
+  const finalNotice = buildGenerationFinalNotice(state)
+  flushStreamContent(true)
+  flushThinkingContent()
+  if (!generationFinalToastShown) {
+    generationFinalToastShown = true
+    if (state.status === 'succeeded') {
+      message.success(finalNotice)
+    } else if (state.status === 'cancelled') {
+      message.warning(finalNotice)
+    } else {
+      message.error(finalNotice)
+    }
+  }
+  if (!generationFinalNoticeAdded && finalNotice) {
+    generationFinalNoticeAdded = true
+    chatStore.addAiMessage(finalNotice)
+    scheduleScrollToBottom(true)
+  }
+}
+
+const applyGenerationState = (state?: GenerationTaskState) => {
+  if (!state) return
+  generationTaskState.value = state
+  showGenerationFinalFeedback(state)
+  if (state.status === 'failed' || state.status === 'cancelled' || state.status === 'succeeded') {
+    fetchBuildStatus()
+  }
+}
+
 const normalizeStreamChunk = (data: string) => {
   if (!data || data === '[DONE]') return ''
   try {
     const parsed = JSON.parse(data)
     const type = parsed?.type
+    if (type === 'state') {
+      applyGenerationState(parsed.data)
+      return ''
+    }
     // AI 响应：提取文本内容
     if (type === 'ai_response') {
       return typeof parsed?.data === 'string' ? parsed.data : ''
+    }
+    // AI 思考内容：存储到 pendingThinkingContent
+    if (type === 'thinking') {
+      if (typeof parsed?.data === 'string' && parsed.data) {
+        pendingThinkingContent += parsed.data
+        queueThinkingContentFlush()
+      }
+      return ''
     }
     // 代码审查结果只保留在管理员 agent 追踪中，用户聊天流不展示
     if (type === 'review_result') {
@@ -347,6 +432,9 @@ const normalizeStreamChunk = (data: string) => {
     }
     // 工具请求/执行：不显示在聊天中
     if (type === 'tool_request' || type === 'tool_executed') {
+      return ''
+    }
+    if (type === 'biz_error') {
       return ''
     }
     return typeof parsed?.d === 'string' ? parsed.d : data
@@ -377,8 +465,30 @@ const flushStreamContent = (force = false) => {
     streamFlushTimer = null
   }
   if (!pendingStreamContent && !force) return
-  chatStore.updateLastMessage(pendingStreamContent)
+  const nextContent = pendingStreamContent
+  pendingStreamContent = ''
+  if (!nextContent && !force) return
+  if (nextContent) {
+    chatStore.updateLastMessage(nextContent)
+  }
   scheduleScrollToBottom()
+}
+
+const flushThinkingContent = () => {
+  if (pendingThinkingContent) {
+    chatStore.updateLastThinking(pendingThinkingContent)
+    pendingThinkingContent = ''
+    scheduleScrollToBottom()
+  }
+}
+
+let thinkingFlushTimer: number | null = null
+const queueThinkingContentFlush = () => {
+  if (thinkingFlushTimer !== null) return
+  thinkingFlushTimer = window.setTimeout(() => {
+    thinkingFlushTimer = null
+    flushThinkingContent()
+  }, 200)
 }
 
 const queueStreamContentFlush = () => {
@@ -399,29 +509,47 @@ const bindGenerationStream = (es: EventSource, initialContent = '', showErrorToa
   activeStream?.close()
   activeStream = es
   sending.value = true
+  pendingThinkingContent = ''
   let full = initialContent
-  const handleChunk = (e: MessageEvent) => {
-    full = appendStreamChunk(e.data, full)
-  }
-  es.addEventListener('message', handleChunk)
-  es.addEventListener('chunk', handleChunk)
-  es.addEventListener('bizError', (e) => {
+  const handleBizError = (rawData: string) => {
     flushStreamContent(true)
-    const errorMessage = parseStreamErrorMessage((e as MessageEvent).data)
+    flushThinkingContent()
+    const errorMessage = parseStreamErrorMessage(rawData)
     es.close()
     if (activeStream === es) activeStream = null
     chatStore.updateLastMessage(errorMessage)
     if (showErrorToast) message.error(errorMessage)
     finishSending()
-  })
+  }
+  const handleChunk = (e: MessageEvent) => {
+    try {
+      const parsed = JSON.parse(e.data)
+      if (parsed?.type === 'state') {
+        applyGenerationState(parsed.data)
+        return
+      }
+      if (parsed?.type === 'biz_error') {
+        handleBizError(e.data)
+        return
+      }
+    } catch {
+      // 普通文本流直接展示
+    }
+    full = appendStreamChunk(e.data, full)
+  }
+  es.addEventListener('message', handleChunk)
+  es.addEventListener('chunk', handleChunk)
+  es.addEventListener('bizError', (e) => handleBizError((e as MessageEvent).data))
   es.addEventListener('done', () => {
     flushStreamContent(true)
+    flushThinkingContent()
     es.close()
     if (activeStream === es) activeStream = null
     finishSending()
   })
   es.onerror = () => {
     flushStreamContent(true)
+    flushThinkingContent()
     es.close()
     if (activeStream === es) activeStream = null
     finishSending()
@@ -431,6 +559,7 @@ const bindGenerationStream = (es: EventSource, initialContent = '', showErrorToa
 
 const finishSending = async () => {
   sending.value = false
+  await fetchGenerationTaskState()
   await fetchAppInfo()
   await fetchBuildStatus()
   await fetchReviewReport()
@@ -449,10 +578,12 @@ const handleSendMessage = () => {
 
 const sendMessage = async (presetContent?: string) => {
   const content = (typeof presetContent === 'string' ? presetContent : inputMessage.value).trim()
-  if (!content || sending.value) return
+  if (!content || busy.value) return
   chatStore.addUserMessage(content)
   await clearInputMessage()
   sending.value = true
+  generationFinalToastShown = false
+  generationFinalNoticeAdded = false
   await nextTick()
   scrollToBottom()
   try {
@@ -492,13 +623,17 @@ const goToPreview = async () => {
   if (expressDeployUrl.value) {
     window.open(expressDeployUrl.value, '_blank')
   } else if (appInfo.value.deployKey) {
-    if (appInfo.value.codeGenType === 'fullstack') {
+    try {
       const url = await getDeployedAppUrl(appId)
-      if (url) { expressDeployUrl.value = url; window.open(url, '_blank'); return }
-      message.info('全栈服务未运行，请先点击部署')
+      if (url) {
+        if (appInfo.value.codeGenType === 'fullstack') expressDeployUrl.value = url
+        window.open(url, '_blank')
+        return
+      }
+    } catch {
+      message.warning('该应用还没有可访问的线上地址')
       return
     }
-    window.open(`/api/code_deploy/${appInfo.value.deployKey}/index.html`, '_blank')
   } else {
     window.open(`/api/static/preview/${appId}/index.html`, '_blank')
   }
@@ -528,7 +663,7 @@ const resumeActiveGenerationStream = async () => {
   if (route.query.autoGenerate === '1' || sending.value) return
   try {
     const res = await hasActiveGenerationStream(appId)
-    if (!res.data) return
+    if (!res.data && !taskRunning.value) return
     chatStore.addAiMessage('')
     await nextTick()
     scrollToBottom()
@@ -545,6 +680,7 @@ const resumeActiveGenerationStream = async () => {
 watch(() => chatStore.messages.length, () => nextTick(() => scheduleScrollToBottom()))
 onMounted(async () => {
   await fetchAppInfo()
+  await fetchGenerationTaskState()
   await fetchBuildStatus()
   await fetchReviewReport()
   subscribeBuildEvents()
@@ -992,6 +1128,42 @@ onUnmounted(() => {
   line-height: 1.65;
   word-break: break-word;
   contain: content;
+}
+
+.thinking-section {
+  margin-bottom: 8px;
+}
+
+.thinking-section :deep(.ant-collapse) {
+  background: transparent;
+  border: none;
+}
+
+.thinking-section :deep(.ant-collapse-item) {
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-md) !important;
+  overflow: hidden;
+}
+
+.thinking-section :deep(.ant-collapse-header) {
+  font-size: 12px;
+  color: var(--t-light);
+  padding: 6px 12px !important;
+  background: var(--bg-soft);
+}
+
+.thinking-section :deep(.ant-collapse-content-box) {
+  padding: 8px 12px !important;
+}
+
+.thinking-content {
+  font-size: 12px;
+  color: var(--t-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
 }
 
 .msg-text.typing {

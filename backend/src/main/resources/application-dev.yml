@@ -15,45 +15,46 @@ spring:
 langchain4j:
   open-ai:
     chat-model:  # 同步代码生成（简单场景）- 建议中等模型
-      base-url: ${AI_BASE_URL:https://api.deepseek.com}
+      base-url: ${AI_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
       api-key: ${AI_API_KEY:your_ai_api_key}
-      model-name: ${AI_MODEL_NAME:deepseek-chat}
+      model-name: ${AI_MODEL_NAME:GLM-5.2}
       log-requests: true
       log-responses: true
       max-tokens: 8192
     streaming-chat-model:  # 流式代码生成（标准模式）- 建议中等模型
-      base-url: ${AI_STREAMING_BASE_URL:https://api.deepseek.com}
+      base-url: ${AI_STREAMING_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
       api-key: ${AI_STREAMING_API_KEY:your_ai_api_key}
-      model-name: ${AI_STREAMING_MODEL_NAME:deepseek-chat}
-      max-tokens: 8192
+      model-name: ${AI_STREAMING_MODEL_NAME:GLM-5.2}
+      max-tokens: 16384
+      simple-timeout: 240
       timeout: 300
       log-requests: true
       log-responses: true
     reasoning-streaming-chat-model:  # 复杂推理代码生成（Vue/全栈项目）- 建议最好的模型
-      base-url: ${AI_REASONING_BASE_URL:https://api.deepseek.com}
+      base-url: ${AI_REASONING_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
       api-key: ${AI_REASONING_API_KEY:your_ai_api_key}
-      model-name: ${AI_REASONING_MODEL_NAME:deepseek-chat}
+      model-name: ${AI_REASONING_MODEL_NAME:GLM-5.2}
       max-tokens: 32768
       temperature: 0.1
       timeout: 300
       log-requests: true
       log-responses: true
     routing-chat-model:  # 代码生成类型路由（简单分类）- 建议最便宜的小模型
-      base-url: ${AI_ROUTING_BASE_URL:https://api.deepseek.com}
+      base-url: ${AI_ROUTING_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
       api-key: ${AI_ROUTING_API_KEY:your_ai_api_key}
-      model-name: ${AI_ROUTING_MODEL_NAME:deepseek-chat}
+      model-name: ${AI_ROUTING_MODEL_NAME:GLM-4-FlashX-250414}
       log-requests: true
       log-responses: true
     detection-chat-model:  # 输入安全检测（简单分类）- 建议最便宜的小模型
-      base-url: ${AI_DETECTION_BASE_URL:https://api.deepseek.com}
+      base-url: ${AI_DETECTION_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
       api-key: ${AI_DETECTION_API_KEY:your_ai_api_key}
-      model-name: ${AI_DETECTION_MODEL_NAME:deepseek-chat}
+      model-name: ${AI_DETECTION_MODEL_NAME:GLM-4-FlashX-250414}
       log-requests: true
       log-responses: true
     generation-appName-model:  # 应用名生成（简单文本生成）- 建议最便宜的小模型
-      base-url: ${AI_APP_NAME_BASE_URL:https://api.deepseek.com}
+      base-url: ${AI_APP_NAME_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
       api-key: ${AI_APP_NAME_API_KEY:your_ai_api_key}
-      model-name: ${AI_APP_NAME_MODEL_NAME:deepseek-chat}
+      model-name: ${AI_APP_NAME_MODEL_NAME:GLM-4-FlashX-250414}
       log-requests: true
       log-responses: true
 
@@ -80,14 +81,14 @@ dashscope:
 
 agent:
   review:  # 代码审查（需要结构化JSON输出）- 建议中等偏上模型
-    base-url: ${AI_REVIEW_BASE_URL:https://api.deepseek.com}
+    base-url: ${AI_REVIEW_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
     api-key: ${AI_REVIEW_API_KEY:your_ai_api_key}
-    model-name: ${AI_REVIEW_MODEL_NAME:deepseek-chat}
+    model-name: ${AI_REVIEW_MODEL_NAME:GLM-5.2}
     max-tokens: 4096
     temperature: 0.3
   optimizer:  # 代码优化修复（需要精准修改代码）- 建议好模型
-    base-url: ${AI_OPTIMIZER_BASE_URL:https://api.deepseek.com}
+    base-url: ${AI_OPTIMIZER_BASE_URL:https://open.bigmodel.cn/api/paas/v4}
     api-key: ${AI_OPTIMIZER_API_KEY:your_ai_api_key}
-    model-name: ${AI_OPTIMIZER_MODEL_NAME:deepseek-chat}
+    model-name: ${AI_OPTIMIZER_MODEL_NAME:GLM-5.2}
     max-tokens: 8192
     temperature: 0.5

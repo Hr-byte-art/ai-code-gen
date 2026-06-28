@@ -1,5 +1,6 @@
 package com.wjh.aicodegen.manager;
 
+import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -7,6 +8,7 @@ import reactor.core.publisher.Sinks;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -55,9 +57,16 @@ public class GenerationStreamManager {
         if (session == null || session.finished) {
             return;
         }
-        session.errorMessage = message;
+        String errorEvent = JSONUtil.toJsonStr(Map.of(
+                "type", "biz_error",
+                "message", message
+        ));
+        session.errorMessage = errorEvent;
         session.finished = true;
-        session.sink.tryEmitNext(message);
+        synchronized (session.buffer) {
+            session.buffer.add(errorEvent);
+        }
+        session.sink.tryEmitNext(errorEvent);
         session.sink.tryEmitComplete();
         log.info("应用 {} 生成流会话已失败", appId);
     }
@@ -74,12 +83,15 @@ public class GenerationStreamManager {
 
     public Flux<String> subscribe(Long appId) {
         GenerationStreamSession session = sessions.get(appId);
-        if (session == null || session.finished) {
+        if (session == null) {
             return Flux.empty();
         }
         List<String> snapshot;
         synchronized (session.buffer) {
             snapshot = new ArrayList<>(session.buffer);
+        }
+        if (session.finished) {
+            return Flux.fromIterable(snapshot);
         }
         return Flux.fromIterable(snapshot).concatWith(session.sink.asFlux());
     }

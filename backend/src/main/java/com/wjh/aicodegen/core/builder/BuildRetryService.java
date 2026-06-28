@@ -28,7 +28,7 @@ public class BuildRetryService {
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
 
     /** 最大重试次数 */
-    private static final int MAX_BUILD_RETRIES = 3;
+    private static final int MAX_BUILD_RETRIES = 2;
     private static final String INTERNAL_BUILD_FIX_MARKER = "## INTERNAL_BUILD_FIX_TASK";
 
     /**

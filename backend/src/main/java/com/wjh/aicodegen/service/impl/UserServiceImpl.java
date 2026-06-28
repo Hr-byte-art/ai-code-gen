@@ -333,6 +333,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public UserVO vipCodeRedemption(String vipCode, HttpServletRequest request) {
+        ThrowUtils.throwIf(StrUtil.isBlank(vipCode), ErrorCode.PARAMS_ERROR, "会员码不能为空");
         User currentUser = this.getLoginUser(request);
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
@@ -353,7 +354,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                     ErrorCode.OPERATION_ERROR, "兑换码已过期");
 
             // 检查是否超过最大使用人数
-            ThrowUtils.throwIf(vipCodeInfo.getMaxUseNum() <= vipCodeInfo.getUseNum(),
+            Integer useNum = vipCodeInfo.getUseNum() == null ? 0 : vipCodeInfo.getUseNum();
+            Integer maxUseNum = vipCodeInfo.getMaxUseNum() == null ? 0 : vipCodeInfo.getMaxUseNum();
+            ThrowUtils.throwIf(maxUseNum <= useNum,
                     ErrorCode.OPERATION_ERROR, "兑换码已超最大使用人数");
 
             // 校验是否使用过该验证码
@@ -365,39 +368,34 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
             // 使用乐观锁更新兑换码使用次数
             boolean vipCodeUpdateSuccess = UpdateChain.of(VipCode.class)
-                    .set(VipCode::getUseNum, vipCodeInfo.getUseNum() + 1)
+                    .set(VipCode::getUseNum, useNum + 1)
                     .where(VipCode::getId).eq(vipCodeInfo.getId())
-                    .and(VipCode::getUseNum).eq(vipCodeInfo.getUseNum())
+                    .and(VipCode::getUseNum).eq(useNum)
                     .update();
 
             if (vipCodeUpdateSuccess) {
-                // 更新用户信息
                 Integer effectiveDay = vipCodeInfo.getEffectiveDay();
-                currentUser.setVipCode(vipCode);
+                LocalDateTime nextVipExpireTime = LocalDateTime.now().plusDays(effectiveDay);
+                String nextUserRole = UserRoleEnum.ADMIN.getValue().equals(currentUser.getUserRole())
+                        ? UserRoleEnum.ADMIN.getValue()
+                        : UserRoleEnum.VIP.getValue();
 
-                if (!currentUser.getUserRole().equals(UserRoleEnum.ADMIN.getValue())) {
-                    currentUser.setUserRole(UserRoleEnum.VIP.getValue());
-                }
-                currentUser.setVipExpireTime(LocalDateTime.now().plusDays(effectiveDay));
-
-                long currentTimeMillis = System.currentTimeMillis();
-                // 设置会员编号逻辑...
-
-                // 建议对用户信息更新也使用乐观锁
                 boolean userUpdateSuccess = UpdateChain.of(User.class)
                         .set(User::getVipCode, vipCode)
-                        .set(User::getUserRole, UserRoleEnum.VIP.getValue())
-                        .set(User::getVipExpireTime, LocalDateTime.now().plusDays(effectiveDay))
+                        .set(User::getUserRole, nextUserRole)
+                        .set(User::getVipExpireTime, nextVipExpireTime)
                         .where(User::getId).eq(currentUser.getId())
-                        .and(User::getVipCode).isNull().or(User::getVipCode).ne(vipCode) // 防止重复使用
                         .update();
                 if (userUpdateSuccess) {
+                    currentUser.setVipCode(vipCode);
+                    currentUser.setUserRole(nextUserRole);
+                    currentUser.setVipExpireTime(nextVipExpireTime);
                     log.info("用户 {} 成功兑换VIP码: {}", currentUser.getId(), vipCode);
                     return this.getUserVO(currentUser);
                 } else {
                     // 用户更新失败，需要回滚兑换码使用次数
                     UpdateChain.of(VipCode.class)
-                            .set(VipCode::getUseNum, vipCodeInfo.getUseNum())
+                            .set(VipCode::getUseNum, useNum)
                             .where(VipCode::getId).eq(vipCodeInfo.getId())
                             .update();
                     throw new BusinessException(ErrorCode.SYSTEM_ERROR, "用户信息更新失败");

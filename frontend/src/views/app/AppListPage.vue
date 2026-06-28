@@ -93,7 +93,7 @@ import {
 import AppCard from '@/components/AppCard.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { getMyAppList, deployApp, deleteApp } from '@/api/app'
+import { getMyAppList, deployApp, deleteApp, getDeployedAppUrl } from '@/api/app'
 
 const router = useRouter()
 const loading = ref(false)
@@ -147,12 +147,12 @@ const goToChat = (id: string) => router.push(`/app/chat/${id}`)
 const goToEdit = (id: string) => router.push(`/app/edit/${id}`)
 const goToPreview = async (app: any) => {
   if (!app.deployKey) return
-  // 全栈项目需要通过 deployApp 获取 Express URL
-  if (app.codeGenType === 'fullstack') {
-    const url = await deployApp(app.id)
-    if (url) { window.open(url, '_blank'); return }
+  try {
+    const url = await getDeployedAppUrl(app.id)
+    if (url) window.open(url, '_blank')
+  } catch {
+    message.warning('该应用还没有可访问的线上地址')
   }
-  window.open(`/api/code_deploy/${app.deployKey}/index.html`, '_blank')
 }
 const handleDeploy = async (id: string) => {
   try {

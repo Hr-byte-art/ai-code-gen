@@ -8,7 +8,7 @@
             <a-avatar :size="64" :src="userStore.userAvatar" class="profile-avatar"><template #icon><UserOutlined /></template></a-avatar>
             <h2 class="profile-name">{{ userStore.username }}</h2>
             <p class="profile-account">{{ userStore.userInfo?.userAccount }}</p>
-            <a-tag :color="userStore.isAdmin ? 'red' : 'blue'">{{ userStore.isAdmin ? '管理员' : '普通用户' }}</a-tag>
+            <a-tag :color="roleTagColor">{{ roleText }}</a-tag>
             <div class="profile-stats">
               <div class="stat"><span class="stat-num">{{ userStore.userInfo?.integral || 0 }}</span><span class="stat-lbl">积分</span></div>
               <div class="stat-div"></div>
@@ -30,11 +30,28 @@
               <a-descriptions :column="{ xs: 1, sm: 2 }" bordered size="small">
                 <a-descriptions-item label="用户名">{{ userStore.userInfo?.userName || '-' }}</a-descriptions-item>
                 <a-descriptions-item label="账号">{{ userStore.userInfo?.userAccount || '-' }}</a-descriptions-item>
-                <a-descriptions-item label="角色"><a-tag :color="userStore.isAdmin ? 'red' : 'blue'">{{ userStore.isAdmin ? '管理员' : '普通用户' }}</a-tag></a-descriptions-item>
+                <a-descriptions-item label="角色"><a-tag :color="roleTagColor">{{ roleText }}</a-tag></a-descriptions-item>
+                <a-descriptions-item label="会员到期">{{ formatDateTime(userStore.userInfo?.vipExpireTime || '', '未开通') }}</a-descriptions-item>
                 <a-descriptions-item label="简介" :span="2">{{ userStore.userInfo?.userProfile || '暂无简介' }}</a-descriptions-item>
                 <a-descriptions-item label="注册时间">{{ formatDateTime(userStore.userInfo?.createTime || '', '暂无') }}</a-descriptions-item>
                 <a-descriptions-item label="最后签到">{{ formatDateTime(userStore.userInfo?.recentlySignedIn || '', '暂无') }}</a-descriptions-item>
               </a-descriptions>
+            </a-tab-pane>
+            <a-tab-pane key="vip" tab="会员兑换">
+              <div class="vip-card">
+                <div class="vip-copy">
+                  <h3>兑换会员码</h3>
+                  <p>输入管理员发放的会员码，兑换成功后会立即刷新会员身份。</p>
+                </div>
+                <a-input-search
+                  v-model:value="vipCodeForm.vipCode"
+                  placeholder="请输入会员码"
+                  enter-button="立即兑换"
+                  size="large"
+                  :loading="vipRedeeming"
+                  @search="handleRedeemVipCode"
+                />
+              </div>
             </a-tab-pane>
             <a-tab-pane key="invited" tab="我的邀请">
               <a-list :data-source="invitedUsers" :loading="invitedLoading">
@@ -84,12 +101,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, EditOutlined, LockOutlined, CalendarOutlined, LogoutOutlined, UploadOutlined } from '@ant-design/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { updateMyInfo, changePassword, signIn, getMyInvited, uploadAvatar } from '@/api/user'
+import { updateMyInfo, changePassword, signIn, getMyInvited, uploadAvatar, redeemVipCode } from '@/api/user'
 import { formatDateTime } from '@/utils/time'
 
 const router = useRouter()
@@ -100,9 +117,21 @@ const passwordModalVisible = ref(false)
 const signInLoading = ref(false)
 const invitedLoading = ref(false)
 const avatarUploading = ref(false)
+const vipRedeeming = ref(false)
 const editForm = reactive({ userName: '', userProfile: '', userAvatar: '' })
 const passwordForm = reactive({ oldPassword: '', newPassword: '', confirmPassword: '' })
+const vipCodeForm = reactive({ vipCode: '' })
 const invitedUsers = ref<any[]>([])
+const roleText = computed(() => {
+  if (userStore.isAdmin) return '管理员'
+  if (userStore.isVip) return 'VIP 会员'
+  return '普通用户'
+})
+const roleTagColor = computed(() => {
+  if (userStore.isAdmin) return 'red'
+  if (userStore.isVip) return 'gold'
+  return 'blue'
+})
 const showEditModal = () => { editForm.userName = userStore.userInfo?.userName || ''; editForm.userProfile = userStore.userInfo?.userProfile || ''; editForm.userAvatar = userStore.userInfo?.userAvatar || ''; editModalVisible.value = true }
 const showPasswordModal = () => { passwordForm.oldPassword = ''; passwordForm.newPassword = ''; passwordForm.confirmPassword = ''; passwordModalVisible.value = true }
 const handleAvatarBeforeUpload = async (file: File) => {
@@ -130,6 +159,23 @@ const handleAvatarBeforeUpload = async (file: File) => {
 const handleUpdateInfo = async () => { try { await updateMyInfo({ id: userStore.userId!, userName: editForm.userName, userProfile: editForm.userProfile, userAvatar: editForm.userAvatar }); message.success('更新成功'); editModalVisible.value = false; await userStore.fetchUserInfo() } catch (e) {} }
 const handleChangePassword = async () => { if (passwordForm.newPassword !== passwordForm.confirmPassword) { message.error('两次密码不一致'); return }; try { await changePassword(passwordForm); message.success('密码修改成功'); passwordModalVisible.value = false } catch (e) {} }
 const handleSignIn = async () => { signInLoading.value = true; try { const res = await signIn(); message.success(`签到成功，获得 ${res.data} 积分`); await userStore.fetchUserInfo() } catch (e) {} finally { signInLoading.value = false } }
+const handleRedeemVipCode = async () => {
+  const vipCode = vipCodeForm.vipCode.trim()
+  if (!vipCode) {
+    message.warning('请输入会员码')
+    return
+  }
+  vipRedeeming.value = true
+  try {
+    await redeemVipCode({ vipCode })
+    vipCodeForm.vipCode = ''
+    await userStore.fetchUserInfo()
+    message.success('会员码兑换成功')
+  } catch (e) {
+  } finally {
+    vipRedeeming.value = false
+  }
+}
 const fetchInvitedUsers = async () => { invitedLoading.value = true; try { const res: any = await getMyInvited(); invitedUsers.value = res.data || [] } catch (e) {} finally { invitedLoading.value = false } }
 const handleLogout = async () => { await userStore.logout(); router.push('/user/login') }
 onMounted(() => {
@@ -154,6 +200,10 @@ onMounted(() => {
 .profile-actions { display: flex; flex-direction: column; gap: 8px; }
 .sign-btn { background: var(--c-primary-50) !important; border-color: var(--c-primary-200) !important; color: var(--c-primary) !important; }
 .content-card { background: var(--bg-card); border-radius: var(--r-xl); padding: 20px; border: 1px solid var(--border-light); }
+.vip-card { padding: 18px; border: 1px solid var(--border-light); border-radius: var(--r-lg); background: var(--bg-soft); }
+.vip-copy { margin-bottom: 14px; text-align: left; }
+.vip-copy h3 { margin: 0 0 6px; color: var(--t-primary); font-size: 16px; font-weight: 820; }
+.vip-copy p { margin: 0; color: var(--t-muted); font-size: 13px; line-height: 1.6; }
 .avatar-editor { display: flex; align-items: center; gap: 16px; }
 .avatar-preview { flex-shrink: 0; border: 1px solid var(--border-light); background: var(--bg-soft); }
 .avatar-editor-actions { display: flex; flex-direction: column; gap: 6px; }

@@ -6,6 +6,7 @@ import com.wjh.aicodegen.ai.guardrail.PromptSafetyInputGuardrailSpecifyContentAi
 import com.wjh.aicodegen.ai.service.AiCodeGeneratorService;
 import com.wjh.aicodegen.ai.tools.*;
 import com.wjh.aicodegen.ai.tools.CustomToolProvider;
+import com.wjh.aicodegen.config.ai.StreamingChatModelConfig;
 import com.wjh.aicodegen.manager.SpringContextUtil;
 import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.monitor.GlobalContextStorage;
@@ -49,6 +50,9 @@ public class AiCodeGeneratorServiceFactory {
     @Resource
     private ToolManager toolManager;
 
+    @Resource
+    private StreamingChatModelConfig streamingChatModelConfig;
+
     private final Cache<String, AiCodeGeneratorService> serviceCache = Caffeine.newBuilder()
             .maximumSize(1000)
             .expireAfterWrite(Duration.ofMinutes(30))
@@ -62,8 +66,12 @@ public class AiCodeGeneratorServiceFactory {
      * 根据 appId 和 CodeSkill 获取服务（带缓存）
      */
     public AiCodeGeneratorService getAiCodeGeneratorService(long appId, CodeSkill skill) {
-        String cacheKey = appId + "_" + skill.getSkillKey();
+        // 缓存 key 需要包含 buildStrategy，因为不同策略的工具集不同
+        String cacheKey = appId + "_" + skill.getSkillKey() + "_" + skill.getBuildStrategy();
         ensureMonitorContext(appId);
+        if (skill.getBuildStrategy() != null && !"none".equals(skill.getBuildStrategy())) {
+            return createAiCodeGeneratorService(appId, skill);
+        }
         return serviceCache.get(cacheKey, key -> createAiCodeGeneratorService(appId, skill));
     }
 
@@ -71,17 +79,22 @@ public class AiCodeGeneratorServiceFactory {
      * 根据 CodeSkill 动态创建 AI 服务实例
      */
     private AiCodeGeneratorService createAiCodeGeneratorService(long appId, CodeSkill skill) {
-        // 构建对话记忆
+        boolean toolMode = skill.getBuildStrategy() != null && !"none".equals(skill.getBuildStrategy());
+        // 构建对话记忆。工具模式下必须保留更多消息，避免 tool_call / tool_result 被窗口截断后触发上游 messages 非法。
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory
                 .builder()
                 .id(appId)
                 .chatMemoryStore(redisChatMemoryStore)
-                .maxMessages(20)
+                .maxMessages(toolMode ? 80 : 20)
                 .build();
-        chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 4);
+        if (toolMode) {
+            chatMemory.clear();
+        } else {
+            chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 4);
+        }
 
-        // 解析工具列表
-        Object[] tools = resolveTools(skill.getToolNames());
+        // 解析工具列表（buildStrategy=none 时不加载默认工具，减少 prompt 体积）
+        Object[] tools = resolveTools(skill.getToolNames(), skill.getBuildStrategy());
 
         // 根据 model_strategy 选择模型
         boolean useReasoning = "reasoning".equals(skill.getModelStrategy());
@@ -89,21 +102,29 @@ public class AiCodeGeneratorServiceFactory {
         // 构建 AI Service
         AiServices<AiCodeGeneratorService> builder = AiServices.builder(AiCodeGeneratorService.class);
 
+        boolean simpleTextGeneration = "none".equals(skill.getBuildStrategy());
+
         if (useReasoning) {
             StreamingChatModel reasoningModel = SpringContextUtil
                     .getBean("reasoningStreamingChatModelPrototype", StreamingChatModel.class);
             builder.streamingChatModel(reasoningModel)
                     .chatMemoryProvider(memoryId -> chatMemory);
+            log.info("使用推理模型: appId={}, skill={}", appId, skill.getSkillKey());
         } else {
-            StreamingChatModel standardModel = SpringContextUtil
-                    .getBean("streamingChatModelPrototype", StreamingChatModel.class);
+            StreamingChatModel standardModel = simpleTextGeneration
+                    ? streamingChatModelConfig.simpleStreamingChatModel()
+                    : SpringContextUtil.getBean("streamingChatModelPrototype", StreamingChatModel.class);
             builder.chatModel(chatModel)
                     .streamingChatModel(standardModel)
                     .chatMemoryProvider(memoryId -> chatMemory);
+            log.info("使用标准模型: appId={}, skill={}, profile={}",
+                    appId, skill.getSkillKey(), simpleTextGeneration ? "simple" : "standard");
         }
 
         // 动态注入 system prompt
-        builder.systemMessage(skill.getSystemPrompt());
+        String systemPrompt = skill.getSystemPrompt();
+        builder.systemMessage(systemPrompt);
+        log.info("System prompt长度: appId={}, 长度={}", appId, systemPrompt != null ? systemPrompt.length() : 0);
 
         // 注入自定义工具（Skill 定义的 HTTP 工具）
         if (skill.getCustomTools() != null && !skill.getCustomTools().isBlank()) {
@@ -120,10 +141,14 @@ public class AiCodeGeneratorServiceFactory {
         // 注入工具
         if (tools.length > 0) {
             builder.tools(tools);
+            log.info("注入 {} 个工具: {}", tools.length,
+                    Arrays.stream(tools).map(t -> ((BaseTool) t).getToolName()).collect(java.util.stream.Collectors.joining(", ")));
+        } else {
+            log.info("无工具注入（纯文本生成模式）");
         }
 
         // 工具调用轮次上限（防止 AI 陷入无限循环）
-        builder.maxToolCallingRoundTrips(200);
+        builder.maxToolCallingRoundTrips(resolveMaxToolRoundTrips(skill.getBuildStrategy()));
 
         // 输入护轨
         builder.inputGuardrails(
@@ -135,15 +160,28 @@ public class AiCodeGeneratorServiceFactory {
                         "Error: there is no tool called " + toolExecutionRequest.name()));
 
         AiCodeGeneratorService service = builder.build();
-        log.info("创建 AI 服务: skill={}, appId={}, model={}, tools={}",
-                skill.getSkillKey(), appId, useReasoning ? "reasoning" : "standard",
-                skill.getToolNames() != null ? skill.getToolNames() : "all");
+        log.info("创建 AI 服务完成: skill={}, appId={}, model={}, 实际注入工具数={}",
+                skill.getSkillKey(), appId, useReasoning ? "reasoning" : "standard", tools.length);
         return service;
+    }
+
+    private int resolveMaxToolRoundTrips(String buildStrategy) {
+        if ("fullstack".equals(buildStrategy)) {
+            return 90;
+        }
+        if ("vue".equals(buildStrategy) || "react".equals(buildStrategy) || "nextjs".equals(buildStrategy)) {
+            return 55;
+        }
+        if ("auto".equals(buildStrategy)) {
+            return 80;
+        }
+        return 20;
     }
 
     /**
      * 解析工具名称列表，返回对应的工具实例
-     * null 或空表示使用代码生成默认工具集
+     * buildStrategy=none 时不加载默认工具（HTML/多文件等纯文本生成模式）
+     * 其他模式自动加载默认工具集，同时追加 Skill 显式指定的额外工具
      */
     private static final Set<String> DEFAULT_CODE_GENERATION_TOOLS = Set.of(
             "readDir",
@@ -155,11 +193,15 @@ public class AiCodeGeneratorServiceFactory {
             "exit"
     );
 
-    private Object[] resolveTools(String toolNames) {
-        // 始终包含默认代码生成工具
-        Set<String> allToolNames = new HashSet<>(DEFAULT_CODE_GENERATION_TOOLS);
+    private Object[] resolveTools(String toolNames, String buildStrategy) {
+        Set<String> allToolNames = new HashSet<>();
 
-        // 追加自定义工具
+        // 只有需要工具的模式才加载默认工具集，buildStrategy=none 表示纯文本生成（HTML/多文件），不需要工具
+        if (buildStrategy != null && !"none".equals(buildStrategy)) {
+            allToolNames.addAll(DEFAULT_CODE_GENERATION_TOOLS);
+        }
+
+        // 追加 Skill 显式指定的工具
         if (toolNames != null && !toolNames.isBlank()) {
             for (String name : toolNames.split(",")) {
                 String trimmed = name.trim();
@@ -167,6 +209,11 @@ public class AiCodeGeneratorServiceFactory {
                     allToolNames.add(trimmed);
                 }
             }
+        }
+
+        if (allToolNames.isEmpty()) {
+            log.info("无工具需要加载: buildStrategy={}", buildStrategy);
+            return new Object[0];
         }
 
         return allToolNames.stream()

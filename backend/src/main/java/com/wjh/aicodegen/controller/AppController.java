@@ -14,6 +14,7 @@ import com.wjh.aicodegen.exception.BusinessException;
 import com.wjh.aicodegen.exception.ErrorCode;
 import com.wjh.aicodegen.model.dto.app.*;
 import com.wjh.aicodegen.model.entity.App;
+import com.wjh.aicodegen.manager.GenerationTaskState;
 import com.wjh.aicodegen.model.entity.CodeSkill;
 import com.wjh.aicodegen.model.entity.User;
 import com.wjh.aicodegen.model.enums.CodeGenTypeEnum;
@@ -67,7 +68,6 @@ public class AppController {
     @Resource
     private AppService appService;
 
-
     @Resource
     private ProjectDownloadService projectDownloadService;
 
@@ -84,6 +84,11 @@ public class AppController {
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
     private ServerSentEvent<String> toGenerationSse(String chunk) {
+        if (JSONUtil.isTypeJSON(chunk)) {
+            return ServerSentEvent.<String>builder()
+                    .data(chunk)
+                    .build();
+        }
         Map<String, String> wrapper = Map.of("d", chunk);
         return ServerSentEvent.<String>builder()
                 .data(JSONUtil.toJsonStr(wrapper))
@@ -505,6 +510,17 @@ public class AppController {
                         .event("done")
                         .data("")
                         .build()));
+    }
+
+    /**
+     * 查询生成任务状态
+     */
+    @Operation(summary = "查询生成任务状态")
+    @GetMapping("/generation/status/{appId}")
+    public BaseResponse<GenerationTaskState> getGenerationTaskState(@PathVariable Long appId, HttpServletRequest request) {
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用ID无效");
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(appService.getGenerationTaskState(appId, loginUser));
     }
 
     /**

@@ -43,7 +43,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
 
     @Override
     public void onRequest(ChatModelRequestContext requestContext) {
-        log.info("监控 onRequest: {}", requestContext);
+        log.debug("监控 onRequest: {}", requestContext);
         requestContext.attributes().put(REQUEST_START_TIME_KEY, Instant.now());
 
         // 生成唯一的请求ID
@@ -53,7 +53,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
         // 多种方式获取监控上下文
         MonitorContext context = getMonitorContext();
         if (context == null) {
-            log.info("MonitorContext not available in onRequest, creating default context");
+            log.debug("MonitorContext not available in onRequest, creating default context");
             // 如果无法获取上下文，创建一个默认的（用于统计但不包含用户信息）
             context = MonitorContext.builder()
                     .userId("unknown")
@@ -61,7 +61,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
                     .aiCallPurpose("UNKNOWN")
                     .build();
         } else {
-            log.info("成功获取MonitorContext: userId={}, appId={}, aiCallPurpose={}",
+            log.debug("成功获取MonitorContext: userId={}, appId={}, aiCallPurpose={}",
                     context.getUserId(), context.getAppId(), context.getAiCallPurpose());
 
             // 检测是否是工具调用，并临时设置用途
@@ -146,7 +146,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
 
     @Override
     public void onResponse(ChatModelResponseContext responseContext) {
-        log.info("监控 onResponse: {}", responseContext);
+        log.debug("监控 onResponse: {}", responseContext);
 
         // 获取请求ID
         String requestId = (String) responseContext.attributes().get("request_id");
@@ -158,7 +158,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
         if (requestId != null) {
             context = requestContextManager.getContext(requestId);
             if (context != null) {
-                log.info("从请求ID获取MonitorContext成功: requestId={}, userId={}, appId={}, aiCallPurpose={}",
+                log.debug("从请求ID获取MonitorContext成功: requestId={}, userId={}, appId={}, aiCallPurpose={}",
                         requestId, context.getUserId(), context.getAppId(), context.getAiCallPurpose());
             }
         }
@@ -167,32 +167,32 @@ public class AiTokenStatisticsListener implements ChatModelListener {
         if (context == null) {
             context = (MonitorContext) responseContext.attributes().get(MONITOR_CONTEXT_KEY);
             if (context != null) {
-                log.info("从responseContext.attributes()获取MonitorContext成功: userId={}, appId={}, aiCallPurpose={}",
+                log.debug("从responseContext.attributes()获取MonitorContext成功: userId={}, appId={}, aiCallPurpose={}",
                         context.getUserId(), context.getAppId(), context.getAiCallPurpose());
             }
         }
 
         // 3. 尝试从ThreadLocal获取
         if (context == null) {
-            log.warn("从请求ID和attributes获取MonitorContext失败，尝试从ThreadLocal获取");
+            log.debug("从请求ID和attributes获取MonitorContext失败，尝试从ThreadLocal获取");
             context = MonitorContextHolder.getContext();
             if (context != null) {
-                log.info("从ThreadLocal获取MonitorContext成功: userId={}, appId={}, aiCallPurpose={}",
+                log.debug("从ThreadLocal获取MonitorContext成功: userId={}, appId={}, aiCallPurpose={}",
                         context.getUserId(), context.getAppId(), context.getAiCallPurpose());
             }
         }
 
         if (context == null) {
-            log.warn("MonitorContext为空，跳过Token统计");
+            log.debug("MonitorContext为空，跳过Token统计");
             return;
         }
 
-        log.info("成功获取MonitorContext: userId={}, appId={}, aiCallPurpose={}",
+        log.debug("成功获取MonitorContext: userId={}, appId={}, aiCallPurpose={}",
                 context.getUserId(), context.getAppId(), context.getAiCallPurpose());
 
         // 验证上下文数据有效性
         if (isInvalidMonitorId(context.getUserId()) || isInvalidMonitorId(context.getAppId())) {
-            log.warn("MonitorContext包含无效数据 userId={}, appId={}, 尝试从全局存储恢复",
+            log.debug("MonitorContext包含无效数据 userId={}, appId={}, 尝试从全局存储恢复",
                     context.getUserId(), context.getAppId());
 
             // 尝试从全局存储恢复（解决跨线程上下文丢失问题）
@@ -201,7 +201,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
                     && !isInvalidMonitorId(globalContext.getUserId())
                     && !isInvalidMonitorId(globalContext.getAppId())) {
                 context = globalContext;
-                log.info("从全局存储恢复MonitorContext成功: userId={}, appId={}",
+                log.debug("从全局存储恢复MonitorContext成功: userId={}, appId={}",
                         context.getUserId(), context.getAppId());
             }
         }
@@ -209,25 +209,34 @@ public class AiTokenStatisticsListener implements ChatModelListener {
         // 再次验证，如果仍然无效则使用兜底
         if (isInvalidMonitorId(context.getUserId()) || isInvalidMonitorId(context.getAppId())) {
             // 尝试兜底处理：使用system用户ID记录统计，至少不丢失token信息
+            var tokenUsageOpt = responseContext.chatResponse().tokenUsage();
+            if (tokenUsageOpt == null) {
+                log.debug("tokenUsage为空，跳过兜底Token统计");
+                if (requestId != null) {
+                    requestContextManager.removeContext(requestId);
+                }
+                return;
+            }
+
             TokenUsage fallbackTokenUsage = new TokenUsage();
             fallbackTokenUsage.setUserId(0L);
             fallbackTokenUsage.setAppId(0L);
             fallbackTokenUsage.setModelName(responseContext.chatResponse().modelName());
             fallbackTokenUsage.setAppType("UNKNOWN");
-            fallbackTokenUsage.setRequestTokenCount(responseContext.chatResponse().tokenUsage().inputTokenCount());
+            fallbackTokenUsage.setRequestTokenCount(tokenUsageOpt.inputTokenCount());
             fallbackTokenUsage.setCreateTime(LocalDateTime.now());
             fallbackTokenUsage.setUpdateTime(LocalDateTime.now());
-            fallbackTokenUsage.setResponseTokenCount(responseContext.chatResponse().tokenUsage().outputTokenCount());
-            fallbackTokenUsage.setTotalTokenCount(responseContext.chatResponse().tokenUsage().totalTokenCount());
+            fallbackTokenUsage.setResponseTokenCount(tokenUsageOpt.outputTokenCount());
+            fallbackTokenUsage.setTotalTokenCount(tokenUsageOpt.totalTokenCount());
             fallbackTokenUsage.setVersion(0);
 
             try {
                 tokenUsageService.save(fallbackTokenUsage);
-                log.info("保存兜底Token统计成功: model={}, input={}, output={}, total={}",
+                log.debug("保存兜底Token统计成功: model={}, input={}, output={}, total={}",
                         responseContext.chatResponse().modelName(),
-                        responseContext.chatResponse().tokenUsage().inputTokenCount(),
-                        responseContext.chatResponse().tokenUsage().outputTokenCount(),
-                        responseContext.chatResponse().tokenUsage().totalTokenCount());
+                        tokenUsageOpt.inputTokenCount(),
+                        tokenUsageOpt.outputTokenCount(),
+                        tokenUsageOpt.totalTokenCount());
             } catch (Exception e) {
                 log.error("保存兜底Token统计失败: {}", e.getMessage());
             }
@@ -244,12 +253,25 @@ public class AiTokenStatisticsListener implements ChatModelListener {
             Long userId = Long.valueOf(context.getUserId());
             String appType = getAppTypeSafely(context);
 
-            Integer inputTokens = responseContext.chatResponse().tokenUsage().inputTokenCount();
-            Integer outputTokens = responseContext.chatResponse().tokenUsage().outputTokenCount();
-            Integer totalTokens = responseContext.chatResponse().tokenUsage().totalTokenCount();
+            var chatTokenUsage = responseContext.chatResponse().tokenUsage();
+            if (chatTokenUsage == null) {
+                log.debug("tokenUsage为空，跳过Token统计: appId={}", context.getAppId());
+                if (requestId != null) {
+                    requestContextManager.removeContext(requestId);
+                }
+                MonitorContextHolder.clearContext();
+                if (context.getAppId() != null) {
+                    GlobalContextStorage.removeContext(context.getAppId());
+                }
+                return;
+            }
 
-            log.info("Token统计: userId={}, appId={}, aiCallPurpose={}, totalTokens={}",
-                    context.getUserId(), context.getAppId(), appType, totalTokens);
+            Integer inputTokens = chatTokenUsage.inputTokenCount();
+            Integer outputTokens = chatTokenUsage.outputTokenCount();
+            Integer totalTokens = chatTokenUsage.totalTokenCount();
+
+            log.info("Token统计: userId={}, appId={}, aiCallPurpose={}, input={}, output={}, total={}",
+                    context.getUserId(), context.getAppId(), appType, inputTokens, outputTokens, totalTokens);
 
             // 【Token累加合并】对于CODE_GENERATION类型，检查是否已存在记录并累加（带乐观锁重试）
             if ("CODE_GENERATION".equals(appType)) {
@@ -269,12 +291,12 @@ public class AiTokenStatisticsListener implements ChatModelListener {
 
                         boolean success = tokenUsageService.updateById(existingRecord);
                         if (success) {
-                            log.info("Token累加成功: appId={}, totalTokens={}, version={}",
+                            log.debug("Token累加成功: appId={}, totalTokens={}, version={}",
                                     context.getAppId(), existingRecord.getTotalTokenCount(), existingRecord.getVersion());
                             updated = true;
                             break;
                         } else {
-                            log.warn("Token累加乐观锁冲突，重试 {}/3: appId={}", retry + 1, context.getAppId());
+                            log.debug("Token累加乐观锁冲突，重试 {}/3: appId={}", retry + 1, context.getAppId());
                             Thread.sleep(50 * (retry + 1));
                         }
                     } else {
@@ -292,7 +314,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
                         tokenUsage.setVersion(0);
 
                         tokenUsageService.save(tokenUsage);
-                        log.info("Token统计创建: appId={}, totalTokens={}", context.getAppId(), totalTokens);
+                        log.debug("Token统计创建: appId={}, totalTokens={}", context.getAppId(), totalTokens);
                         updated = true;
                         break;
                     }
@@ -316,7 +338,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
 
                 tokenUsageService.save(tokenUsage);
 
-                log.info("Token统计保存: appId={}, aiCallPurpose={}, totalTokens={}",
+                log.debug("Token统计保存: appId={}, aiCallPurpose={}, totalTokens={}",
                         context.getAppId(), appType, totalTokens);
             }
         } catch (NumberFormatException e) {
@@ -348,8 +370,8 @@ public class AiTokenStatisticsListener implements ChatModelListener {
 
     @Override
     public void onError(ChatModelErrorContext errorContext) {
-        log.info("监控 onError: {}", errorContext);
-        log.error("Error occurred: {}", errorContext.error().getMessage());
+        log.debug("监控 onError: {}", errorContext);
+        log.error("AI模型调用异常: {}", errorContext.error().getMessage());
 
         // 🔥 【修复】错误情况下也要清理上下文
         try {
@@ -404,7 +426,7 @@ public class AiTokenStatisticsListener implements ChatModelListener {
             return context;
         }
 
-        log.warn("ThreadLocal中未找到MonitorContext，尝试从Reactor Context获取");
+        log.debug("ThreadLocal中未找到MonitorContext，尝试从Reactor Context获取");
 
         // 2. 尝试从Reactor Context获取
         try {
@@ -415,15 +437,15 @@ public class AiTokenStatisticsListener implements ChatModelListener {
             }).block(Duration.ofMillis(100));
 
             if (reactorContext != null) {
-                log.info("从Reactor Context获取MonitorContext成功: userId={}, appId={}, aiCallPurpose={}",
+                log.debug("从Reactor Context获取MonitorContext成功: userId={}, appId={}, aiCallPurpose={}",
                         reactorContext.getUserId(), reactorContext.getAppId(), reactorContext.getAiCallPurpose());
                 return reactorContext;
             }
         } catch (Exception e) {
-            log.warn("从Reactor Context获取MonitorContext失败: {}", e.getMessage());
+            log.debug("从Reactor Context获取MonitorContext失败: {}", e.getMessage());
         }
 
-        log.warn("所有方式都无法获取MonitorContext");
+        log.debug("所有方式都无法获取MonitorContext");
         return null;
     }
 
@@ -436,39 +458,39 @@ public class AiTokenStatisticsListener implements ChatModelListener {
         try {
             // 策略1: 优先从MonitorContext获取AI调用用途
             String aiCallPurpose = context.getAiCallPurpose();
-            log.info("检查MonitorContext: appId={}, aiCallPurpose={}", appId, aiCallPurpose);
+            log.debug("检查MonitorContext: appId={}, aiCallPurpose={}", appId, aiCallPurpose);
 
             if (aiCallPurpose != null && !aiCallPurpose.trim().isEmpty() && !"UNKNOWN".equals(aiCallPurpose)) {
-                log.info("从MonitorContext获取AI调用用途: appId={}, aiCallPurpose={}", appId, aiCallPurpose);
+                log.debug("从MonitorContext获取AI调用用途: appId={}, aiCallPurpose={}", appId, aiCallPurpose);
                 return aiCallPurpose;
             } else {
-                log.warn("MonitorContext中的aiCallPurpose无效: appId={}, aiCallPurpose={}", appId, aiCallPurpose);
+                log.debug("MonitorContext中的aiCallPurpose无效: appId={}, aiCallPurpose={}", appId, aiCallPurpose);
             }
 
             // 策略2: 从数据库获取（兜底方案）
             if (appId == null || "unknown".equals(appId)) {
-                log.warn("appId无效，使用默认AI调用用途: {}", appId);
+                log.debug("appId无效，使用默认AI调用用途: {}", appId);
                 return "UNKNOWN";
             }
 
-            log.info("尝试从数据库获取应用信息: appId={}", appId);
+            log.debug("尝试从数据库获取应用信息: appId={}", appId);
             Long appIdLong = Long.valueOf(appId);
             var app = appService.getById(appIdLong);
 
             if (app == null) {
-                log.warn("未找到应用记录，使用默认AI调用用途: appId={}", appId);
+                log.debug("未找到应用记录，使用默认AI调用用途: appId={}", appId);
                 return "UNKNOWN";
             }
 
             String dbCodeGenType = app.getCodeGenType();
             if (dbCodeGenType == null || dbCodeGenType.trim().isEmpty()) {
-                log.warn("应用的codeGenType为空，使用默认值: appId={}", appId);
+                log.debug("应用的codeGenType为空，使用默认值: appId={}", appId);
                 return "UNKNOWN";
             }
 
             // 将数据库中的代码生成类型映射为AI调用用途
             String mappedPurpose = mapCodeGenTypeToAiCallPurpose(dbCodeGenType);
-            log.info("从数据库获取并映射AI调用用途: appId={}, codeGenType={}, mappedPurpose={}",
+            log.debug("从数据库获取并映射AI调用用途: appId={}, codeGenType={}, mappedPurpose={}",
                     appId, dbCodeGenType, mappedPurpose);
             return mappedPurpose;
 

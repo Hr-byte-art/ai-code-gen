@@ -5,6 +5,10 @@ import type {
   UserVO,
   UserLoginRequest,
   UserRegisterRequest,
+  VipCodeRedemptionRequest,
+  VipCodeVO,
+  VipCodeAddRequest,
+  VipCodeUpdateRequest,
   UserUpdateRequest,
   ChangePasswordRequest,
   UserQueryRequest,
@@ -80,6 +84,11 @@ export function getMyInvited() {
   return request.post<ApiResponse<UserVO[]>>('/user/myInvited')
 }
 
+// 兑换会员码
+export function redeemVipCode(data: VipCodeRedemptionRequest) {
+  return request.post<ApiResponse<UserVO>>('/vip/vipCodeRedemption', data)
+}
+
 // ==================== 管理员接口 ====================
 
 // 分页获取用户列表（管理员）
@@ -101,4 +110,24 @@ export function createUser(data: {
 // 删除用户（管理员）
 export function deleteUser(id: string) {
   return request.post<ApiResponse<boolean>>('/user/delete', { id })
+}
+
+// 获取会员码列表（管理员）
+export function getVipCodeList() {
+  return request.get<ApiResponse<VipCodeVO[]>>('/vipCode/list')
+}
+
+// 创建会员码（管理员）
+export function createVipCode(data: VipCodeAddRequest) {
+  return request.post<ApiResponse<string>>('/vipCode/add', data)
+}
+
+// 更新会员码（管理员）
+export function updateVipCode(data: VipCodeUpdateRequest) {
+  return request.post<ApiResponse<string>>('/vipCode/update', data)
+}
+
+// 删除会员码（管理员）
+export function deleteVipCode(id: string) {
+  return request.post<ApiResponse<boolean>>('/vipCode/delete', { id })
 }
